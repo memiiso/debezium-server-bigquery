@@ -1,0 +1,43 @@
+# ==================== SOURCE DB == MYSQL ====================
+
+debezium.source.connector.class=io.debezium.connector.mysql.MySqlConnector
+debezium.source.offset.storage=org.apache.kafka.connect.storage.FileOffsetBackingStore
+debezium.source.offset.storage.file.filename=data/offsets.dat
+debezium.source.offset.flush.interval.ms=60000
+
+debezium.source.database.hostname=127.0.0.1
+debezium.source.database.port=3306
+debezium.source.database.user=user
+debezium.source.database.password=xyz
+debezium.source.database.dbname=mydb
+debezium.source.database.ssl.mode=required
+
+# false = ("op": "r") AND true = ("op": "c")
+debezium.source.snapshot.events.as.inserts=false
+
+# when decimal.handling.mode configuration property is set to double, then the connector will represent
+# all DECIMAL and NUMERIC values as Java double values and encodes them as follows:
+debezium.source.decimal.handling.mode=double
+
+# ==================== SINK ====================
+
+debezium.sink.type=bigquerybatch
+debezium.sink.bigquerybatch.project=test
+debezium.sink.bigquerybatch.dataset=test
+debezium.sink.bigquerybatch.location=EU
+debezium.sink.bigquerybatch.credentialsFile=/path/to/application_credentials.json
+
+# ==================== Misc ====================
+
+debezium.source.database.history.kafka.bootstrap.servers=kafka:9092
+debezium.source.database.history.kafka.topic=dbhistory.fullfillment
+debezium.source.include.schema.changes=false
+debezium.source.database.history=io.debezium.relational.history.FileDatabaseHistory
+debezium.source.database.history.file.filename=data/dbhistory.txt
+
+quarkus.http.port=8014
+
+# ==================== LOG LEVELS ====================
+quarkus.log.level=INFO
+# Ignore messages below warning level from Jetty, because it's a bit verbose
+quarkus.log.category."org.eclipse.jetty".level=WARN
