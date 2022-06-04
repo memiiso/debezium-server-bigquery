@@ -33,3 +33,12 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:latest
+
+#      - uses: vlaurin/action-ghcr-prune@main
+#        name: Prune Untagged Container Images
+#        with:
+#          token: ${{ secrets.PAT }}
+#          organization: ${{ github.repository_owner }}
+#          container: debezium-server-bigquery
+#          dry-run: true # Dry-run first, then change to `false`
+#          untagged: true
