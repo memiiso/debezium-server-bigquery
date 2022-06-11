@@ -19,18 +19,12 @@ import io.debezium.util.Clock;
 import io.debezium.util.Strings;
 import io.debezium.util.Threads;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javax.enterprise.inject.Any;
@@ -133,7 +127,7 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
       }
     }
     // workaround! somehow offset is not saved to file unless we call committer.markProcessed
-    // even its should be saved to file periodically
+    // even it's should be saved to file periodically
     for (ChangeEvent<Object, Object> record : records) {
       LOGGER.trace("Processed event '{}'", record);
       committer.markProcessed(record);
@@ -167,45 +161,7 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
     }
     return pl;
   }
-
-  protected File getJsonLinesFile(String destination, List<DebeziumBigqueryEvent> data) {
-
-    Instant start = Instant.now();
-    final File tempFile;
-    try {
-      tempFile = File.createTempFile(UUID.randomUUID() + "-", ".json");
-      FileOutputStream fos = new FileOutputStream(tempFile, true);
-      LOGGER.debug("Writing {} events as jsonlines file: {}", data.size(), tempFile);
-
-      for (DebeziumBigqueryEvent e : data) {
-        final JsonNode valNode = e.value();
-
-        if (valNode == null) {
-          LOGGER.warn("Null Value received skipping the entry! destination:{} key:{}", destination, getString(e.key()));
-          continue;
-        }
-
-        try {
-          final String valData = mapper.writeValueAsString(valNode) + System.lineSeparator();
-
-          fos.write(valData.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException ioe) {
-          LOGGER.error("Failed writing record to file", ioe);
-          fos.close();
-          throw new UncheckedIOException(ioe);
-        }
-      }
-
-      fos.close();
-
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-
-    LOGGER.trace("Writing jsonlines took:{}", Duration.between(start, Instant.now()).truncatedTo(ChronoUnit.SECONDS));
-    return tempFile;
-  }
-
-  public abstract long uploadDestination(String destination, List<DebeziumBigqueryEvent> data) throws InterruptedException;
+  
+  public abstract long uploadDestination(String destination, List<DebeziumBigqueryEvent> data);
 
 }

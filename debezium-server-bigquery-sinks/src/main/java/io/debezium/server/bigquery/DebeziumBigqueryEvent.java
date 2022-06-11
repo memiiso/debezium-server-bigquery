@@ -28,13 +28,13 @@ import org.slf4j.LoggerFactory;
 public class DebeziumBigqueryEvent {
   protected static final Logger LOGGER = LoggerFactory.getLogger(DebeziumBigqueryEvent.class);
 
-  private static ImmutableMap<Field.Mode, TableFieldSchema.Mode> BQTableSchemaModeMap =
+  private static final ImmutableMap<Field.Mode, TableFieldSchema.Mode> BQTableSchemaModeMap =
       ImmutableMap.of(
           Field.Mode.NULLABLE, TableFieldSchema.Mode.NULLABLE,
           Field.Mode.REPEATED, TableFieldSchema.Mode.REPEATED,
           Field.Mode.REQUIRED, TableFieldSchema.Mode.REQUIRED);
 
-  private static ImmutableMap<StandardSQLTypeName, TableFieldSchema.Type> BQTableSchemaTypeMap =
+  private static final ImmutableMap<StandardSQLTypeName, TableFieldSchema.Type> BQTableSchemaTypeMap =
       new ImmutableMap.Builder<StandardSQLTypeName, TableFieldSchema.Type>()
           .put(StandardSQLTypeName.BOOL, TableFieldSchema.Type.BOOL)
           .put(StandardSQLTypeName.BYTES, TableFieldSchema.Type.BYTES)
