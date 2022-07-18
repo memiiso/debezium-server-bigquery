@@ -71,7 +71,7 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
 
   BigQuery bqClient;
   TimePartitioning timePartitioning;
-  List<JobInfo.SchemaUpdateOption> schemaUpdateOptions = new ArrayList<>();
+  final List<JobInfo.SchemaUpdateOption> schemaUpdateOptions = new ArrayList<>();
 
   @PostConstruct
   void connect() throws InterruptedException {
