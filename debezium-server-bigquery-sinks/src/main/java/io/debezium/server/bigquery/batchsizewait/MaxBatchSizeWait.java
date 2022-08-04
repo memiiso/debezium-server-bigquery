@@ -52,14 +52,16 @@ public class MaxBatchSizeWait implements InterfaceBatchSizeWait {
     }
 
     LOGGER.info("Processed {}, " +
-            "QueueCurrentSize:{}, QueueTotalCapacity:{}, " +
-            "QueueCurrentUtilization:{}%" +
-            "SecondsBehindSource:{}, " +
-            "SnapshotCompleted:{}, snapshotRunning:{}",
+            "QueueCurrentSize:{}, " +
+            "QueueTotalCapacity:{}, " +
+            "QueueCurrentUtilization:{}%, " +
+            "MilliSecondsBehindSource:{}, " +
+            "SnapshotCompleted:{}, " +
+            "snapshotRunning:{}",
         numRecordsProcessed,
         debeziumMetrics.streamingQueueCurrentSize(), debeziumMetrics.maxQueueSize(),
         (debeziumMetrics.streamingQueueCurrentSize() / debeziumMetrics.maxQueueSize()) * 100,
-        (int) (debeziumMetrics.streamingMilliSecondsBehindSource() / 1000),
+        debeziumMetrics.streamingMilliSecondsBehindSource(),
         debeziumMetrics.snapshotCompleted(), debeziumMetrics.snapshotRunning()
     );
 
