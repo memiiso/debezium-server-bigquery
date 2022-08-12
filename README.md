@@ -9,40 +9,58 @@
     * [`bigquerystream` Consumer](#bigquerystream-consumer)
 * [Install from source](#install-from-source)
 
-# Debezium Batch Consumers
+# Debezium Bigquery Consumers
 
 This project adds Bigquery consumers
-to [Debezium Server](https://debezium.io/documentation/reference/operations/debezium-server.html). Using this consumers
-its possible to consume CDC events to bigquery.
+to [Debezium Server](https://debezium.io/documentation/reference/operations/debezium-server.html). With his consumers
+its possible to replicate RDBMS CDC events to Bigquery.
 
-![Debezium Batch Consumers](docs/images/debezium-batch.png)
+![Debezium Bigquery Consumers](docs/images/debezium-batch.png)
 
 ## `bigquerybatch` Consumer
 
 Consumes debezium events to Bigquery tables
 using [BigQuery Storage Write API](https://cloud.google.com/bigquery/docs/write-api).
-It groups and writes events to jsonlines file per destination. Then appends jsonlines to destination BigQuery table
-using BigQuery Write API.
+It groups and writes events and appends to destination BigQuery
+table [using BigQuery Write API](https://cloud.google.com/bigquery/docs/batch-loading-data#loading_data_from_local_files)
+.
 
-| Config                                             | Default            | Description                                                                           |
-|----------------------------------------------------|--------------------|---------------------------------------------------------------------------------------|
-| `debezium.sink.bigquerybatch.dataset`              |                    | Destination Bigquery dataset name                                                     |
-| `debezium.sink.bigquerybatch.location`             | `US`               | Bigquery table location                                                               |
-| `debezium.sink.bigquerybatch.project`              |                    | Bigquery project                                                                      |
-| `debezium.sink.bigquerybatch.createDisposition`    | `CREATE_IF_NEEDED` | Create tables if needed                                                               |
-| `debezium.sink.bigquerybatch.partitionField`       | `source_ts`        | Partition target tables by field                                                      |
-| `debezium.sink.bigquerybatch.partitionType`        | `MONTH`            | Partitioning type                                                                     |
-| `debezium.sink.bigquerybatch.allowFieldAddition`   | `true`             | Allow field addition to target tables                                                 |
-| `debezium.sink.bigquerybatch.allowFieldRelaxation` | `true`             | Allow field relaxation                                                                |
-| `debezium.sink.bigquerybatch.credentialsFile`      |                    | GCP service account credentialsFile                                                   |
-| `debezium.sink.bigquerybatch.cast-deleted-field`   | `false`            | Cast deleted field to bolean type(by default it is string mode)                       |
-| `debezium.sink.batch.destination-regexp`           | ``                 | Regexp to modify destination                                                          |
-| `debezium.sink.batch.destination-regexp-replace`   | ``                 | Regexp Replace part to modify destination                                             |
-| `debezium.sink.batch.batch-size-wait`              | `NoBatchSizeWait`  | Batch size wait strategy to optimize data files and upload interval. explained below. |
+| Config                                             | Default            | Description                                                                                                |
+|----------------------------------------------------|--------------------|------------------------------------------------------------------------------------------------------------|
+| `debezium.sink.bigquerybatch.dataset`              |                    | Destination Bigquery dataset name                                                                          |
+| `debezium.sink.bigquerybatch.location`             | `US`               | Bigquery table location                                                                                    |
+| `debezium.sink.bigquerybatch.project`              |                    | Bigquery project                                                                                           |
+| `debezium.sink.bigquerybatch.createDisposition`    | `CREATE_IF_NEEDED` | Create tables if needed                                                                                    |
+| `debezium.sink.bigquerybatch.partitionField`       | `__source_ts`      | Partition target tables by __source_ts field                                                               |
+| `debezium.sink.bigquerybatch.partitionType`        | `MONTH`            | Partitioning type                                                                                          |
+| `debezium.sink.bigquerybatch.allowFieldAddition`   | `true`             | Allow field addition to target tables                                                                      |
+| `debezium.sink.bigquerybatch.allowFieldRelaxation` | `true`             | Allow field relaxation                                                                                     |
+| `debezium.sink.bigquerybatch.credentialsFile`      |                    | GCP service account credentialsFile                                                                        |
+| `debezium.sink.bigquerybatch.cast-deleted-field`   | `false`            | Cast deleted field to boolean type(by default it is string type)                                           |
+| `debezium.sink.batch.destination-regexp`           | ``                 | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
+| `debezium.sink.batch.destination-regexp-replace`   | ``                 | Regexp Replace part to modify destination                                                                  |
+| `debezium.sink.batch.batch-size-wait`              | `NoBatchSizeWait`  | Batch size wait strategy to optimize data files and upload interval. explained below.                      |
 
 ## `bigquerystream` Consumer
 
-WIP
+Streams debezium events to Bigquery using
+the [Storage Write API](https://cloud.google.com/bigquery/docs/write-api-streaming).
+
+| Config                                             | Default           | Description                                                                                                |
+|----------------------------------------------------|-------------------|------------------------------------------------------------------------------------------------------------|
+| `debezium.sink.bigquerystream.dataset`             |                   | Destination Bigquery dataset name                                                                          |
+| `debezium.sink.bigquerystream.location`            | `US`              | Bigquery table location                                                                                    |
+| `debezium.sink.bigquerystream.project`             |                   | Bigquery project                                                                                           |
+| `debezium.sink.bigquerystream.ignoreUnknownFields` |                   | if true, unknown Json fields to BigQuery will be ignored instead of error out.                             |
+| `debezium.sink.bigquerystream.createIfNeeded`      |                   | Creates Bigquery table if not found                                                                        |
+| `debezium.sink.bigquerystream.partitionField`      | `__source_ts`     | Partition target tables by __source_ts field                                                               |
+| `debezium.sink.bigquerystream.partitionType`       | `MONTH`           | Partitioning type                                                                                          |
+| `debezium.sink.bigquerystream.allowFieldAddition`  | `false`           | Allow field addition to target tables                                                                      |
+| `debezium.sink.bigquerystream.credentialsFile`     |                   | GCP service account credentialsFile                                                                        |
+| `debezium.sink.bigquerystream.cast-deleted-field`  | `false`           | Cast deleted field to boolean type(by default it is string type)                                           |
+| `debezium.sink.batch.destination-regexp`           | ``                | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
+| `debezium.sink.batch.destination-regexp-replace`   | ``                | Regexp Replace part to modify destination                                                                  |
+| `debezium.sink.batch.batch-size-wait`              | `NoBatchSizeWait` | Batch size wait strategy to optimize data files and upload interval. explained below.                      |
 
 ### Mandatory config
 
@@ -56,7 +74,7 @@ debezium.format.schemas.enable=true
 
 #### Flattening Event Data
 
-Batch consumer requires event flattening, please
+Bigquery consumers requires event flattening, please
 see [debezium feature](https://debezium.io/documentation/reference/configuration/event-flattening.html#_configuration)
 
 ```properties
@@ -82,30 +100,12 @@ debezium properties
 
 This is default configuration, by default consumer will not use any wait. All the events are consumed immediately.
 
-#### DynamicBatchSizeWait
-
-**Deprecated**
-This wait strategy dynamically adds wait to increase batch size. Wait duration is calculated based on number of
-processed events in
-last 3 batches. if last batch sizes are lower than `max.batch.size` Wait duration will increase and if last batch sizes
-are bigger than 90% of `max.batch.size` Wait duration will decrease
-
-This strategy optimizes batch size between 85%-90% of the `max.batch.size`, it does not guarantee consistent batch size.
-
-example setup to receive ~2048 events per commit. maximum wait is set to 5 seconds
-
-```properties
-debezium.source.max.queue.size=16000
-debezium.source.max.batch.size=2048
-debezium.sink.batch.batch-size-wait=DynamicBatchSizeWait
-debezium.sink.batch.batch-size-wait.max-wait-ms=5000
-```
-
 #### MaxBatchSizeWait
 
-MaxBatchSizeWait uses debezium metrics to optimize batch size, this strategy is more precise compared to
-DynamicBatchSizeWait.
-MaxBatchSizeWait periodically reads streaming queue current size and waits until it reaches to `max.batch.size`.
+MaxBatchSizeWait uses debezium metrics to optimize batch size.
+MaxBatchSizeWait periodically reads streaming queue current size and waits until number of events reaches
+to `max.batch.size` or until `debezium.sink.batch.batch-size-wait.max-wait-ms`.
+
 Maximum wait and check intervals are controlled by `debezium.sink.batch.batch-size-wait.max-wait-ms`
 , `debezium.sink.batch.batch-size-wait.wait-interval-ms` properties.
 
