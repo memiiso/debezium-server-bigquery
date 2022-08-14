@@ -12,16 +12,16 @@
 # Debezium Bigquery Consumers
 
 This project adds Bigquery consumers
-to [Debezium Server](https://debezium.io/documentation/reference/operations/debezium-server.html). With his consumers
-its possible to replicate RDBMS CDC events to Bigquery.
+to [Debezium Server](https://debezium.io/documentation/reference/operations/debezium-server.html).
+This consumer replicates RDBMS CDC events to Bigquery in real time.
 
 ![Debezium Bigquery Consumers](docs/images/debezium-batch.png)
 
 ## `bigquerybatch` Consumer
 
-Consumes debezium events to Bigquery tables
+Writes debezium events to Bigquery
 using [BigQuery Storage Write API](https://cloud.google.com/bigquery/docs/write-api).
-It groups and writes events and appends to destination BigQuery
+It groups CDC events and appends to destination BigQuery
 table [using BigQuery Write API](https://cloud.google.com/bigquery/docs/batch-loading-data#loading_data_from_local_files)
 .
 
