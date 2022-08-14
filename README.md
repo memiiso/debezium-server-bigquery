@@ -147,3 +147,14 @@ quarkus.log.category."org.eclipse.jetty".level=WARN
       configuration
       in [application.properties.example](debezium-server-bigquery-sinks/src/main/resources/conf/application.properties.example)
     - Run the server using provided script: `bash run.sh`
+
+# Contributing
+
+The Memiiso community welcomes anyone that wants to help out in any way, whether that includes reporting problems,
+helping with documentation, or contributing code changes to fix bugs, add tests, or implement new features.
+
+### Contributors
+
+<a href="https://github.com/memiiso/debezium-server-bigquery/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=memiiso/debezium-server-bigquery" />
+</a>
