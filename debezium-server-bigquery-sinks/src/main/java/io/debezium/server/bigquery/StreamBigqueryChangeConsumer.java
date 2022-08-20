@@ -90,9 +90,6 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   private static JSONObject jsonNode2JSONObject(JsonNode jsonNode, Boolean castDeletedField) {
     Map<String, Object> jsonMap = mapper.convertValue(jsonNode, new TypeReference<>() {
     });
-    if (castDeletedField && jsonMap.containsKey("__deleted")) {
-      jsonMap.replace("__deleted", Boolean.parseBoolean((String) jsonMap.get("__deleted")));
-    }
     return new JSONObject(jsonMap);
   }
 
@@ -229,7 +226,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     Table table = bqClient.getTable(tableId);
     // create table if missing
     if (createIfNeeded && table == null) {
-      Schema schema = sampleBqEvent.getBigQuerySchema(castDeletedField, true);
+      Schema schema = sampleBqEvent.getBigQuerySchema(castDeletedField, true, true);
       Clustering clustering = sampleBqEvent.getBigQueryClustering();
 
       StandardTableDefinition tableDefinition =
@@ -245,7 +242,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     }
 
     if (allowFieldAddition) {
-      Schema eventSchema = sampleBqEvent.getBigQuerySchema(castDeletedField, true);
+      Schema eventSchema = sampleBqEvent.getBigQuerySchema(castDeletedField, true, true);
 
       List<Field> tableFields = new ArrayList<>(table.getDefinition().getSchema().getFields());
       List<String> fieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());

@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.TableResult;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Disabled;
@@ -42,6 +43,21 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
   @Test
   public void testVariousDataTypeConversion() throws Exception {
     this.loadVariousDataTypeConversion();
+    String dest = "testc.inventory.test_data_types";
+    Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
+      try {
+        return getTableData(dest, "int64(c_json.jfield) = 111 AND int64(c_jsonb.jfield) = 211").getTotalRows() == 1
+            && getTableData(dest, "int64(c_json.jfield) = 222 AND int64(c_jsonb.jfield) = 222").getTotalRows() == 1
+            && getTableField(dest, "c_json").getType() == LegacySQLTypeName.JSON
+            && getTableField(dest, "c_jsonb").getType() == LegacySQLTypeName.JSON
+            && getTableData(dest, "c_date = DATE('2017-02-10')").getTotalRows() == 1
+            && getTableData(dest, "c_date = DATE('2017-09-15')").getTotalRows() == 1
+            && getTableField(dest, "c_date").getType() == LegacySQLTypeName.DATE
+            ;
+      } catch (Exception e) {
+        return false;
+      }
+    });
   }
 
   @Test

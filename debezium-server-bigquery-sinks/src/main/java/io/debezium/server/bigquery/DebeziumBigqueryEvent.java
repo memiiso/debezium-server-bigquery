@@ -63,7 +63,8 @@ public class DebeziumBigqueryEvent {
     this.keySchema = keySchema;
   }
 
-  private static ArrayList<Field> getBigQuerySchemaFields(JsonNode schemaNode, Boolean castDeletedField, Boolean binaryAsString) {
+  private static ArrayList<Field> getBigQuerySchemaFields(JsonNode schemaNode, Boolean castDeletedField,
+                                                          Boolean binaryAsString, boolean isStream) {
 
     if (schemaNode == null) {
       return null;
@@ -89,13 +90,13 @@ public class DebeziumBigqueryEvent {
       // for all the debezium data types please see org.apache.kafka.connect.data.Schema;
       switch (fieldType) {
         case "struct":
-          // recursive call
-          ArrayList<Field> subFields = getBigQuerySchemaFields(jsonSchemaFieldNode, false, binaryAsString);
+          // recursive call for nested fields
+          ArrayList<Field> subFields = getBigQuerySchemaFields(jsonSchemaFieldNode, false, binaryAsString, isStream);
           fields.add(Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(subFields)).build());
           break;
         default:
           // default to String type
-          fields.add(getPrimitiveField(fieldType, fieldName, fieldSemanticType, castDeletedField, binaryAsString));
+          fields.add(getPrimitiveField(fieldType, fieldName, fieldSemanticType, castDeletedField, binaryAsString, isStream));
           break;
       }
     }
@@ -104,13 +105,35 @@ public class DebeziumBigqueryEvent {
   }
 
   private static Field getPrimitiveField(String fieldType, String fieldName, String fieldSemanticType,
-                                         boolean castDeletedField, boolean binaryAsString) {
+                                         boolean castDeletedField, boolean binaryAsString, boolean isStream) {
     switch (fieldType) {
       case "int8":
       case "int16":
       case "int32":
       case "int64":
-        return Field.of(fieldName, StandardSQLTypeName.INT64);
+        switch (fieldSemanticType) {
+          case "io.debezium.time.Date":
+            if (isStream) {
+              return Field.of(fieldName, StandardSQLTypeName.DATE);
+            } else {
+              // NOTE Not supported by batch load! it supports 'YYYY-MM-DD' format!
+              return Field.of(fieldName, StandardSQLTypeName.INT64);
+            }
+          case "io.debezium.time.Timestamp":
+            // NOTE automatic conversion not supported by batch load! it expects string datetime value!
+            // Caused by: io.grpc.StatusRuntimeException: INVALID_ARGUMENT: 
+            // Cannot return an invalid datetime value of 1562639337000 microseconds relative to the Unix epoch. 
+            // The range of valid datetime values is [0001-01-01 00:00:00, 9999-12-31 23:59:59.999999] on field c_timestamp0. 
+            return Field.of(fieldName, StandardSQLTypeName.INT64);
+          case "io.debezium.time.MicroTimestamp":
+            // NOTE automatic conversion not supported by batch load! it expects string datetime value!
+            return Field.of(fieldName, StandardSQLTypeName.INT64);
+          case "io.debezium.time.NanoTimestamp":
+            // NOTE automatic conversion not supported by batch load! it expects string datetime value!
+            return Field.of(fieldName, StandardSQLTypeName.INT64);
+          default:
+            return Field.of(fieldName, StandardSQLTypeName.INT64);
+        }
       case "float8":
       case "float16":
       case "float32":
@@ -123,8 +146,13 @@ public class DebeziumBigqueryEvent {
       case "string":
         switch (fieldSemanticType) {
           case "io.debezium.data.Json":
-            // NOTE! Not supported by batch load, BQ batch write api has issue with loading escaped json field name!
-            return Field.of(fieldName, StandardSQLTypeName.STRING);
+            if (isStream) {
+              // supported by stream consumer
+              return Field.of(fieldName, StandardSQLTypeName.JSON);
+            } else {
+              // NOTE! Not supported by batch load, BQ batch write api has issue with loading escaped json field name!
+              return Field.of(fieldName, StandardSQLTypeName.STRING);
+            }
           case "io.debezium.time.ZonedTimestamp":
             return Field.of(fieldName, StandardSQLTypeName.TIMESTAMP);
           default:
@@ -231,12 +259,8 @@ public class DebeziumBigqueryEvent {
     }
   }
 
-  public Schema getBigQuerySchema(Boolean castDeletedField) {
-    return getBigQuerySchema(castDeletedField, false);
-  }
-
-  public Schema getBigQuerySchema(Boolean castDeletedField, Boolean binaryAsString) {
-    ArrayList<Field> fields = getBigQuerySchemaFields(this.valueSchema(), castDeletedField, binaryAsString);
+  public Schema getBigQuerySchema(Boolean castDeletedField, Boolean binaryAsString, boolean isStream) {
+    ArrayList<Field> fields = getBigQuerySchemaFields(this.valueSchema(), castDeletedField, binaryAsString, isStream);
 
     if (fields == null) {
       return null;
