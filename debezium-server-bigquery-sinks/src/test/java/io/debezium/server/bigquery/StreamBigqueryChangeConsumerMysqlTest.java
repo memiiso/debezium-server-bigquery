@@ -17,12 +17,9 @@ import io.quarkus.test.junit.TestProfile;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import javax.inject.Inject;
 
-import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -36,54 +33,30 @@ import org.junit.jupiter.api.Test;
 @TestProfile(StreamBigqueryChangeConsumerMysqlTest.StreamBigqueryChangeConsumerMysqlTestProfile.class)
 @Disabled("manual run")
 public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
-
-  @Inject
-  StreamBigqueryChangeConsumer bqchangeConsumer;
-
-  @BeforeEach
-  public void setup() throws InterruptedException {
-    if (bqClient == null) {
-      bqchangeConsumer.initizalize();
-      super.setup(bqchangeConsumer.bqClient);
-    }
-  }
-
-  public TableId getTableId(String destination) {
-    return bqchangeConsumer.getTableId(destination);
-  }
-
+  
   @Test
-  public void testSimpleUpload() throws Exception {
-//    Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
-//      try {
-//        TableResult result = this.getTableData("testc.inventory.customers");
-//        result.iterateAll().forEach(System.out::println);
-//        return result.getTotalRows() >= 4;
-//      } catch (Exception e) {
-//        return false;
-//      }
-//    });
+  public void testMysqlSimpleUploadWithDelete() throws Exception {
 
     String sqlInsert =
-        "INSERT INTO inventory.test_delete_table (c_id, c_id2, c_data ) " +
+        "INSERT INTO inventory.test_table (c_id, c_id2, c_data ) " +
             "VALUES  (1,1,'data'),(1,2,'data'),(1,3,'data'),(1,4,'data') ;";
-    String sqlDelete = "DELETE FROM inventory.test_delete_table where c_id = 1 ;";
+    String sqlDelete = "DELETE FROM inventory.test_table where c_id = 1 ;";
     SourceMysqlDB.runSQL(sqlInsert);
     SourceMysqlDB.runSQL(sqlDelete);
     SourceMysqlDB.runSQL(sqlInsert);
     SourceMysqlDB.runSQL(sqlDelete);
     SourceMysqlDB.runSQL(sqlInsert);
-    String dest = "testc.inventory.test_delete_table";
+    String dest = "testc.inventory.test_table";
     Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
       try {
-        TableResult result = this.getTableData(dest);
+        TableResult result = getTableData(dest);
         result.iterateAll().forEach(System.out::println);
         System.out.println(result.getTotalRows());
         return result.getTotalRows() >= 20
-            && this.getTableData(dest, "__deleted = 'true'").getTotalRows() >= 8
-            && this.getTableData(dest, "__op = 'd'").getTotalRows() >= 8;
+            && getTableData(dest, "__deleted = 'true'").getTotalRows() >= 8
+            && getTableData(dest, "__op = 'd'").getTotalRows() >= 8;
       } catch (Exception e) {
-        e.printStackTrace();
+        //e.printStackTrace();
         return false;
       }
     });

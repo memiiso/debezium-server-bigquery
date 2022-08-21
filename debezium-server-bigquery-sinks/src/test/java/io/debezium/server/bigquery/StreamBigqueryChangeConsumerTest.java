@@ -17,12 +17,9 @@ import io.quarkus.test.junit.TestProfile;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import javax.inject.Inject;
 
-import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -37,54 +34,22 @@ import org.junit.jupiter.api.Test;
 @Disabled("manual run")
 public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
-  @Inject
-  StreamBigqueryChangeConsumer bqchangeConsumer;
-
-  @BeforeEach
-  public void setup() throws InterruptedException {
-    if (bqClient == null) {
-      bqchangeConsumer.initizalize();
-      super.setup(bqchangeConsumer.bqClient);
-    }
-  }
-
-  public TableId getTableId(String destination) {
-    return bqchangeConsumer.getTableId(destination);
-  }
-
 
   @Test
-  public void testSimpleUpload() throws InterruptedException {
-    Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
-      try {
-        TableResult result = this.getTableData("testc.inventory.geom");
-        result.iterateAll().forEach(System.out::println);
-        return result.getTotalRows() >= 3;
-      } catch (Exception e) {
-        return false;
-      }
-    });
+  public void testSimpleUpload() {
+    super.testSimpleUpload();
+  }
 
-    Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
-      try {
-        TableResult result = this.getTableData("testc.inventory.customers");
-        result.iterateAll().forEach(System.out::println);
-        return result.getTotalRows() >= 4;
-      } catch (Exception e) {
-        return false;
-      }
-    });
+  @Test
+  public void testVariousDataTypeConversion() throws Exception {
+    this.loadVariousDataTypeConversion();
   }
 
   @Test
   @Disabled
   public void testPerformance() throws Exception {
-    this.testPerformance(1500);
-  }
-
-  public void testPerformance(int maxBatchSize) throws Exception {
+    int maxBatchSize = 1500;
     int iteration = 1;
-    SourcePostgresqlDB.PGCreateTestDataTable();
     for (int i = 0; i <= iteration; i++) {
       new Thread(() -> {
         try {
@@ -98,23 +63,24 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
     Awaitility.await().atMost(Duration.ofSeconds(1200)).until(() -> {
       try {
-        TableResult result = this.getTableData("testc.inventory.test_date_table");
+        TableResult result = getTableData("testc.inventory.test_table");
         return result.getTotalRows() >= (long) iteration * maxBatchSize;
       } catch (Exception e) {
         return false;
       }
     });
 
-    TableResult result = this.getTableData("testc.inventory.test_date_table");
+    TableResult result = getTableData("testc.inventory.test_table");
     System.out.println("Row Count=" + result.getTotalRows());
   }
 
   @Test
+  @Disabled("WIP")
   public void testSchemaChanges() throws Exception {
     String dest = "testc.inventory.customers";
     Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
       try {
-        return this.getTableData(dest).getTotalRows() >= 4;
+        return getTableData(dest).getTotalRows() >= 4;
       } catch (Exception e) {
         e.printStackTrace();
         return false;
@@ -136,13 +102,13 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
     Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
       try {
-        //this.getTableData(dest).getValues().forEach(System.out::println);
-        return this.getTableData(dest).getTotalRows() >= 9
-            && this.getTableData(dest, "first_name = 'George__UPDATE1'").getTotalRows() == 3
-            && this.getTableData(dest, "first_name = 'SallyUSer2'").getTotalRows() == 1
-            && this.getTableData(dest, "last_name is null").getTotalRows() == 1
-            && this.getTableData(dest, "id = 1004 AND __op = 'd'").getTotalRows() == 1
-            //&& this.getTableData(dest, "test_varchar_column = 'value1'").getTotalRows() == 1
+        //getTableData(dest).getValues().forEach(System.out::println);
+        return getTableData(dest).getTotalRows() >= 9
+            && getTableData(dest, "first_name = 'George__UPDATE1'").getTotalRows() == 3
+            && getTableData(dest, "first_name = 'SallyUSer2'").getTotalRows() == 1
+            && getTableData(dest, "last_name is null").getTotalRows() == 1
+            && getTableData(dest, "id = 1004 AND __op = 'd'").getTotalRows() == 1
+            //&& getTableData(dest, "test_varchar_column = 'value1'").getTotalRows() == 1
             ;
       } catch (Exception e) {
         e.printStackTrace();
@@ -156,43 +122,14 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
     Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
       try {
-        this.getTableData(dest).getValues().forEach(System.out::println);
-        this.getTableData(dest).getSchema().getFields().forEach(System.out::println);
-        return this.getTableData(dest).getTotalRows() >= 10
-            && this.getTableData(dest, "first_name = 'User3'").getTotalRows() == 1
-            && this.getTableData(dest, "test_varchar_column = 'test_varchar_value3'").getTotalRows() == 1
+        getTableData(dest).getValues().forEach(System.out::println);
+        getTableData(dest).getSchema().getFields().forEach(System.out::println);
+        return getTableData(dest).getTotalRows() >= 10
+            && getTableData(dest, "first_name = 'User3'").getTotalRows() == 1
+            && getTableData(dest, "test_varchar_column = 'test_varchar_value3'").getTotalRows() == 1
             ;
       } catch (Exception e) {
         e.printStackTrace();
-        return false;
-      }
-    });
-  }
-
-  @Test
-  public void testVariousDataTypeConversion() throws Exception {
-    String sql = "INSERT INTO inventory.test_datatypes (" +
-        "c_id, c_json, c_jsonb, c_date, " +
-        "c_timestamp0, c_timestamp1, c_timestamp2, c_timestamp3, c_timestamp4, c_timestamp5, c_timestamp6, " +
-        "c_timestamptz)" +
-        "VALUES (1, null, null, null,null,null,null," +
-        "null,null,null,null,null)," +
-        "(2, '{\"reading\": 1123}'::json, '{\"reading\": 1123}'::jsonb, '2017-02-10'::DATE, " +
-        "'2019-07-09 02:28:57+01', '2019-07-09 02:28:57.1+01', '2019-07-09 02:28:57.12+01', " +
-        "'2019-07-09 02:28:57.123+01', '2019-07-09 02:28:57.1234+01','2019-07-09 02:28:57.12345+01', " +
-        "'2019-07-09 02:28:57.123456+01', '2019-07-09 02:28:57.123456+01')," +
-        "(3, '{\"reading\": 1123}'::json, '{\"reading\": 1123}'::jsonb, '2017-02-10'::DATE, " +
-        "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', " +
-        "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01','2019-07-09 02:28:57.666666+01', " +
-        "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01');" +
-        "DELETE FROM inventory.test_datatypes WHERE c_id > 0 ;";
-    String dest = "testc.inventory.test_datatypes";
-    SourcePostgresqlDB.runSQL(sql);
-    Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
-      try {
-        // @TODO validate resultset!!
-        return this.getTableData(dest).getTotalRows() >= 6;
-      } catch (Exception e) {
         return false;
       }
     });
@@ -203,7 +140,8 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
     public Map<String, String> getConfigOverrides() {
       Map<String, String> config = new HashMap<>();
       config.put("debezium.sink.type", "bigquerystream");
-      config.put("debezium.sink.bigquerystream.allowFieldAddition", "true");
+      config.put("debezium.sink.bigquerystream.allowFieldAddition", "false");
+      //config.put("debezium.source.table.include.list", "inventory.test_datatypes");
       return config;
     }
   }

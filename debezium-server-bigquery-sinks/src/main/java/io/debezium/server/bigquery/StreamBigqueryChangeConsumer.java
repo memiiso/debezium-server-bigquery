@@ -219,6 +219,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
       TableInfo tableInfo =
           TableInfo.newBuilder(tableId, tableDefinition).build();
       table = bqClient.create(tableInfo);
+      LOGGER.warn("Created table {}", table.getTableId());
     }
 
     if (allowFieldAddition) {
@@ -236,13 +237,13 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
       }
 
       if (fieldAddition) {
-        LOGGER.debug("Updating table with the new fields");
+        LOGGER.warn("Updating table {} with the new fields", table.getTableId());
         Schema newSchema = Schema.of(tableFields);
         Table updatedTable = table.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
         table = updatedTable.update();
         jsonStreamWriters.get(destination).close();
         jsonStreamWriters.replace(destination, getDataWriter(table));
-        LOGGER.info("New columns successfully added to table");
+        LOGGER.info("New columns successfully added to {}", table.getTableId());
       }
     }
     return table;
