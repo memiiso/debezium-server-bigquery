@@ -188,11 +188,11 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
           LOGGER.debug("Data successfully loaded to {}. rows: {}, jobStatistics: {}", tableId, numRecords,
               jobStatistics);
         } else {
-          throw new DebeziumException("BigQuery was unable to load into the table:" + tableId + "." +
-              "\nError:" + job.getStatus().getError() +
-              "\nJobStatistics:" + jobStatistics +
-              "\nBadRecords:" + jobStatistics.getBadRecords() +
-              "\nJobStatistics:" + jobStatistics);
+          throw new DebeziumException("Failed to load table: " + tableId + "!" +
+              " Error:" + job.getStatus().getError() +
+              ", JobStatistics:" + jobStatistics +
+              ", BadRecords:" + jobStatistics.getBadRecords() +
+              ", JobStatistics:" + jobStatistics);
         }
       }
 
@@ -205,7 +205,15 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
 
       return numRecords;
 
-    } catch (BigQueryException | InterruptedException | IOException e) {
+    } catch (BigQueryException be) {
+      StringBuilder err = new StringBuilder("Failed to load data:");
+      if (be.getErrors() != null) {
+        for (BigQueryError ber : be.getErrors()) {
+          err.append("\n").append(ber.getMessage());
+        }
+      }
+      throw new DebeziumException(err.toString(), be);
+    } catch (InterruptedException | IOException e) {
       e.printStackTrace();
       throw new DebeziumException(e);
     }

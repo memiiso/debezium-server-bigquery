@@ -35,6 +35,7 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.storage.v1.*;
+import com.google.common.annotations.Beta;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -48,6 +49,7 @@ import org.json.JSONObject;
  */
 @Named("bigquerystream")
 @Dependent
+@Beta
 public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   protected static final ConcurrentHashMap<String, DataWriter> jsonStreamWriters = new ConcurrentHashMap<>();
   private static final int MAX_RETRY_COUNT = 2;
@@ -276,14 +278,12 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
         Status status = Status.fromThrowable(throwable);
         if (retryCount < MAX_RETRY_COUNT
             && RETRIABLE_ERROR_CODES.contains(status.getCode())) {
-          try {
-            // Since default stream appends are not ordered, we can simply retry the appends.
-            // Retrying with exclusive streams requires more careful consideration.
-            this.appendSync(data, ++retryCount);
-            // Mark the existing attempt as done since it's being retried.
-          } catch (Exception e) {
-            throw new DebeziumException("Failed to append data to stream", e);
-          }
+          // Since default stream appends are not ordered, we can simply retry the appends.
+          // Retrying with exclusive streams requires more careful consideration.
+          this.appendSync(data, ++retryCount);
+          // Mark the existing attempt as done since it's being retried.
+        } else {
+          throw new DebeziumException("Failed to append data to stream " + streamWriter.getStreamName(), throwable);
         }
       }
 

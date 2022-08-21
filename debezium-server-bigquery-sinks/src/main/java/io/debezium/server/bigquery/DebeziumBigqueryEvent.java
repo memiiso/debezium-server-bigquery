@@ -48,6 +48,7 @@ public class DebeziumBigqueryEvent {
           .put(StandardSQLTypeName.STRUCT, TableFieldSchema.Type.STRUCT)
           .put(StandardSQLTypeName.TIME, TableFieldSchema.Type.TIME)
           .put(StandardSQLTypeName.TIMESTAMP, TableFieldSchema.Type.TIMESTAMP)
+          .put(StandardSQLTypeName.JSON, TableFieldSchema.Type.JSON)
           .build();
 
   protected final String destination;
@@ -252,11 +253,6 @@ public class DebeziumBigqueryEvent {
       fields.add(Field.of("__source_ts_ms", StandardSQLTypeName.INT64));
     }
     return Schema.of(fields);
-  }
-
-  public TableSchema getBigQueryTableSchema(Boolean castDeletedField) {
-    Schema schema = getBigQuerySchema(castDeletedField);
-    return DebeziumBigqueryEvent.convertBigQuerySchema2TableSchema(schema);
   }
 
 }
