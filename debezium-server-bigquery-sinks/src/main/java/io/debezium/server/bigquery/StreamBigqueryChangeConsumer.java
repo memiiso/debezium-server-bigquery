@@ -219,6 +219,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
       TableInfo tableInfo =
           TableInfo.newBuilder(tableId, tableDefinition).build();
       table = bqClient.create(tableInfo);
+      LOGGER.warn("Created table {}", table.getTableId());
     }
 
     if (allowFieldAddition) {

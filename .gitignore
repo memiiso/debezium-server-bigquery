@@ -1,4 +1,5 @@
 # Debezium gitignore
+/debezium-server-bigquery-sinks/src/test/resources/application.properties
 
 /cache/**
 /debezium-server-bigquery-sinks/cache/

@@ -8,6 +8,7 @@
 
 package io.debezium.server.bigquery.shared;
 
+import io.debezium.server.bigquery.BaseBigqueryTest;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
 import java.sql.Connection;
@@ -22,6 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import static io.debezium.server.bigquery.BaseBigqueryTest.CREATE_TEST_DATATYPES_TABLE;
+import static io.debezium.server.bigquery.BaseBigqueryTest.CREATE_TEST_TABLE;
+import static io.debezium.server.bigquery.ConfigSource.TABLES;
 
 public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
 
@@ -40,7 +44,7 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
 
   public static void runSQL(String query) throws SQLException, ClassNotFoundException {
     try {
-      String url = "jdbc:mysql://" + MYSQL_HOST + ":" + getMappedPort() + "/" + MYSQL_DATABASE + "?useSSL=false";
+      String url = "jdbc:mysql://" + MYSQL_HOST + ":" + container.getMappedPort(MYSQL_PORT_DEFAULT) + "/" + MYSQL_DATABASE + "?useSSL=false";
       Class.forName("com.mysql.cj.jdbc.Driver");
       Connection con = DriverManager.getConnection(url, MYSQL_USER, MYSQL_PASSWORD);
       Statement st = con.createStatement();
@@ -53,10 +57,6 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
     }
   }
 
-  public static Integer getMappedPort() {
-    return container.getMappedPort(MYSQL_PORT_DEFAULT);
-  }
-
   @Override
   public void stop() {
     if (container != null) {
@@ -64,16 +64,13 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
     }
   }
 
-  public static void createTestTables() throws SQLException, ClassNotFoundException {
-    // create test table
-    String sqlCreate = "CREATE TABLE IF NOT EXISTS inventory.test_delete_table (" +
-        " c_id INTEGER ," +
-        " c_id2 INTEGER ," +
-        " c_data TEXT," +
-        "  PRIMARY KEY (c_id, c_id2)" +
-        " );";
-    SourceMysqlDB.runSQL(sqlCreate);
-
+  public static void createTestTables() {
+    try {
+      SourceMysqlDB.runSQL(CREATE_TEST_TABLE);
+      SourceMysqlDB.runSQL(CREATE_TEST_DATATYPES_TABLE);
+    } catch (SQLException | ClassNotFoundException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -86,12 +83,10 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
         .withStartupTimeout(Duration.ofSeconds(30));
     container.start();
 
-    try {
-      SourceMysqlDB.createTestTables();
-    } catch (SQLException | ClassNotFoundException e) {
-      e.printStackTrace();
-      throw new RuntimeException(e);
-    }
+    SourceMysqlDB.createTestTables();
+
+    LOGGER.warn("Dropping all destination BQ tables");
+    TABLES.forEach(t -> BaseBigqueryTest.dropTable("testc.inventory." + t));
 
     Map<String, String> params = new ConcurrentHashMap<>();
     params.put("debezium.source.database.hostname", MYSQL_HOST);
@@ -100,7 +95,7 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
     params.put("debezium.source.database.password", MYSQL_DEBEZIUM_PASSWORD);
     params.put("debezium.source.database.dbname", MYSQL_DATABASE);
     params.put("debezium.source.database.include.list", "inventory");
-    params.put("debezium.source.table.include.list", "inventory.customers,inventory.test_delete_table");
+    params.put("debezium.source.table.include.list", "inventory.*");
     params.put("debezium.source.connector.class", "io.debezium.connector.mysql.MySqlConnector");
     params.put("debezium.transforms.unwrap.add.fields", "op,table,source.ts_ms,db,source.file,source.pos,source.row,source.gtid");
 

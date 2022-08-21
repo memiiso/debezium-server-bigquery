@@ -10,9 +10,19 @@ package io.debezium.server.bigquery;
 
 import io.debezium.server.TestConfigSource;
 
+import java.util.List;
+
 public class ConfigSource extends TestConfigSource {
+  public static String BQ_LOCATION = "EU";
+  // overriden by user src/test/resources/application.properties
+  public static String BQ_PROJECT = "test";
+  public static String BQ_DATASET = "stage";
+  public static String BQ_CRED_FILE = ""; // "/path/to/application_credentials.json"
+  public static List<String> TABLES = List.of("customers", "geom", "orders", "products", "products_on_hand",
+      "test_datatypes", "test_table");
 
   public ConfigSource() {
+    config.put("debezium.sink.type", "bigquerybatch");
     config.put("debezium.source.include.schema.changes", "false");
     config.put("debezium.source.decimal.handling.mode", "double");
     config.put("debezium.source.max.batch.size", "100");
@@ -29,14 +39,16 @@ public class ConfigSource extends TestConfigSource {
     // enable disable schema
     config.put("debezium.format.value.schemas.enable", "true");
     // batch
-    config.put("debezium.sink.bigquerybatch.project", "test");
-    config.put("debezium.sink.bigquerybatch.dataset", "stage");
-    config.put("debezium.sink.bigquerybatch.location", "EU");
+    // src/test/resources/application.properties
+    config.put("debezium.sink.bigquerybatch.project", BQ_PROJECT);
+    config.put("debezium.sink.bigquerybatch.dataset", BQ_DATASET);
+    config.put("debezium.sink.bigquerybatch.location", BQ_LOCATION);
+    config.put("debezium.sink.bigquerybatch.credentialsFile", BQ_CRED_FILE);
     // stream
-    config.put("debezium.sink.bigquerystream.project", "test");
-    config.put("debezium.sink.bigquerystream.dataset", "stage");
-    config.put("debezium.sink.bigquerystream.location", "EU");
-    //config.put("debezium.sink.bigquerybatch.credentialsFile", "/path/to/application_credentials.json");
+    config.put("debezium.sink.bigquerystream.project", BQ_PROJECT);
+    config.put("debezium.sink.bigquerystream.dataset", BQ_DATASET);
+    config.put("debezium.sink.bigquerystream.location", BQ_LOCATION);
+    config.put("debezium.sink.bigquerystream.credentialsFile", BQ_CRED_FILE);
     config.put("debezium.sink.batch.objectkey-prefix", "debezium-cdc-");
     config.put("debezium.sink.batch.objectkey-partition", "true");
 

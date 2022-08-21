@@ -100,6 +100,9 @@ public class DebeziumBigqueryEvent {
         case "float64":
           fields.add(Field.of(fieldName, StandardSQLTypeName.FLOAT64));
           break;
+        case "double":
+          fields.add(Field.of(fieldName, StandardSQLTypeName.FLOAT64));
+          break;
         case "boolean":
           fields.add(Field.of(fieldName, StandardSQLTypeName.BOOL));
           break;

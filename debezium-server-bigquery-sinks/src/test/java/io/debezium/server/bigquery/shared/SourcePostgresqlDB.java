@@ -8,6 +8,7 @@
 
 package io.debezium.server.bigquery.shared;
 
+import io.debezium.server.bigquery.BaseBigqueryTest;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
 import java.sql.Connection;
@@ -22,6 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import static io.debezium.server.bigquery.BaseBigqueryTest.CREATE_TEST_DATATYPES_TABLE;
+import static io.debezium.server.bigquery.BaseBigqueryTest.CREATE_TEST_TABLE;
+import static io.debezium.server.bigquery.ConfigSource.TABLES;
 
 public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
 
@@ -38,35 +42,19 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
 
   public static void runSQL(String query) throws SQLException, ClassNotFoundException {
     try {
-
       if (con == null) {
-        String url = "jdbc:postgresql://" + POSTGRES_HOST + ":" + getMappedPort() + "/" + POSTGRES_DBNAME;
+        String url = "jdbc:postgresql://" + POSTGRES_HOST + ":" + container.getMappedPort(POSTGRES_PORT_DEFAULT) + "/" + POSTGRES_DBNAME;
         Class.forName("org.postgresql.Driver");
         con = DriverManager.getConnection(url, POSTGRES_USER, POSTGRES_PASSWORD);
       }
 
       Statement st = con.createStatement();
       st.execute(query);
-      LOGGER.debug("Successfully executed SQL query!");
+      LOGGER.debug("Successfully executed\n{}", query);
     } catch (Exception e) {
       e.printStackTrace();
       throw e;
     }
-  }
-
-  public static Integer getMappedPort() {
-    return container.getMappedPort(POSTGRES_PORT_DEFAULT);
-  }
-
-  public static void PGCreateTestDataTable() throws Exception {
-    // create test table
-    String sql = "" +
-        "        CREATE TABLE IF NOT EXISTS inventory.test_date_table (\n" +
-        "            c_id INTEGER ,\n" +
-        "            c_text TEXT,\n" +
-        "            c_varchar VARCHAR" +
-        "          );";
-    SourcePostgresqlDB.runSQL(sql);
   }
 
   @Override
@@ -84,9 +72,6 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
     }
   }
 
-  public static int PGLoadTestDataTable(int numRows) throws Exception {
-    return PGLoadTestDataTable(numRows, false);
-  }
 
   public static int PGLoadTestDataTable(int numRows, boolean addRandomDelay) throws Exception {
     int numInsert = 0;
@@ -97,7 +82,7 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
           if (addRandomDelay) {
             Thread.sleep(TestUtil.randomInt(20000, 100000));
           }
-          String sql = "INSERT INTO inventory.test_date_table (c_id, c_text, c_varchar ) " +
+          String sql = "INSERT INTO inventory.test_table (c_id, c_text, c_varchar ) " +
               "VALUES ";
           StringBuilder values = new StringBuilder("\n(" + TestUtil.randomInt(15, 32) + ", '" + TestUtil.randomString(524) + "', '" + TestUtil.randomString(524) + "')");
           for (int i = 0; i < 200; i++) {
@@ -116,26 +101,10 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
     return numInsert;
   }
 
-  public static void createTestDataTypesTable() {
-    String sql = "\n" +
-        "        DROP TABLE IF EXISTS inventory.test_datatypes;\n" +
-        "        CREATE TABLE IF NOT EXISTS inventory.test_datatypes (\n" +
-        "            c_id INTEGER ,\n" +
-        "            c_json JSON,\n" +
-        "            c_jsonb JSONB,\n" +
-        "            c_date DATE,\n" +
-        "            c_timestamp0 TIMESTAMP(0),\n" +
-        "            c_timestamp1 TIMESTAMP(1),\n" +
-        "            c_timestamp2 TIMESTAMP(2),\n" +
-        "            c_timestamp3 TIMESTAMP(3),\n" +
-        "            c_timestamp4 TIMESTAMP(4),\n" +
-        "            c_timestamp5 TIMESTAMP(5),\n" +
-        "            c_timestamp6 TIMESTAMP(6),\n" +
-        "            c_timestamptz TIMESTAMPTZ,\n" +
-        "            PRIMARY KEY (c_id)\n" +
-        "          );";
+  public static void createTestTables() {
     try {
-      SourcePostgresqlDB.runSQL(sql);
+      SourcePostgresqlDB.runSQL(CREATE_TEST_TABLE);
+      SourcePostgresqlDB.runSQL(CREATE_TEST_DATATYPES_TABLE);
     } catch (SQLException | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
@@ -153,7 +122,10 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
         .withStartupTimeout(Duration.ofSeconds(30));
     container.start();
 
-    SourcePostgresqlDB.createTestDataTypesTable();
+    SourcePostgresqlDB.createTestTables();
+
+    LOGGER.warn("Dropping all destination BQ tables");
+    TABLES.forEach(t -> BaseBigqueryTest.dropTable("testc.inventory." + t));
 
     Map<String, String> params = new ConcurrentHashMap<>();
     params.put("debezium.source.database.hostname", POSTGRES_HOST);
