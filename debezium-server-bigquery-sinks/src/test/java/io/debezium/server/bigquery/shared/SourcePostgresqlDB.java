@@ -28,7 +28,7 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
   public static final String POSTGRES_USER = "postgres";
   public static final String POSTGRES_PASSWORD = "postgres";
   public static final String POSTGRES_DBNAME = "postgres";
-  public static final String POSTGRES_IMAGE = "debezium/example-postgres:1.5";
+  public static final String POSTGRES_IMAGE = "debezium/example-postgres:1.9";
   public static final String POSTGRES_HOST = "localhost";
   public static final Integer POSTGRES_PORT_DEFAULT = 5432;
   private static final Logger LOGGER = LoggerFactory.getLogger(SourcePostgresqlDB.class);
@@ -56,6 +56,64 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
     return container.getMappedPort(POSTGRES_PORT_DEFAULT);
   }
 
+  public static void PGCreateTestDataTable() throws Exception {
+    // create test table
+    String sql = "" +
+        "        CREATE TABLE IF NOT EXISTS inventory.test_date_table (\n" +
+        "            c_id INTEGER ,\n" +
+        "            c_text TEXT,\n" +
+        "            c_varchar VARCHAR" +
+        "          );";
+    SourcePostgresqlDB.runSQL(sql);
+  }
+
+  public static int PGLoadTestDataTable(int numRows) throws Exception {
+    return PGLoadTestDataTable(numRows, false);
+  }
+
+  public static int PGLoadTestDataTable(int numRows, boolean addRandomDelay) throws Exception {
+    int numInsert = 0;
+    do {
+
+      new Thread(() -> {
+        try {
+          if (addRandomDelay) {
+            Thread.sleep(TestUtil.randomInt(20000, 100000));
+          }
+          String sql = "INSERT INTO inventory.test_date_table (c_id, c_text, c_varchar ) " +
+              "VALUES ";
+          StringBuilder values = new StringBuilder("\n(" + TestUtil.randomInt(15, 32) + ", '" + TestUtil.randomString(524) + "', '" + TestUtil.randomString(524) + "')");
+          for (int i = 0; i < 200; i++) {
+            values.append("\n,(").append(TestUtil.randomInt(15, 32)).append(", '").append(TestUtil.randomString(524)).append("', '").append(TestUtil.randomString(524)).append("')");
+          }
+          SourcePostgresqlDB.runSQL(sql + values);
+          SourcePostgresqlDB.runSQL("COMMIT;");
+        } catch (Exception e) {
+          e.printStackTrace();
+          Thread.currentThread().interrupt();
+        }
+      }).start();
+
+      numInsert += 200;
+    } while (numInsert <= numRows);
+    return numInsert;
+  }
+
+  @Override
+  public void stop() {
+    if (container != null) {
+      container.stop();
+    }
+
+    try {
+      if (con != null) {
+        con.close();
+      }
+    } catch (SQLException e) {
+      //
+    }
+  }
+
   @Override
   public Map<String, String> start() {
     container = new GenericContainer<>(POSTGRES_IMAGE)
@@ -77,19 +135,5 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
     return params;
   }
 
-  @Override
-  public void stop() {
-    if (container != null) {
-      container.stop();
-    }
-
-    try {
-      if (con != null) {
-        con.close();
-      }
-    } catch (SQLException e) {
-      //
-    }
-  }
 
 }

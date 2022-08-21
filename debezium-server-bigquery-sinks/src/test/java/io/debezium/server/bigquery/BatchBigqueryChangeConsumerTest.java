@@ -22,8 +22,6 @@ import com.google.cloud.bigquery.TableResult;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import static io.debezium.server.bigquery.shared.BaseTest.PGCreateTestDataTable;
-import static io.debezium.server.bigquery.shared.BaseTest.PGLoadTestDataTable;
 
 /**
  * Integration test that verifies basic reading from PostgreSQL database and writing to s3 destination.
@@ -170,11 +168,11 @@ public class BatchBigqueryChangeConsumerTest {
 
   public void testPerformance(int maxBatchSize) throws Exception {
     int iteration = 1;
-    PGCreateTestDataTable();
+    SourcePostgresqlDB.PGCreateTestDataTable();
     for (int i = 0; i <= iteration; i++) {
       new Thread(() -> {
         try {
-          PGLoadTestDataTable(maxBatchSize, false);
+          SourcePostgresqlDB.PGLoadTestDataTable(maxBatchSize, false);
         } catch (Exception e) {
           e.printStackTrace();
           Thread.currentThread().interrupt();

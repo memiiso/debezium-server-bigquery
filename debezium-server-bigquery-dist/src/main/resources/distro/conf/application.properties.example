@@ -39,5 +39,6 @@ quarkus.http.port=8014
 
 # ==================== LOG LEVELS ====================
 quarkus.log.level=INFO
+quarkus.log.console.json=false
 # Ignore messages below warning level from Jetty, because it's a bit verbose
 quarkus.log.category."org.eclipse.jetty".level=WARN
