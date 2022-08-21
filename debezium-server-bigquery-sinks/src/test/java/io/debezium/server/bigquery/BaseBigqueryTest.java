@@ -35,9 +35,7 @@ public abstract class BaseBigqueryTest {
     this.bqClient = bqClient;
     // remove all the tables from BQ!
     LOGGER.warn("Truncating all destination tables");
-    for (String t : tables) {
-      truncateTable("testc.inventory." + t);
-    }
+    tables.forEach(t -> truncateTable("testc.inventory." + t));
   }
 
   public TableResult simpleQuery(String query) throws InterruptedException {
@@ -50,15 +48,23 @@ public abstract class BaseBigqueryTest {
     }
   }
 
-  public void truncateTable(String destination) throws InterruptedException {
+  public void truncateTable(String destination) {
     TableId tableId = this.getTableId(destination);
-    this.simpleQuery("TRUNCATE TABLE " + tableId.getProject() + "." + tableId.getDataset() + "." + tableId.getTable());
+    try {
+      this.simpleQuery("TRUNCATE TABLE " + tableId.getProject() + "." + tableId.getDataset() + "." + tableId.getTable());
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
-  public void dropTable(String destination) throws InterruptedException {
+  public void dropTable(String destination) {
     TableId tableId = this.getTableId(destination);
     LOGGER.warn("Dropping table {}", tableId);
-    this.simpleQuery("DROP TABLE IF EXISTS " + tableId.getProject() + "." + tableId.getDataset() + "." + tableId.getTable());
+    try {
+      this.simpleQuery("DROP TABLE IF EXISTS " + tableId.getProject() + "." + tableId.getDataset() + "." + tableId.getTable());
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public TableResult getTableData(String destination, String where) throws InterruptedException {
