@@ -11,14 +11,12 @@ package io.debezium.server.bigquery;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.storage.v1.TableFieldSchema;
 import com.google.cloud.bigquery.storage.v1.TableSchema;
 import com.google.common.collect.ImmutableMap;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,6 +81,10 @@ public class DebeziumBigqueryEvent {
     for (JsonNode jsonSchemaFieldNode : schemaNode.get("fields")) {
       String fieldName = jsonSchemaFieldNode.get("field").textValue();
       String fieldType = jsonSchemaFieldNode.get("type").textValue();
+      String fieldSemanticType = "NO-SEMANTIC-TYPE";
+      if (jsonSchemaFieldNode.has("name")) {
+        fieldSemanticType = jsonSchemaFieldNode.get("name").textValue();
+      }
       LOGGER.trace("Processing Field: {}.{}::{}", schemaName, fieldName, fieldType);
       // for all the debezium data types please see org.apache.kafka.connect.data.Schema;
       switch (fieldType) {
@@ -102,9 +104,20 @@ public class DebeziumBigqueryEvent {
           fields.add(Field.of(fieldName, StandardSQLTypeName.BOOL));
           break;
         case "string":
-          fields.add((castDeletedField && Objects.equals(fieldName, "__deleted"))
-              ? Field.of(fieldName, StandardSQLTypeName.BOOL)
-              : Field.of(fieldName, StandardSQLTypeName.STRING));
+          switch (fieldSemanticType) {
+            case "io.debezium.data.Json":
+              // NOTE! Not supported by batch load, BQ batch write api has issue with loading escaped json field name!
+              fields.add(Field.of(fieldName, StandardSQLTypeName.STRING));
+              break;
+            case "io.debezium.time.ZonedTimestamp":
+              fields.add(Field.of(fieldName, StandardSQLTypeName.TIMESTAMP));
+              break;
+            default:
+              fields.add((castDeletedField && Objects.equals(fieldName, "__deleted"))
+                  ? Field.of(fieldName, StandardSQLTypeName.BOOL)
+                  : Field.of(fieldName, StandardSQLTypeName.STRING));
+              break;
+          }
           break;
         case "bytes":
           if (binaryAsString) {
@@ -214,24 +227,6 @@ public class DebeziumBigqueryEvent {
     } else {
       return getBigQueryClustering(this.keySchema());
     }
-  }
-
-  public String getBigQueryClusteringFields() {
-
-    if (this.keySchema() == null) {
-      return "__source_ts";
-    }
-
-    List<String> keyFields = getBigQuerySchemaFields(this.keySchema(), false, false)
-        .stream()
-        .map(Field::getName)
-        .collect(Collectors.toList());
-
-    if (keyFields.isEmpty()) {
-      return "__source_ts";
-    }
-
-    return StringUtils.strip(String.join(",", keyFields) + ",__source_ts", ",");
   }
 
   public Schema getBigQuerySchema(Boolean castDeletedField) {
