@@ -8,7 +8,6 @@
 
 package io.debezium.server.bigquery.shared;
 
-import io.debezium.server.bigquery.BaseBigqueryTest;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
 import java.sql.Connection;
@@ -23,9 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import static io.debezium.server.bigquery.BaseBigqueryTest.CREATE_TEST_DATATYPES_TABLE;
 import static io.debezium.server.bigquery.BaseBigqueryTest.CREATE_TEST_TABLE;
-import static io.debezium.server.bigquery.ConfigSource.TABLES;
 
 public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
 
@@ -67,7 +64,7 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
   public static void createTestTables() {
     try {
       SourceMysqlDB.runSQL(CREATE_TEST_TABLE);
-      SourceMysqlDB.runSQL(CREATE_TEST_DATATYPES_TABLE);
+      //SourceMysqlDB.runSQL(CREATE_TEST_DATATYPES_TABLE);
     } catch (SQLException | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
@@ -86,7 +83,7 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
     SourceMysqlDB.createTestTables();
 
     LOGGER.warn("Dropping all destination BQ tables");
-    TABLES.forEach(t -> BaseBigqueryTest.dropTable("testc.inventory." + t));
+    //TABLES.forEach(t -> BaseBigqueryTest.dropTable("testc.inventory." + t));
 
     Map<String, String> params = new ConcurrentHashMap<>();
     params.put("debezium.source.database.hostname", MYSQL_HOST);

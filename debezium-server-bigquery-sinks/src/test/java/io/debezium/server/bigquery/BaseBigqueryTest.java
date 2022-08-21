@@ -39,8 +39,8 @@ public class BaseBigqueryTest {
       " c_id2 INTEGER ," +
       " c_data TEXT," +
       " c_text TEXT," +
-      " c_varchar VARCHAR," +
-      "  PRIMARY KEY (c_id, c_id2)" +
+      " c_varchar VARCHAR(1666) ," +
+      " PRIMARY KEY (c_id, c_id2)" +
       " );";
 
   public static String CREATE_TEST_DATATYPES_TABLE = "\n" +
