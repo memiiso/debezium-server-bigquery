@@ -47,7 +47,9 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
 
       Statement st = con.createStatement();
       st.execute(query);
+      LOGGER.debug("Successfully executed SQL query!");
     } catch (Exception e) {
+      e.printStackTrace();
       throw e;
     }
   }
@@ -65,6 +67,21 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
         "            c_varchar VARCHAR" +
         "          );";
     SourcePostgresqlDB.runSQL(sql);
+  }
+
+  @Override
+  public void stop() {
+    if (container != null) {
+      container.stop();
+    }
+
+    try {
+      if (con != null) {
+        con.close();
+      }
+    } catch (SQLException e) {
+      //
+    }
   }
 
   public static int PGLoadTestDataTable(int numRows) throws Exception {
@@ -100,21 +117,6 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
   }
 
   @Override
-  public void stop() {
-    if (container != null) {
-      container.stop();
-    }
-
-    try {
-      if (con != null) {
-        con.close();
-      }
-    } catch (SQLException e) {
-      //
-    }
-  }
-
-  @Override
   public Map<String, String> start() {
     container = new GenericContainer<>(POSTGRES_IMAGE)
         .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*", 2))
@@ -126,12 +128,39 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
         .withStartupTimeout(Duration.ofSeconds(30));
     container.start();
 
+    String sql = "\n" +
+        "        DROP TABLE IF EXISTS inventory.test_datatypes;\n" +
+        "        CREATE TABLE IF NOT EXISTS inventory.test_datatypes (\n" +
+        "            c_id INTEGER ,\n" +
+        "            c_json JSON,\n" +
+        "            c_jsonb JSONB,\n" +
+        "            c_date DATE,\n" +
+        "            c_timestamp0 TIMESTAMP(0),\n" +
+        "            c_timestamp1 TIMESTAMP(1),\n" +
+        "            c_timestamp2 TIMESTAMP(2),\n" +
+        "            c_timestamp3 TIMESTAMP(3),\n" +
+        "            c_timestamp4 TIMESTAMP(4),\n" +
+        "            c_timestamp5 TIMESTAMP(5),\n" +
+        "            c_timestamp6 TIMESTAMP(6),\n" +
+        "            c_timestamptz TIMESTAMPTZ,\n" +
+        "            PRIMARY KEY (c_id)\n" +
+        "          );";
+    try {
+      SourcePostgresqlDB.runSQL(sql);
+    } catch (SQLException | ClassNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+
     Map<String, String> params = new ConcurrentHashMap<>();
     params.put("debezium.source.database.hostname", POSTGRES_HOST);
     params.put("debezium.source.database.port", container.getMappedPort(POSTGRES_PORT_DEFAULT).toString());
     params.put("debezium.source.database.user", POSTGRES_USER);
     params.put("debezium.source.database.password", POSTGRES_PASSWORD);
     params.put("debezium.source.database.dbname", POSTGRES_DBNAME);
+    params.put("debezium.source.schema.include.list", "inventory");
+    params.put("debezium.source.table.include.list", "inventory.*");
+    params.put("debezium.source.connector.class", "io.debezium.connector.postgresql.PostgresConnector");
+    params.put("debezium.transforms.unwrap.add.fields", "op,table,source.ts_ms,db,source.lsn,source.txId");
     return params;
   }
 
