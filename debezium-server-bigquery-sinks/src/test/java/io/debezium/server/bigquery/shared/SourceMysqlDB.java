@@ -46,6 +46,7 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
       Statement st = con.createStatement();
       st.execute(query);
       con.close();
+      LOGGER.debug("Successfully executed sql query");
     } catch (Exception e) {
       LOGGER.error(query);
       throw e;
@@ -85,14 +86,25 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
         .withStartupTimeout(Duration.ofSeconds(30));
     container.start();
 
+    try {
+      SourceMysqlDB.createTestTables();
+    } catch (SQLException | ClassNotFoundException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+
     Map<String, String> params = new ConcurrentHashMap<>();
-    params.put("%mysql.debezium.source.database.hostname", MYSQL_HOST);
-    params.put("%mysql.debezium.source.database.port", container.getMappedPort(MYSQL_PORT_DEFAULT).toString());
-    params.put("%mysql.debezium.source.database.user", MYSQL_DEBEZIUM_USER);
-    params.put("%mysql.debezium.source.database.password", MYSQL_DEBEZIUM_PASSWORD);
-    params.put("%mysql.debezium.source.database.dbname", MYSQL_DATABASE);
+    params.put("debezium.source.database.hostname", MYSQL_HOST);
+    params.put("debezium.source.database.port", container.getMappedPort(MYSQL_PORT_DEFAULT).toString());
+    params.put("debezium.source.database.user", MYSQL_DEBEZIUM_USER);
+    params.put("debezium.source.database.password", MYSQL_DEBEZIUM_PASSWORD);
+    params.put("debezium.source.database.dbname", MYSQL_DATABASE);
+    params.put("debezium.source.database.include.list", "inventory");
+    params.put("debezium.source.table.include.list", "inventory.customers,inventory.test_delete_table");
+    params.put("debezium.source.connector.class", "io.debezium.connector.mysql.MySqlConnector");
+    params.put("debezium.transforms.unwrap.add.fields", "op,table,source.ts_ms,db,source.file,source.pos,source.row,source.gtid");
+
     return params;
   }
-
 
 }

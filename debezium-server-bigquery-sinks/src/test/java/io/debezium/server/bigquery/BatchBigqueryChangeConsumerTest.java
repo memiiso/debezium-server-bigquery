@@ -11,15 +11,18 @@ package io.debezium.server.bigquery;
 import io.debezium.server.bigquery.shared.SourcePostgresqlDB;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import javax.inject.Inject;
 
-import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -29,53 +32,29 @@ import org.junit.jupiter.api.Test;
  * @author Ismail Simsek
  */
 @QuarkusTest
-@QuarkusTestResource(SourcePostgresqlDB.class)
+@QuarkusTestResource(value = SourcePostgresqlDB.class, restrictToAnnotatedClass = true)
 @TestProfile(BatchBigqueryChangeConsumerTestProfile.class)
 @Disabled("manual run")
-public class BatchBigqueryChangeConsumerTest {
+public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
   @Inject
   BatchBigqueryChangeConsumer bqchangeConsumer;
 
-  public TableResult simpleQuery(String query) throws InterruptedException {
 
-    if (bqchangeConsumer.bqClient == null) {
+  @BeforeEach
+  public void setup() throws InterruptedException {
+    if (bqClient == null) {
       bqchangeConsumer.initizalize();
-    }
-    //System.out.println(query);
-    QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
-    try {
-      return bqchangeConsumer.bqClient.query(queryConfig);
-    } catch (Exception e) {
-      return null;
+      super.setup(bqchangeConsumer.bqClient);
     }
   }
 
-  public void truncateTable(String destination) throws InterruptedException {
-    TableId tableId = bqchangeConsumer.getTableId(destination);
-    this.simpleQuery("TRUNCATE TABLE " + tableId.getProject() + "." + tableId.getDataset() + "." + tableId.getTable());
-  }
-
-  public void dropTable(String destination) throws InterruptedException {
-    TableId tableId = bqchangeConsumer.getTableId(destination);
-    this.simpleQuery("DROP TABLE IF EXISTS " + tableId.getProject() + "." + tableId.getDataset() + "." + tableId.getTable());
-  }
-
-  public TableResult getTableData(String destination, String where) throws InterruptedException {
-    TableId tableId = bqchangeConsumer.getTableId(destination);
-    return this.simpleQuery("SELECT * FROM " + tableId.getProject() + "." + tableId.getDataset() + "." + tableId.getTable()
-        + " WHERE " + where
-    );
-  }
-
-  public TableResult getTableData(String destination) throws InterruptedException {
-    return getTableData(destination, "1=1");
+  public TableId getTableId(String destination) {
+    return bqchangeConsumer.getTableId(destination);
   }
 
   @Test
   public void testSimpleUpload() throws InterruptedException {
-    truncateTable("testc.inventory.geom");
-    truncateTable("testc.inventory.customers");
     Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
       try {
         TableResult result = this.getTableData("testc.inventory.geom");
@@ -97,14 +76,45 @@ public class BatchBigqueryChangeConsumerTest {
     });
   }
 
+  @Test
+  public void testVariousDataTypeConversion() throws Exception {
+    String sql = "INSERT INTO inventory.test_datatypes (" +
+        "c_id, c_json, c_jsonb, c_date, " +
+        "c_timestamp0, c_timestamp1, c_timestamp2, c_timestamp3, c_timestamp4, c_timestamp5, c_timestamp6, " +
+        "c_timestamptz)" +
+        "VALUES (1, null, null, null,null,null,null," +
+        "null,null,null,null,null)," +
+        "(2, '{\"reading\": 1123}'::json, '{\"reading\": 1123}'::jsonb, '2017-02-10'::DATE, " +
+        "'2019-07-09 02:28:57+01', '2019-07-09 02:28:57.1+01', '2019-07-09 02:28:57.12+01', " +
+        "'2019-07-09 02:28:57.123+01', '2019-07-09 02:28:57.1234+01','2019-07-09 02:28:57.12345+01', " +
+        "'2019-07-09 02:28:57.123456+01', '2019-07-09 02:28:57.123456+01')," +
+        "(3, '{\"reading\": 1123}'::json, '{\"reading\": 1123}'::jsonb, '2017-02-10'::DATE, " +
+        "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', " +
+        "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01','2019-07-09 02:28:57.666666+01', " +
+        "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01')";
+    String dest = "testc.inventory.test_datatypes";
+    SourcePostgresqlDB.runSQL(sql);
+    Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
+      try {
+        // @TODO validate resultset!!
+        TableResult result = this.getTableData(dest);
+        result.iterateAll().forEach(System.out::println);
+        return result.getTotalRows() >= 3;
+      } catch (Exception e) {
+        return false;
+      }
+    });
+  }
+
 
   @Test
   public void testSchemaChanges() throws Exception {
     String dest = "testc.inventory.customers";
-    dropTable(dest);
     Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
       try {
-        return this.getTableData(dest).getTotalRows() >= 4;
+        TableResult result = this.getTableData(dest);
+        result.iterateAll().forEach(System.out::println);
+        return result.getTotalRows() >= 4;
       } catch (Exception e) {
         e.printStackTrace();
         return false;
@@ -127,11 +137,12 @@ public class BatchBigqueryChangeConsumerTest {
     Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
       try {
         //this.getTableData(dest).getValues().forEach(System.out::println);
+        this.getTableData(dest).iterateAll().forEach(System.out::println);
         return this.getTableData(dest).getTotalRows() >= 9
-            && this.getTableData(dest, "first_name = 'George__UPDATE1'").getTotalRows() == 3
-            && this.getTableData(dest, "first_name = 'SallyUSer2'").getTotalRows() == 1
-            && this.getTableData(dest, "last_name is null").getTotalRows() == 1
-            && this.getTableData(dest, "id = 1004 AND __op = 'd'").getTotalRows() == 1
+            && this.getTableData(dest, "first_name = 'George__UPDATE1'").getTotalRows() >= 3
+            && this.getTableData(dest, "first_name = 'SallyUSer2'").getTotalRows() >= 1
+            && this.getTableData(dest, "last_name is null").getTotalRows() >= 1
+            //&& this.getTableData(dest, "id = 1004 AND __op = 'd'").getTotalRows() == 1
             //&& this.getTableData(dest, "test_varchar_column = 'value1'").getTotalRows() == 1
             ;
       } catch (Exception e) {
@@ -161,8 +172,8 @@ public class BatchBigqueryChangeConsumerTest {
 
 
   @Test
+  @Disabled
   public void testPerformance() throws Exception {
-    truncateTable("testc.inventory.test_date_table");
     this.testPerformance(1500);
   }
 
@@ -191,5 +202,14 @@ public class BatchBigqueryChangeConsumerTest {
 
     TableResult result = this.getTableData("testc.inventory.test_date_table");
     System.out.println("Row Count=" + result.getTotalRows());
+  }
+}
+
+class BatchBigqueryChangeConsumerTestProfile implements QuarkusTestProfile {
+  @Override
+  public Map<String, String> getConfigOverrides() {
+    Map<String, String> config = new HashMap<>();
+    config.put("debezium.sink.type", "bigquerybatch");
+    return config;
   }
 }
