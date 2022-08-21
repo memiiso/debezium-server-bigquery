@@ -63,6 +63,18 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
     }
   }
 
+  public static void createTestTables() throws SQLException, ClassNotFoundException {
+    // create test table
+    String sqlCreate = "CREATE TABLE IF NOT EXISTS inventory.test_delete_table (" +
+        " c_id INTEGER ," +
+        " c_id2 INTEGER ," +
+        " c_data TEXT," +
+        "  PRIMARY KEY (c_id, c_id2)" +
+        " );";
+    SourceMysqlDB.runSQL(sqlCreate);
+
+  }
+
   @Override
   public Map<String, String> start() {
     container = new GenericContainer<>(MYSQL_IMAGE)
