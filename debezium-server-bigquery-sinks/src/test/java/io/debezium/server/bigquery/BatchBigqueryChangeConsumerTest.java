@@ -78,6 +78,8 @@ public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
   @Test
   public void testVariousDataTypeConversion() throws Exception {
+    String dest = "testc.inventory.test_datatypes";
+    dropTable(dest);
     String sql = "INSERT INTO inventory.test_datatypes (" +
         "c_id, c_json, c_jsonb, c_date, " +
         "c_timestamp0, c_timestamp1, c_timestamp2, c_timestamp3, c_timestamp4, c_timestamp5, c_timestamp6, " +
@@ -91,15 +93,15 @@ public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
         "(3, '{\"reading\": 1123}'::json, '{\"reading\": 1123}'::jsonb, '2017-02-10'::DATE, " +
         "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', " +
         "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01','2019-07-09 02:28:57.666666+01', " +
-        "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01')";
-    String dest = "testc.inventory.test_datatypes";
+        "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01');" +
+        "DELETE FROM  inventory.test_datatypes WHERE c_id>0;";
     SourcePostgresqlDB.runSQL(sql);
     Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
       try {
         // @TODO validate resultset!!
         TableResult result = this.getTableData(dest);
         result.iterateAll().forEach(System.out::println);
-        return result.getTotalRows() >= 3;
+        return result.getTotalRows() >= 6;
       } catch (Exception e) {
         return false;
       }

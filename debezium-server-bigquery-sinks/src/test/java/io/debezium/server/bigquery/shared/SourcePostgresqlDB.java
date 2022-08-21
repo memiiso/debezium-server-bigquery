@@ -116,18 +116,7 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
     return numInsert;
   }
 
-  @Override
-  public Map<String, String> start() {
-    container = new GenericContainer<>(POSTGRES_IMAGE)
-        .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*", 2))
-        .withEnv("POSTGRES_USER", POSTGRES_USER)
-        .withEnv("POSTGRES_PASSWORD", POSTGRES_PASSWORD)
-        .withEnv("POSTGRES_DB", POSTGRES_DBNAME)
-        .withEnv("POSTGRES_INITDB_ARGS", "-E UTF8")
-        .withEnv("LANG", "en_US.utf8")
-        .withStartupTimeout(Duration.ofSeconds(30));
-    container.start();
-
+  public static void createTestDataTypesTable() {
     String sql = "\n" +
         "        DROP TABLE IF EXISTS inventory.test_datatypes;\n" +
         "        CREATE TABLE IF NOT EXISTS inventory.test_datatypes (\n" +
@@ -150,6 +139,21 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
     } catch (SQLException | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  public Map<String, String> start() {
+    container = new GenericContainer<>(POSTGRES_IMAGE)
+        .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*", 2))
+        .withEnv("POSTGRES_USER", POSTGRES_USER)
+        .withEnv("POSTGRES_PASSWORD", POSTGRES_PASSWORD)
+        .withEnv("POSTGRES_DB", POSTGRES_DBNAME)
+        .withEnv("POSTGRES_INITDB_ARGS", "-E UTF8")
+        .withEnv("LANG", "en_US.utf8")
+        .withStartupTimeout(Duration.ofSeconds(30));
+    container.start();
+
+    SourcePostgresqlDB.createTestDataTypesTable();
 
     Map<String, String> params = new ConcurrentHashMap<>();
     params.put("debezium.source.database.hostname", POSTGRES_HOST);
@@ -163,6 +167,5 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
     params.put("debezium.transforms.unwrap.add.fields", "op,table,source.ts_ms,db,source.lsn,source.txId");
     return params;
   }
-
 
 }
