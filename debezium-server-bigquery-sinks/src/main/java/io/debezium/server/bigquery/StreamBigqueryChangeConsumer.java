@@ -14,12 +14,14 @@ import io.grpc.Status.Code;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -29,6 +31,7 @@ import javax.inject.Named;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.retrying.RetrySettings;
@@ -193,6 +196,25 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     }
     LOGGER.debug("Appended {} records to {} successfully.", numRecords, destination);
     return numRecords;
+  }
+
+  @Override
+  public JsonNode getPayload(String destination, Object val) {
+    JsonNode pl = valDeserializer.deserialize(destination, getBytes(val));
+    // used to partition tables __source_ts
+    // SEE https://cloud.google.com/bigquery/docs/write-api#data_type_conversions
+    //  TIMESTAMP => The value is given in microseconds since the Unix epoch (1970-01-01). 
+    if (pl.has("__source_ts_ms")) {
+      ((ObjectNode) pl).put("__source_ts",
+          TimeUnit.MICROSECONDS.convert(pl.get("__source_ts_ms").longValue(), TimeUnit.MILLISECONDS)
+      );
+    } else {
+      ((ObjectNode) pl).put("__source_ts_ms", Instant.now().toEpochMilli());
+      ((ObjectNode) pl).put("__source_ts",
+          TimeUnit.MICROSECONDS.convert(Instant.now().toEpochMilli(), TimeUnit.MILLISECONDS)
+      );
+    }
+    return pl;
   }
 
   public TableId getTableId(String destination) {
