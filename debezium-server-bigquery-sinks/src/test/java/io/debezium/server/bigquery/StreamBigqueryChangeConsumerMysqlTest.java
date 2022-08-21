@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
  */
 @QuarkusTest
 @QuarkusTestResource(value = SourceMysqlDB.class, restrictToAnnotatedClass = true)
-@TestProfile(StreamBigqueryChangeConsumerMysqlTestProfile.class)
+@TestProfile(StreamBigqueryChangeConsumerMysqlTest.StreamBigqueryChangeConsumerMysqlTestProfile.class)
 @Disabled("manual run")
 public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
 
@@ -88,14 +88,14 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
       }
     });
   }
-}
 
-class StreamBigqueryChangeConsumerMysqlTestProfile implements QuarkusTestProfile {
-  @Override
-  public Map<String, String> getConfigOverrides() {
-    Map<String, String> config = new HashMap<>();
-    config.put("debezium.sink.type", "bigquerystream");
-    config.put("debezium.sink.bigquerystream.allowFieldAddition", "true");
-    return config;
+  public static class StreamBigqueryChangeConsumerMysqlTestProfile implements QuarkusTestProfile {
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      Map<String, String> config = new HashMap<>();
+      config.put("debezium.sink.type", "bigquerystream");
+      config.put("debezium.sink.bigquerystream.allowFieldAddition", "true");
+      return config;
+    }
   }
 }

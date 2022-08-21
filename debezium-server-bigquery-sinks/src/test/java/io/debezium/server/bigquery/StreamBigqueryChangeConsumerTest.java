@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
  */
 @QuarkusTest
 @QuarkusTestResource(value = SourcePostgresqlDB.class, restrictToAnnotatedClass = true)
-@TestProfile(StreamBigqueryChangeConsumerTestProfile.class)
+@TestProfile(StreamBigqueryChangeConsumerTest.StreamBigqueryChangeConsumerTestProfile.class)
 @Disabled("manual run")
 public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
@@ -185,29 +185,26 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
         "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', " +
         "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01','2019-07-09 02:28:57.666666+01', " +
         "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01');" +
-        "commit;" +
-        "DELETE FROM inventory.test_datatypes WHERE c_id = 3 ;" +
-        "commit;";
+        "DELETE FROM inventory.test_datatypes WHERE c_id > 0 ;";
     String dest = "testc.inventory.test_datatypes";
     SourcePostgresqlDB.runSQL(sql);
     Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
       try {
         // @TODO validate resultset!!
-        return this.getTableData(dest).getTotalRows() >= 10;
+        return this.getTableData(dest).getTotalRows() >= 6;
       } catch (Exception e) {
         return false;
       }
     });
   }
 
-}
-
-class StreamBigqueryChangeConsumerTestProfile implements QuarkusTestProfile {
-  @Override
-  public Map<String, String> getConfigOverrides() {
-    Map<String, String> config = new HashMap<>();
-    config.put("debezium.sink.type", "bigquerystream");
-    config.put("debezium.sink.bigquerystream.allowFieldAddition", "true");
-    return config;
+  public static class StreamBigqueryChangeConsumerTestProfile implements QuarkusTestProfile {
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      Map<String, String> config = new HashMap<>();
+      config.put("debezium.sink.type", "bigquerystream");
+      config.put("debezium.sink.bigquerystream.allowFieldAddition", "true");
+      return config;
+    }
   }
 }

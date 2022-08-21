@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
  */
 @QuarkusTest
 @QuarkusTestResource(value = SourcePostgresqlDB.class, restrictToAnnotatedClass = true)
-@TestProfile(BatchBigqueryChangeConsumerTestProfile.class)
+@TestProfile(BatchBigqueryChangeConsumerTest.BatchBigqueryChangeConsumerTestProfile.class)
 @Disabled("manual run")
 public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
@@ -203,13 +203,13 @@ public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
     TableResult result = this.getTableData("testc.inventory.test_date_table");
     System.out.println("Row Count=" + result.getTotalRows());
   }
-}
 
-class BatchBigqueryChangeConsumerTestProfile implements QuarkusTestProfile {
-  @Override
-  public Map<String, String> getConfigOverrides() {
-    Map<String, String> config = new HashMap<>();
-    config.put("debezium.sink.type", "bigquerybatch");
-    return config;
+  public static class BatchBigqueryChangeConsumerTestProfile implements QuarkusTestProfile {
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      Map<String, String> config = new HashMap<>();
+      config.put("debezium.sink.type", "bigquerybatch");
+      return config;
+    }
   }
 }
