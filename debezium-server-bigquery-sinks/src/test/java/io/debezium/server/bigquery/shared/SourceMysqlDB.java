@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import static io.debezium.server.bigquery.BaseBigqueryTest.CREATE_TEST_TABLE;
 import static io.debezium.server.bigquery.ConfigSource.TABLES;
 
 public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
@@ -63,15 +62,6 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
     }
   }
 
-  public static void createTestTables() {
-    try {
-      SourceMysqlDB.runSQL(CREATE_TEST_TABLE);
-      //SourceMysqlDB.runSQL(CREATE_TEST_DATATYPES_TABLE);
-    } catch (SQLException | ClassNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   @Override
   public Map<String, String> start() {
     container = new GenericContainer<>(MYSQL_IMAGE)
@@ -81,8 +71,6 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
         .withEnv("MYSQL_ROOT_PASSWORD", MYSQL_ROOT_PASSWORD)
         .withStartupTimeout(Duration.ofSeconds(30));
     container.start();
-
-    SourceMysqlDB.createTestTables();
 
     LOGGER.warn("Dropping all destination BQ tables");
     TABLES.forEach(t -> BaseBigqueryTest.dropTable("testc.inventory." + t));
@@ -94,7 +82,6 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
     params.put("debezium.source.database.password", MYSQL_DEBEZIUM_PASSWORD);
     params.put("debezium.source.database.dbname", MYSQL_DATABASE);
     params.put("debezium.source.database.include.list", "inventory");
-    params.put("debezium.source.table.include.list", "inventory.*");
     params.put("debezium.source.connector.class", "io.debezium.connector.mysql.MySqlConnector");
     params.put("debezium.transforms.unwrap.add.fields", "op,table,source.ts_ms,db,source.file,source.pos,source.row,source.gtid");
 

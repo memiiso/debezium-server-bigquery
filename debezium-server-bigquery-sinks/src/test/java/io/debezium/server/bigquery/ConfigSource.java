@@ -19,7 +19,7 @@ public class ConfigSource extends TestConfigSource {
   public static String BQ_DATASET = "stage";
   public static String BQ_CRED_FILE = ""; // "/path/to/application_credentials.json"
   public static List<String> TABLES = List.of("customers", "geom", "orders", "products", "products_on_hand",
-      "test_datatypes", "test_table");
+      "test_data_types", "test_table");
 
   public ConfigSource() {
     config.put("debezium.sink.type", "bigquerybatch");
@@ -35,6 +35,7 @@ public class ConfigSource extends TestConfigSource {
     config.put("debezium.source.database.history.kafka.topic", "dbhistory.fullfillment");
     config.put("debezium.source.database.history", "io.debezium.relational.history.MemoryDatabaseHistory");
     //
+    config.put("debezium.source.table.include.list", "inventory.*");
     config.put("debezium.source.snapshot.select.statement.overrides.inventory.products_on_hand", "SELECT * FROM products_on_hand WHERE 1>2");
     // enable disable schema
     config.put("debezium.format.value.schemas.enable", "true");
@@ -55,8 +56,8 @@ public class ConfigSource extends TestConfigSource {
     // debezium unwrap message
     config.put("debezium.transforms", "unwrap");
     config.put("debezium.transforms.unwrap.type", "io.debezium.transforms.ExtractNewRecordState");
-    config.put("debezium.transforms.unwrap.drop.tombstones", "true");
     config.put("debezium.transforms.unwrap.delete.handling.mode", "rewrite");
+    config.put("debezium.transforms.unwrap.drop.tombstones", "true");
 
     // logging levels
     config.put("quarkus.log.level", "INFO");
