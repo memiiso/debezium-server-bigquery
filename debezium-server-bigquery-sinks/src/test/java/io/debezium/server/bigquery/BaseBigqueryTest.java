@@ -9,7 +9,6 @@
 package io.debezium.server.bigquery;
 
 import io.debezium.DebeziumException;
-import io.debezium.server.bigquery.shared.SourcePostgresqlDB;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -33,34 +32,6 @@ import static io.debezium.server.bigquery.ConfigSource.*;
 public class BaseBigqueryTest {
   public static final Logger LOGGER = LoggerFactory.getLogger(BaseBigqueryTest.class);
   public static BigQuery bqClient;
-  public static String CREATE_TEST_TABLE = "" +
-      "CREATE TABLE IF NOT EXISTS inventory.test_table (" +
-      " c_id INTEGER ," +
-      " c_id2 INTEGER ," +
-      " c_data TEXT," +
-      " c_text TEXT," +
-      " c_varchar VARCHAR(1666) ," +
-      " PRIMARY KEY (c_id, c_id2)" +
-      " );";
-
-  public static String CREATE_TEST_DATATYPES_TABLE = "\n" +
-      "        DROP TABLE IF EXISTS inventory.test_datatypes;\n" +
-      "        CREATE TABLE IF NOT EXISTS inventory.test_datatypes (\n" +
-      "            c_id INTEGER ,\n" +
-      "            c_json JSON,\n" +
-      "            c_jsonb JSONB,\n" +
-      "            c_date DATE,\n" +
-      "            c_timestamp0 TIMESTAMP(0),\n" +
-      "            c_timestamp1 TIMESTAMP(1),\n" +
-      "            c_timestamp2 TIMESTAMP(2),\n" +
-      "            c_timestamp3 TIMESTAMP(3),\n" +
-      "            c_timestamp4 TIMESTAMP(4),\n" +
-      "            c_timestamp5 TIMESTAMP(5),\n" +
-      "            c_timestamp6 TIMESTAMP(6),\n" +
-      "            c_timestamptz TIMESTAMPTZ,\n" +
-      "            PRIMARY KEY (c_id)\n" +
-      "          );" +
-      "ALTER TABLE inventory.test_datatypes REPLICA IDENTITY FULL;";
 
   static {
     GoogleCredentials credentials;
@@ -179,32 +150,18 @@ public class BaseBigqueryTest {
     });
   }
 
-  public void loadVariousDataTypeConversion() throws Exception {
-    String sql = "INSERT INTO inventory.test_datatypes (" +
-        "c_id, c_json, c_jsonb, c_date, " +
-        "c_timestamp0, c_timestamp1, c_timestamp2, c_timestamp3, c_timestamp4, c_timestamp5, c_timestamp6, " +
-        "c_timestamptz)" +
-        "VALUES (1, null, null, null,null,null,null," +
-        "null,null,null,null,null)," +
-        "(2, '{\"reading\": 1123}'::json, '{\"reading\": 1123}'::jsonb, '2017-02-10'::DATE, " +
-        "'2019-07-09 02:28:57+01', '2019-07-09 02:28:57.1+01', '2019-07-09 02:28:57.12+01', " +
-        "'2019-07-09 02:28:57.123+01', '2019-07-09 02:28:57.1234+01','2019-07-09 02:28:57.12345+01', " +
-        "'2019-07-09 02:28:57.123456+01', '2019-07-09 02:28:57.123456+01')," +
-        "(3, '{\"reading\": 1123}'::json, '{\"reading\": 1123}'::jsonb, '2017-02-10'::DATE, " +
-        "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', " +
-        "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01','2019-07-09 02:28:57.666666+01', " +
-        "'2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01')";
-
-    SourcePostgresqlDB.runSQL("DELETE FROM  inventory.test_datatypes WHERE c_id>0;");
-    SourcePostgresqlDB.runSQL(sql);
-    String dest = "testc.inventory.test_datatypes";
+  public void loadVariousDataTypeConversion() {
+    //SourcePostgresqlDB.runSQL("DELETE FROM  inventory.test_data_types WHERE c_id>0;");
+    String dest = "testc.inventory.test_data_types";
     Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
       try {
-        // @TODO validate resultset!!
-        TableResult result = getTableData(dest);
-        result.iterateAll().forEach(System.out::println);
-        return result.getTotalRows() >= 6
-            && getTableData(dest, "WHERE DATE(c_timestamptz) = DATE('2019-07-09')").getTotalRows() >= 6
+        //getTableData(dest).iterateAll().forEach(System.out::println);
+        return getTableData(dest).getTotalRows() >= 3
+            // '2019-07-09 02:28:10.123456+01' --> hour is UTC in BQ
+            && getTableData(dest, "c_timestamptz = TIMESTAMP('2019-07-09T01:28:10.123456Z')").getTotalRows() == 1
+            // '2019-07-09 02:28:20.666666+01' --> hour is UTC in BQ
+            && getTableData(dest, "c_timestamptz = TIMESTAMP('2019-07-09T01:28:20.666666Z')").getTotalRows() == 1
+            && getTableData(dest, "DATE(c_timestamptz) = DATE('2019-07-09')").getTotalRows() >= 2
             && getTableField(dest, "c_timestamptz").getType() == LegacySQLTypeName.TIMESTAMP
             ;
       } catch (Exception e) {

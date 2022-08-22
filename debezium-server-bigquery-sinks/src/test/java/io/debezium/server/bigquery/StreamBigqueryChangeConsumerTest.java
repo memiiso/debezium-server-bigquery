@@ -34,7 +34,6 @@ import org.junit.jupiter.api.Test;
 @Disabled("manual run")
 public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
-
   @Test
   public void testSimpleUpload() {
     super.testSimpleUpload();
@@ -141,7 +140,6 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
       Map<String, String> config = new HashMap<>();
       config.put("debezium.sink.type", "bigquerystream");
       config.put("debezium.sink.bigquerystream.allowFieldAddition", "false");
-      //config.put("debezium.source.table.include.list", "inventory.test_datatypes");
       return config;
     }
   }
