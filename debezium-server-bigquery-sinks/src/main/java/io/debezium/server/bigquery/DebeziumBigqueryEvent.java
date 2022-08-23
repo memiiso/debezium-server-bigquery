@@ -88,53 +88,6 @@ public class DebeziumBigqueryEvent {
       LOGGER.trace("Processing Field: {}.{}::{}", schemaName, fieldName, fieldType);
       // for all the debezium data types please see org.apache.kafka.connect.data.Schema;
       switch (fieldType) {
-        case "int8":
-        case "int16":
-        case "int32":
-        case "int64":
-          fields.add(Field.of(fieldName, StandardSQLTypeName.INT64));
-          break;
-        case "float8":
-        case "float16":
-        case "float32":
-        case "float64":
-          fields.add(Field.of(fieldName, StandardSQLTypeName.FLOAT64));
-          break;
-        case "double":
-          fields.add(Field.of(fieldName, StandardSQLTypeName.FLOAT64));
-          break;
-        case "boolean":
-          fields.add(Field.of(fieldName, StandardSQLTypeName.BOOL));
-          break;
-        case "string":
-          switch (fieldSemanticType) {
-            case "io.debezium.data.Json":
-              // NOTE! Not supported by batch load, BQ batch write api has issue with loading escaped json field name!
-              fields.add(Field.of(fieldName, StandardSQLTypeName.STRING));
-              break;
-            case "io.debezium.time.ZonedTimestamp":
-              fields.add(Field.of(fieldName, StandardSQLTypeName.TIMESTAMP));
-              break;
-            default:
-              fields.add((castDeletedField && Objects.equals(fieldName, "__deleted"))
-                  ? Field.of(fieldName, StandardSQLTypeName.BOOL)
-                  : Field.of(fieldName, StandardSQLTypeName.STRING));
-              break;
-          }
-          break;
-        case "bytes":
-          if (binaryAsString) {
-            fields.add(Field.of(fieldName, StandardSQLTypeName.STRING));
-          } else {
-            fields.add(Field.of(fieldName, StandardSQLTypeName.BYTES));
-          }
-          break;
-        case "array":
-          fields.add(Field.of(fieldName, StandardSQLTypeName.ARRAY));
-          break;
-        case "map":
-          fields.add(Field.of(fieldName, StandardSQLTypeName.STRUCT));
-          break;
         case "struct":
           // recursive call
           ArrayList<Field> subFields = getBigQuerySchemaFields(jsonSchemaFieldNode, false, binaryAsString);
@@ -142,12 +95,58 @@ public class DebeziumBigqueryEvent {
           break;
         default:
           // default to String type
-          fields.add(Field.of(fieldName, StandardSQLTypeName.STRING));
+          fields.add(getPrimitiveField(fieldType, fieldName, fieldSemanticType, castDeletedField, binaryAsString));
           break;
       }
     }
 
     return fields;
+  }
+
+  private static Field getPrimitiveField(String fieldType, String fieldName, String fieldSemanticType,
+                                         boolean castDeletedField, boolean binaryAsString) {
+    switch (fieldType) {
+      case "int8":
+      case "int16":
+      case "int32":
+      case "int64":
+        return Field.of(fieldName, StandardSQLTypeName.INT64);
+      case "float8":
+      case "float16":
+      case "float32":
+      case "float64":
+        return Field.of(fieldName, StandardSQLTypeName.FLOAT64);
+      case "double":
+        return Field.of(fieldName, StandardSQLTypeName.FLOAT64);
+      case "boolean":
+        return Field.of(fieldName, StandardSQLTypeName.BOOL);
+      case "string":
+        switch (fieldSemanticType) {
+          case "io.debezium.data.Json":
+            // NOTE! Not supported by batch load, BQ batch write api has issue with loading escaped json field name!
+            return Field.of(fieldName, StandardSQLTypeName.STRING);
+          case "io.debezium.time.ZonedTimestamp":
+            return Field.of(fieldName, StandardSQLTypeName.TIMESTAMP);
+          default:
+            return (castDeletedField && Objects.equals(fieldName, "__deleted"))
+                ? Field.of(fieldName, StandardSQLTypeName.BOOL)
+                : Field.of(fieldName, StandardSQLTypeName.STRING);
+        }
+      case "bytes":
+        if (binaryAsString) {
+          return Field.of(fieldName, StandardSQLTypeName.STRING);
+        } else {
+          return Field.of(fieldName, StandardSQLTypeName.BYTES);
+        }
+      case "array":
+        return Field.of(fieldName, StandardSQLTypeName.ARRAY);
+      case "map":
+        return Field.of(fieldName, StandardSQLTypeName.STRUCT);
+      default:
+        // default to String type
+        return Field.of(fieldName, StandardSQLTypeName.STRING);
+    }
+
   }
 
   private static Clustering getBigQueryClustering(JsonNode schemaNode) {
