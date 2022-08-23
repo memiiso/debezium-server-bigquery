@@ -1,0 +1,147 @@
+{
+  "schema": {
+    "type": "struct",
+    "fields": [
+      {
+        "type": "int32",
+        "optional": false,
+        "field": "c_id"
+      },
+      {
+        "type": "string",
+        "optional": true,
+        "name": "io.debezium.data.Json",
+        "version": 1,
+        "field": "c_json"
+      },
+      {
+        "type": "string",
+        "optional": true,
+        "name": "io.debezium.data.Json",
+        "version": 1,
+        "field": "c_jsonb"
+      },
+      {
+        "type": "int32",
+        "optional": true,
+        "name": "io.debezium.time.Date",
+        "version": 1,
+        "field": "c_date"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "name": "io.debezium.time.Timestamp",
+        "version": 1,
+        "field": "c_timestamp0"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "name": "io.debezium.time.Timestamp",
+        "version": 1,
+        "field": "c_timestamp1"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "name": "io.debezium.time.Timestamp",
+        "version": 1,
+        "field": "c_timestamp2"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "name": "io.debezium.time.Timestamp",
+        "version": 1,
+        "field": "c_timestamp3"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "name": "io.debezium.time.MicroTimestamp",
+        "version": 1,
+        "field": "c_timestamp4"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "name": "io.debezium.time.MicroTimestamp",
+        "version": 1,
+        "field": "c_timestamp5"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "name": "io.debezium.time.MicroTimestamp",
+        "version": 1,
+        "field": "c_timestamp6"
+      },
+      {
+        "type": "string",
+        "optional": true,
+        "name": "io.debezium.time.ZonedTimestamp",
+        "version": 1,
+        "field": "c_timestamptz"
+      },
+      {
+        "type": "string",
+        "optional": true,
+        "field": "__op"
+      },
+      {
+        "type": "string",
+        "optional": true,
+        "field": "__table"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "field": "__source_ts_ms"
+      },
+      {
+        "type": "string",
+        "optional": true,
+        "field": "__db"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "field": "__source_lsn"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "field": "__source_txId"
+      },
+      {
+        "type": "string",
+        "optional": true,
+        "field": "__deleted"
+      }
+    ],
+    "optional": false,
+    "name": "testc.inventory.test_data_types.Value"
+  },
+  "payload": {
+    "c_id": 2,
+    "c_json": "{\"jfield\": 111}",
+    "c_jsonb": "{\"jfield\": 211}",
+    "c_date": 17424,
+    "c_timestamp0": 1562639337000,
+    "c_timestamp1": 1562639337100,
+    "c_timestamp2": 1562639337120,
+    "c_timestamp3": 1562639337123,
+    "c_timestamp4": 1562639337123400,
+    "c_timestamp5": 1562639337123450,
+    "c_timestamp6": 1562639337123456,
+    "c_timestamptz": "2019-07-09T01:28:10.123456Z",
+    "__op": "r",
+    "__table": "test_data_types",
+    "__source_ts_ms": 1661255340398,
+    "__db": "postgres",
+    "__source_lsn": 36192976,
+    "__source_txId": 764,
+    "__deleted": "false"
+  }
+}

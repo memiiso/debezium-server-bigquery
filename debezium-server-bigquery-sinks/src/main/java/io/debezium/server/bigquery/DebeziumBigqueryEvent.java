@@ -145,6 +145,12 @@ public class DebeziumBigqueryEvent {
         return Field.of(fieldName, StandardSQLTypeName.BOOL);
       case "string":
         switch (fieldSemanticType) {
+          case "io.debezium.time.ISODate":
+            return Field.of(fieldName, StandardSQLTypeName.DATE);
+          case "io.debezium.time.ISODateTime":
+            return Field.of(fieldName, StandardSQLTypeName.DATETIME);
+          case "io.debezium.time.ISOTime":
+            return Field.of(fieldName, StandardSQLTypeName.TIME);
           case "io.debezium.data.Json":
             if (isStream) {
               // supported by stream consumer

@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
 @TestProfile(StreamBigqueryChangeConsumerMysqlTest.StreamBigqueryChangeConsumerMysqlTestProfile.class)
 @Disabled("manual run")
 public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
-  
+
   @Test
   public void testMysqlSimpleUploadWithDelete() throws Exception {
 

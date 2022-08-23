@@ -28,7 +28,6 @@
         <dependency>
             <groupId>org.jboss</groupId>
             <artifactId>jandex</artifactId>
-            <!--            <version>2.2.1.Final</version>-->
         </dependency>
         <!-- Debezium  -->
         <dependency>
@@ -58,6 +57,12 @@
         </dependency>
         <!-- END Google dependencies-->
         <!-- Testing -->
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-server-converters</artifactId>
+            <version>${revision}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5</artifactId>
@@ -95,7 +100,7 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.17.3</version>
+            <version>1.16.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>

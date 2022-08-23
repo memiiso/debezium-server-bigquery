@@ -11,6 +11,10 @@ debezium.source.database.user=user
 debezium.source.database.password=xyz
 debezium.source.database.dbname=mydb
 debezium.source.database.ssl.mode=required
+debezium.source.database.server.name=db
+
+#debezium.source.converters=bqdatetime
+#debezium.source.bqdatetime.type=io.debezium.server.converters.TemporalToISOStringConverter
 
 # false = ("op": "r") AND true = ("op": "c")
 debezium.source.snapshot.events.as.inserts=false
@@ -25,7 +29,7 @@ debezium.sink.type=bigquerybatch
 debezium.sink.bigquerybatch.project=test
 debezium.sink.bigquerybatch.dataset=test
 debezium.sink.bigquerybatch.location=EU
-debezium.sink.bigquerybatch.credentialsFile=/path/to/application_credentials.json
+# debezium.sink.bigquerybatch.credentialsFile=/path/to/application_credentials.json
 
 # ==================== Misc ====================
 
