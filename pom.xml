@@ -26,7 +26,7 @@
         <release>11</release>
         <skipITs>true</skipITs>
 
-        <version.groovy>3.0.10</version.groovy>
+        <version.groovy>3.0.12</version.groovy>
         <version.assembly.plugin>3.1.1</version.assembly.plugin>
         <version.jackson>2.13.3</version.jackson>
         <version.log4j>2.17.2</version.log4j>
@@ -34,7 +34,7 @@
         <version.debezium>1.9.5.Final</version.debezium>
         <version.mysql.driver>8.0.28</version.mysql.driver>
         <!-- Quarkus -->
-        <version.quarkus>2.10.3.Final</version.quarkus>
+        <version.quarkus>2.11.3.Final</version.quarkus>
         <!-- ANTLR -->
         <!-- Align with Antlr runtime version pulled in via debezium -->
         <version.antlr>4.8</version.antlr>
@@ -107,7 +107,7 @@
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
-                <version>[42.4.1,)</version>
+                <version>[42.4.2,)</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
