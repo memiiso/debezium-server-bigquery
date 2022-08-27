@@ -142,7 +142,7 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
       TableId tableId = getTableId(destination);
 
       DebeziumBigqueryEvent sampleEvent = data.get(0);
-      Schema schema = sampleEvent.getBigQuerySchema(castDeletedField);
+      Schema schema = sampleEvent.getBigQuerySchema(castDeletedField, false, false);
       Clustering clustering = sampleEvent.getBigQueryClustering();
 
       // Google BigQuery Configuration for a load operation. A load configuration can be used to load data
