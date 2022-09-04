@@ -94,6 +94,11 @@
                     <artifactId>debezium-server-bigquery-sinks</artifactId>
                     <version>${revision}</version>
                 </dependency>
+                <dependency>
+                    <groupId>io.debezium</groupId>
+                    <artifactId>debezium-server-converters</artifactId>
+                    <version>${revision}</version>
+                </dependency>
             </dependencies>
             <build>
                 <plugins>
