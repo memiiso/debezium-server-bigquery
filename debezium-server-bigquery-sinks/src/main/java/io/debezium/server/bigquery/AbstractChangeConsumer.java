@@ -33,7 +33,6 @@ import javax.inject.Inject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -102,7 +101,7 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
             -> {
           try {
             return new DebeziumBigqueryEvent(e.destination(),
-                getPayload(e.destination(), e.value()), //valDeserializer.deserialize(e.destination(), getBytes(e.value())),
+                valDeserializer.deserialize(e.destination(), getBytes(e.value())),
                 e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
                 mapper.readTree(getBytes(e.value())).get("schema"),
                 e.key() == null ? null : mapper.readTree(getBytes(e.key())).get("schema")
@@ -120,7 +119,9 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
       Map<JsonNode, List<DebeziumBigqueryEvent>> eventsGroupedBySchema =
           destinationEvents.getValue().stream()
               .collect(Collectors.groupingBy(DebeziumBigqueryEvent::valueSchema));
-      LOGGER.debug("Batch got {} records with {} different schema!!", destinationEvents.getValue().size(), eventsGroupedBySchema.keySet().size());
+      LOGGER.debug("Destination {} got {} records with {} different schema!!", destinationEvents.getKey(),
+          destinationEvents.getValue().size(),
+          eventsGroupedBySchema.keySet().size());
 
       for (List<DebeziumBigqueryEvent> schemaEvents : eventsGroupedBySchema.values()) {
         numUploadedEvents += this.uploadDestination(destinationEvents.getKey(), schemaEvents);
@@ -148,18 +149,6 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
       consumerStart = clock.currentTimeInMillis();
       logTimer = Threads.timer(clock, LOG_INTERVAL);
     }
-  }
-
-  public JsonNode getPayload(String destination, Object val) {
-    JsonNode pl = valDeserializer.deserialize(destination, getBytes(val));
-    // used to partition tables __source_ts
-    if (pl.has("__source_ts_ms")) {
-      ((ObjectNode) pl).put("__source_ts", pl.get("__source_ts_ms").longValue() / 1000);
-    } else {
-      ((ObjectNode) pl).put("__source_ts", Instant.now().getEpochSecond());
-      ((ObjectNode) pl).put("__source_ts_ms", Instant.now().toEpochMilli());
-    }
-    return pl;
   }
   
   public abstract long uploadDestination(String destination, List<DebeziumBigqueryEvent> data);

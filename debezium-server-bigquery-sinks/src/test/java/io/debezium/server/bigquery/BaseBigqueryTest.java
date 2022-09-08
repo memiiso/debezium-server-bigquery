@@ -127,12 +127,12 @@ public class BaseBigqueryTest {
       try {
         TableResult result = BaseBigqueryTest.getTableData(dest);
         result.iterateAll().forEach(System.out::println);
-        System.out.println("" + getTableField(dest, "__source_ts").getType());
-        System.out.println("" + getTableField(dest, "__deleted").getType());
         return getTableData(dest).getTotalRows() >= 4
-            && getTableData(dest, "DATE(__source_ts) = CURRENT_DATE").getTotalRows() >= 4
-            && getTableField(dest, "__source_ts").getType() == LegacySQLTypeName.TIMESTAMP
-            && getTableField(dest, "__deleted").getType() == LegacySQLTypeName.STRING
+            && getTableData(dest, "DATE(__source_ts_ms) = CURRENT_DATE").getTotalRows() >= 4
+            && getTableData(dest, "DATE(__ts_ms) = CURRENT_DATE").getTotalRows() >= 4
+            && getTableField(dest, "__source_ts_ms").getType() == LegacySQLTypeName.TIMESTAMP
+            && getTableField(dest, "__ts_ms").getType() == LegacySQLTypeName.TIMESTAMP
+            && getTableField(dest, "__deleted").getType() == LegacySQLTypeName.BOOLEAN
             ;
       } catch (Exception e) {
         return false;
@@ -163,6 +163,8 @@ public class BaseBigqueryTest {
             && getTableData(dest, "c_timestamptz = TIMESTAMP('2019-07-09T01:28:20.666666Z')").getTotalRows() == 1
             && getTableData(dest, "DATE(c_timestamptz) = DATE('2019-07-09')").getTotalRows() >= 2
             && getTableField(dest, "c_timestamptz").getType() == LegacySQLTypeName.TIMESTAMP
+            && getTableData(dest, "c_date = DATE('2017-09-15')").getTotalRows() == 1
+            && getTableData(dest, "c_date = DATE('2017-02-10')").getTotalRows() == 1
             ;
       } catch (Exception e) {
         return false;

@@ -61,7 +61,7 @@ public class ConfigSource extends TestConfigSource {
 
     // logging levels
     config.put("quarkus.log.level", "INFO");
-    config.put("quarkus.log.category.\"io.debezium.server.bigquery\".level", "DEBUG");
+    config.put("quarkus.log.category.\"io.debezium.server.bigquery\".level", "INFO");
     config.put("quarkus.log.category.\"com.google.cloud.bigquery\".level", "INFO");
   }
 

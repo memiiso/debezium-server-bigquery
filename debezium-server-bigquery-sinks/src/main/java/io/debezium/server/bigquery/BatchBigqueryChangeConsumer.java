@@ -26,7 +26,6 @@ import javax.enterprise.context.Dependent;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.*;
@@ -56,8 +55,10 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
   String createDisposition;
   @ConfigProperty(name = "debezium.sink.bigquerybatch.writeDisposition", defaultValue = "WRITE_APPEND")
   String writeDisposition;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.partitionField", defaultValue = "__source_ts")
+  @ConfigProperty(name = "debezium.sink.bigquerybatch.partition-field", defaultValue = "__ts_ms")
   String partitionField;
+  @ConfigProperty(name = "debezium.sink.bigquerybatch.clustering-field", defaultValue = "__source_ts_ms")
+  String clusteringField;
   @ConfigProperty(name = "debezium.sink.bigquerybatch.partitionType", defaultValue = "MONTH")
   String partitionType;
   @ConfigProperty(name = "debezium.sink.bigquerybatch.allowFieldAddition", defaultValue = "true")
@@ -142,8 +143,12 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
       TableId tableId = getTableId(destination);
 
       DebeziumBigqueryEvent sampleEvent = data.get(0);
-      Schema schema = sampleEvent.getBigQuerySchema(castDeletedField, false, false);
-      Clustering clustering = sampleEvent.getBigQueryClustering();
+      Schema schema = sampleEvent.getBigQuerySchema(false, false);
+      if (schema == null) {
+        schema = bqClient.getTable(tableId).getDefinition().getSchema();
+      }
+
+      Clustering clustering = sampleEvent.getBigQueryClustering(clusteringField);
 
       // Google BigQuery Configuration for a load operation. A load configuration can be used to load data
       // into a table with a {@link com.google.cloud.WriteChannel}
@@ -151,32 +156,26 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
           .newBuilder(tableId, FormatOptions.json())
           .setWriteDisposition(JobInfo.WriteDisposition.valueOf(writeDisposition))
           .setClustering(clustering)
+          .setSchema(schema)
           .setTimePartitioning(timePartitioning)
           .setSchemaUpdateOptions(schemaUpdateOptions)
           .setCreateDisposition(JobInfo.CreateDisposition.valueOf(createDisposition))
           .setMaxBadRecords(0);
-
-      if (schema != null) {
-        LOGGER.trace("Setting schema to: {}", schema);
-        wCCBuilder.setSchema(schema);
-      }
-//        else {
-//          wCCBuilder.setAutodetect(true);
-//        }
 
       //WriteChannel implementation to stream data into a BigQuery table. 
       try (TableDataWriteChannel writer = bqClient.writer(wCCBuilder.build())) {
         //Constructs a stream that writes bytes to the given channel.
         try (OutputStream stream = Channels.newOutputStream(writer)) {
           for (DebeziumBigqueryEvent e : data) {
-            final JsonNode valNode = e.value();
 
-            if (valNode == null) {
+            final String val = e.valueAsJsonLine(schema);
+
+            if (val == null) {
               LOGGER.warn("Null Value received skipping the entry! destination:{} key:{}", destination, getString(e.key()));
               continue;
             }
 
-            final String valData = mapper.writeValueAsString(valNode) + System.lineSeparator();
+            final String valData = val + System.lineSeparator();
             stream.write(valData.getBytes(StandardCharsets.UTF_8));
           }
         }

@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.TableResult;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,8 @@ public class ChangeConsumerConverterTest extends BaseBigqueryTest {
   public void testVariousDataTypeConversion() throws Exception {
     this.loadVariousDataTypeConversion();
     String dest = "testc.inventory.test_data_types";
+    TableResult result = BaseBigqueryTest.getTableData(dest);
+    result.iterateAll().forEach(System.out::println);
     Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
       try {
         return getTableData(dest, "STRING(c_timestamp5) = '2019-07-09 02:28:57.123450'").getTotalRows() == 1

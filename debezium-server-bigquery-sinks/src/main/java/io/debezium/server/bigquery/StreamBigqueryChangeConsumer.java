@@ -14,14 +14,12 @@ import io.grpc.Status.Code;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -29,9 +27,6 @@ import javax.enterprise.context.Dependent;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.retrying.RetrySettings;
@@ -43,7 +38,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  * Implementation of the consumer that delivers the messages to Bigquery
@@ -76,8 +70,10 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   Boolean ignoreUnknownFields;
   @ConfigProperty(name = "debezium.sink.bigquerystream.createIfNeeded", defaultValue = "true")
   Boolean createIfNeeded;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.partitionField", defaultValue = "__source_ts")
+  @ConfigProperty(name = "debezium.sink.bigquerystream.partition-field", defaultValue = "__ts_ms")
   String partitionField;
+  @ConfigProperty(name = "debezium.sink.bigquerystream.clustering-field", defaultValue = "__source_ts_ms")
+  String clusteringField;
   @ConfigProperty(name = "debezium.sink.bigquerystream.partitionType", defaultValue = "MONTH")
   String partitionType;
   @ConfigProperty(name = "debezium.sink.bigquerystream.allowFieldAddition", defaultValue = "false")
@@ -86,12 +82,6 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   Optional<String> credentialsFile;
   TimePartitioning timePartitioning;
   BigQuery bqClient;
-
-  private static JSONObject jsonNode2JSONObject(JsonNode jsonNode, Boolean castDeletedField) {
-    Map<String, Object> jsonMap = mapper.convertValue(jsonNode, new TypeReference<>() {
-    });
-    return new JSONObject(jsonMap);
-  }
 
   @PostConstruct
   void connect() throws InterruptedException {
@@ -170,6 +160,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   private DataWriter getDataWriter(Table table) {
     try {
       Schema schema = table.getDefinition().getSchema();
+      assert schema != null : "Table " + table.getTableId() + " schema must not be null!";
       TableSchema tableSchema = DebeziumBigqueryEvent.convertBigQuerySchema2TableSchema(schema);
       return new DataWriter(
           TableName.of(table.getTableId().getProject(), table.getTableId().getDataset(), table.getTableId().getTable()),
@@ -186,32 +177,13 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     DataWriter writer = jsonStreamWriters.computeIfAbsent(destination, k -> getDataWriter(table));
     try {
       JSONArray jsonArr = new JSONArray();
-      data.forEach(e -> jsonArr.put(jsonNode2JSONObject(e.value(), castDeletedField)));
+      data.forEach(e -> jsonArr.put(e.valueAsJSONObject()));
       writer.appendSync(jsonArr);
     } catch (DescriptorValidationException | IOException e) {
       throw new DebeziumException("Failed to append data to stream " + writer.streamWriter.getStreamName(), e);
     }
     LOGGER.debug("Appended {} records to {} successfully.", numRecords, destination);
     return numRecords;
-  }
-
-  @Override
-  public JsonNode getPayload(String destination, Object val) {
-    JsonNode pl = valDeserializer.deserialize(destination, getBytes(val));
-    // used to partition tables __source_ts
-    // SEE https://cloud.google.com/bigquery/docs/write-api#data_type_conversions
-    //  TIMESTAMP => The value is given in microseconds since the Unix epoch (1970-01-01). 
-    if (pl.has("__source_ts_ms")) {
-      ((ObjectNode) pl).put("__source_ts",
-          TimeUnit.MICROSECONDS.convert(pl.get("__source_ts_ms").longValue(), TimeUnit.MILLISECONDS)
-      );
-    } else {
-      ((ObjectNode) pl).put("__source_ts_ms", Instant.now().toEpochMilli());
-      ((ObjectNode) pl).put("__source_ts",
-          TimeUnit.MICROSECONDS.convert(Instant.now().toEpochMilli(), TimeUnit.MILLISECONDS)
-      );
-    }
-    return pl;
   }
 
   public TableId getTableId(String destination) {
@@ -226,8 +198,8 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     Table table = bqClient.getTable(tableId);
     // create table if missing
     if (createIfNeeded && table == null) {
-      Schema schema = sampleBqEvent.getBigQuerySchema(castDeletedField, true, true);
-      Clustering clustering = sampleBqEvent.getBigQueryClustering();
+      Schema schema = sampleBqEvent.getBigQuerySchema(true, true);
+      Clustering clustering = sampleBqEvent.getBigQueryClustering(clusteringField);
 
       StandardTableDefinition tableDefinition =
           StandardTableDefinition.newBuilder()
@@ -242,7 +214,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     }
 
     if (allowFieldAddition) {
-      Schema eventSchema = sampleBqEvent.getBigQuerySchema(castDeletedField, true, true);
+      Schema eventSchema = sampleBqEvent.getBigQuerySchema(true, true);
 
       List<Field> tableFields = new ArrayList<>(table.getDefinition().getSchema().getFields());
       List<String> fieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());

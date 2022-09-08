@@ -40,6 +40,7 @@ public class TemporalToISOStringConverter implements CustomConverter<SchemaBuild
     );
     private static final List<Integer> DATE_FAMILY = Collect.arrayListOf(Types.DATE);
     private static final List<Integer> TIME_FAMILY = Collect.arrayListOf(Types.TIME);
+    private static final List<String> IGNORE_TZ_TYPES = Collect.arrayListOf("TIMETZ", "TIMESTAMPTZ");
     private static final Logger LOGGER = LoggerFactory.getLogger(TemporalToISOStringConverter.class);
 
     private static SchemaBuilder getFieldSchema(RelationalColumn field) {
@@ -64,7 +65,9 @@ public class TemporalToISOStringConverter implements CustomConverter<SchemaBuild
     public void converterFor(RelationalColumn field, ConverterRegistration<SchemaBuilder> registration) {
         if (!((DATETIME_FAMILY.contains(field.jdbcType()) ||
             DATE_FAMILY.contains(field.jdbcType()) ||
-            TIME_FAMILY.contains(field.jdbcType())) && !field.typeName().equalsIgnoreCase("TIMESTAMPTZ"))) {
+            TIME_FAMILY.contains(field.jdbcType())) &&
+            !IGNORE_TZ_TYPES.contains(field.typeName().toUpperCase()))
+        ) {
             return;
         }
         registration.register(getFieldSchema(field), x -> {
