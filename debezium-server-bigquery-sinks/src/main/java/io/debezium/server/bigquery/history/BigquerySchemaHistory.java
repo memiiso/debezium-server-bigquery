@@ -37,13 +37,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@link DatabaseHistory} implementation that stores the schema history to database table
+ * A {@link SchemaHistory} implementation that stores the schema history to database table
  *
  * @author Ismail Simsek
  */
 @ThreadSafe
 @Incubating
-public final class BigquerySchemaHistory extends AbstractDatabaseHistory {
+public final class BigquerySchemaHistory extends AbstractSchemaHistory {
 
   private static final Logger LOG = LoggerFactory.getLogger(BigquerySchemaHistory.class);
 
@@ -66,7 +66,7 @@ public final class BigquerySchemaHistory extends AbstractDatabaseHistory {
   private TableId tableId;
 
   @Override
-  public void configure(Configuration config, HistoryRecordComparator comparator, DatabaseHistoryListener listener, boolean useCatalogBeforeSchema) {
+  public void configure(Configuration config, HistoryRecordComparator comparator, SchemaHistoryListener listener, boolean useCatalogBeforeSchema) {
 
     super.configure(config, comparator, listener, useCatalogBeforeSchema);
     this.historyConfig = new BigquerySchemaHistoryConfig(config);
@@ -80,11 +80,11 @@ public final class BigquerySchemaHistory extends AbstractDatabaseHistory {
       tableFullName = String.format("%s.%s", this.historyConfig.getBigqueryDataset(), this.historyConfig.getBigqueryTable());
       tableId = TableId.of(this.historyConfig.getBigqueryDataset(), this.historyConfig.getBigqueryTable());
     } catch (Exception e) {
-      throw new DatabaseHistoryException("Failed to connect bigquery database history backing store", e);
+      throw new SchemaHistoryException("Failed to connect bigquery database history backing store", e);
     }
 
     if (running.get()) {
-      throw new DatabaseHistoryException("Bigquery database history process already initialized table: " + tableFullName);
+      throw new SchemaHistoryException("Bigquery database history process already initialized table: " + tableFullName);
     }
   }
 
@@ -98,7 +98,7 @@ public final class BigquerySchemaHistory extends AbstractDatabaseHistory {
             initializeStorage();
           }
         } catch (Exception e) {
-          throw new DatabaseHistoryException("Unable to create history table: " + tableFullName + " : " + e.getMessage(),
+          throw new SchemaHistoryException("Unable to create history table: " + tableFullName + " : " + e.getMessage(),
               e);
         }
       }
@@ -110,7 +110,7 @@ public final class BigquerySchemaHistory extends AbstractDatabaseHistory {
   }
 
   @Override
-  protected void storeRecord(HistoryRecord record) throws DatabaseHistoryException {
+  protected void storeRecord(HistoryRecord record) throws SchemaHistoryException {
     if (record == null) {
       return;
     }
@@ -132,7 +132,7 @@ public final class BigquerySchemaHistory extends AbstractDatabaseHistory {
         );
         LOG.trace("Successfully saved history data to bigquery table");
       } catch (IOException | SQLException e) {
-        throw new DatabaseHistoryException("Failed to store record: " + record, e);
+        throw new SchemaHistoryException("Failed to store record: " + record, e);
       }
     });
   }
@@ -160,7 +160,7 @@ public final class BigquerySchemaHistory extends AbstractDatabaseHistory {
           }
         }
       } catch (IOException | SQLException e) {
-        throw new DatabaseHistoryException("Failed to recover records", e);
+        throw new SchemaHistoryException("Failed to recover records", e);
       }
     });
   }
@@ -186,7 +186,7 @@ public final class BigquerySchemaHistory extends AbstractDatabaseHistory {
         break;
       }
     } catch (SQLException e) {
-      throw new DatabaseHistoryException("Failed to check database history storage", e);
+      throw new SchemaHistoryException("Failed to check database history storage", e);
     }
     return numRows > 0;
   }
@@ -206,17 +206,17 @@ public final class BigquerySchemaHistory extends AbstractDatabaseHistory {
 
         if (!Strings.isNullOrEmpty(historyConfig.getMigrateHistoryFile().strip())) {
           LOG.warn("Migrating history from file {}", historyConfig.getMigrateHistoryFile());
-          this.loadFileDatabaseHistory(new File(historyConfig.getMigrateHistoryFile()));
+          this.loadFileSchemaHistory(new File(historyConfig.getMigrateHistoryFile()));
         }
       } catch (Exception e) {
-        throw new DatabaseHistoryException("Creation of database history topic failed, please create the topic manually", e);
+        throw new SchemaHistoryException("Creation of database history topic failed, please create the topic manually", e);
       }
     } else {
       LOG.debug("Storage is exists, skipping initialization");
     }
   }
 
-  private void loadFileDatabaseHistory(File file) {
+  private void loadFileSchemaHistory(File file) {
     LOG.warn(String.format("Migrating file database history from:'%s' to Bigquery database history storage: %s",
         file.toPath(), tableFullName));
     AtomicInteger numRecords = new AtomicInteger();

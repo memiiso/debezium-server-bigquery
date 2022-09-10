@@ -28,17 +28,15 @@
 
         <version.groovy>3.0.14</version.groovy>
         <version.assembly.plugin>3.4.2</version.assembly.plugin>
+        <version.jackson>2.13.3</version.jackson>
         <version.gcp.bigquery>2.24.4</version.gcp.bigquery>
         <version.gcp.bigquerystorage>2.34.2</version.gcp.bigquerystorage>
         <version.log4j>2.19.0</version.log4j>
         <!-- Debezium -->
-        <version.debezium>1.9.7.Final</version.debezium>
-        <version.mysql.driver>8.0.28</version.mysql.driver>
+        <version.debezium>2.2.0.Final</version.debezium>
+        <version.mysql.driver>8.0.32</version.mysql.driver>
         <!-- Quarkus -->
-        <version.quarkus>2.16.1.Final</version.quarkus>
-        <!-- ANTLR -->
-        <!-- Align with Antlr runtime version pulled in via debezium -->
-        <version.antlr>4.8</version.antlr>
+        <version.quarkus>3.0.0.Final</version.quarkus>
 
         <!-- Plugin versions -->
         <version.maven-enforcer-plugin>3.2.1</version.maven-enforcer-plugin>
@@ -68,12 +66,6 @@
                 <version>${version.debezium}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <!-- Debezium antlr4 -->
-            <dependency>
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4-runtime</artifactId>
-                <version>${version.antlr}</version>
             </dependency>
             <!-- Debezium Scripting -->
             <dependency>
