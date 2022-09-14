@@ -36,7 +36,17 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
 
   @Test
   public void testMysqlSimpleUploadWithDelete() throws Exception {
-
+    
+    String createTable = "" +
+        "CREATE TABLE IF NOT EXISTS inventory.test_table (" +
+        " c_id INTEGER ," +
+        " c_id2 INTEGER ," +
+        " c_data TEXT," +
+        " c_text TEXT," +
+        " c_varchar VARCHAR(1666) ," +
+        " PRIMARY KEY (c_id, c_id2)" +
+        " );";
+    SourceMysqlDB.runSQL(createTable);
     String sqlInsert =
         "INSERT INTO inventory.test_table (c_id, c_id2, c_data ) " +
             "VALUES  (1,1,'data'),(1,2,'data'),(1,3,'data'),(1,4,'data') ;";
@@ -52,9 +62,9 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
         TableResult result = getTableData(dest);
         result.iterateAll().forEach(System.out::println);
         System.out.println(result.getTotalRows());
-        return result.getTotalRows() >= 20
-            && getTableData(dest, "__deleted = 'true'").getTotalRows() >= 8
-            && getTableData(dest, "__op = 'd'").getTotalRows() >= 8;
+        return result.getTotalRows() >= 4
+            && getTableData(dest, "__deleted = true").getTotalRows() >= 2
+            && getTableData(dest, "__op = 'd'").getTotalRows() >= 2;
       } catch (Exception e) {
         //e.printStackTrace();
         return false;
@@ -68,6 +78,7 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
       Map<String, String> config = new HashMap<>();
       config.put("debezium.sink.type", "bigquerystream");
       config.put("debezium.sink.bigquerystream.allowFieldAddition", "true");
+      config.put("debezium.source.table.include.list", "inventory.test_table");
       return config;
     }
   }

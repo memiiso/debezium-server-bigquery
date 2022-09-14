@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
  */
 @QuarkusTest
 @QuarkusTestResource(value = SourcePostgresqlDB.class, restrictToAnnotatedClass = true)
-@TestProfile(StreamBigqueryChangeConsumerTest.StreamBigqueryChangeConsumerTestProfile.class)
+@TestProfile(StreamBigqueryChangeConsumerTest.TestProfile.class)
 @Disabled("manual run")
 public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
@@ -41,6 +41,7 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
   }
 
   @Test
+  @Disabled
   public void testVariousDataTypeConversion() throws Exception {
     this.loadVariousDataTypeConversion();
     String dest = "testc.inventory.test_data_types";
@@ -150,7 +151,7 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
     });
   }
 
-  public static class StreamBigqueryChangeConsumerTestProfile implements QuarkusTestProfile {
+  public static class TestProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
       Map<String, String> config = new HashMap<>();

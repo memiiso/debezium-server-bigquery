@@ -17,7 +17,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <revision>0.3.0-SNAPSHOT</revision>
+        <revision>0.2.0-SNAPSHOT</revision>
 
         <!-- Instruct the build to use only UTF-8 encoding for source code -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -29,14 +29,16 @@
         <version.groovy>3.0.12</version.groovy>
         <version.assembly.plugin>3.1.1</version.assembly.plugin>
         <version.jackson>2.13.3</version.jackson>
+        <version.gcp.bigquery>2.15.0</version.gcp.bigquery>
+        <version.gcp.bigquerystorage>2.20.1</version.gcp.bigquerystorage>
         <version.log4j>2.17.2</version.log4j>
         <!-- Debezium -->
         <version.debezium>1.9.5.Final</version.debezium>
         <version.mysql.driver>8.0.28</version.mysql.driver>
         <!-- Quarkus -->
         <!-- DOWNGRADE TO TEST CONVERTER https://github.com/quarkusio/quarkus/issues/24895 -->
-        <!--        <version.quarkus>2.6.3.Final</version.quarkus>-->
-        <version.quarkus>2.11.3.Final</version.quarkus>
+        <version.quarkus>2.6.3.Final</version.quarkus>
+        <!--        <version.quarkus>2.12.1.Final</version.quarkus>-->
         <!-- ANTLR -->
         <!-- Align with Antlr runtime version pulled in via debezium -->
         <version.antlr>4.8</version.antlr>
@@ -88,12 +90,12 @@
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-bigquery</artifactId>
-                <version>2.14.6</version>
+                <version>${version.gcp.bigquery}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-bigquerystorage-bom</artifactId>
-                <version>2.20.1</version>
+                <version>${version.gcp.bigquerystorage}</version>
                 <type>pom</type>
             </dependency>
             <!-- END Google -->
