@@ -29,7 +29,7 @@ debezium.sink.type=bigquerybatch
 debezium.sink.bigquerybatch.project=test
 debezium.sink.bigquerybatch.dataset=test
 debezium.sink.bigquerybatch.location=EU
-# debezium.sink.bigquerybatch.credentialsFile=/path/to/application_credentials.json
+# debezium.sink.bigquerybatch.credentials-file=/path/to/application_credentials.json
 
 # ==================== Misc ====================
 

@@ -77,7 +77,7 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
     public Map<String, String> getConfigOverrides() {
       Map<String, String> config = new HashMap<>();
       config.put("debezium.sink.type", "bigquerystream");
-      config.put("debezium.sink.bigquerystream.allowFieldAddition", "true");
+      config.put("debezium.sink.bigquerystream.allow-field-addition", "true");
       config.put("debezium.source.table.include.list", "inventory.test_table");
       return config;
     }

@@ -44,12 +44,12 @@ public class ConfigSource extends TestConfigSource {
     config.put("debezium.sink.bigquerybatch.project", BQ_PROJECT);
     config.put("debezium.sink.bigquerybatch.dataset", BQ_DATASET);
     config.put("debezium.sink.bigquerybatch.location", BQ_LOCATION);
-    config.put("debezium.sink.bigquerybatch.credentialsFile", BQ_CRED_FILE);
+    config.put("debezium.sink.bigquerybatch.credentials-file", BQ_CRED_FILE);
     // stream
     config.put("debezium.sink.bigquerystream.project", BQ_PROJECT);
     config.put("debezium.sink.bigquerystream.dataset", BQ_DATASET);
     config.put("debezium.sink.bigquerystream.location", BQ_LOCATION);
-    config.put("debezium.sink.bigquerystream.credentialsFile", BQ_CRED_FILE);
+    config.put("debezium.sink.bigquerystream.credentials-file", BQ_CRED_FILE);
     config.put("debezium.sink.batch.objectkey-prefix", "debezium-cdc-");
     config.put("debezium.sink.batch.objectkey-partition", "true");
 

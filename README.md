@@ -25,44 +25,44 @@ It groups CDC events and appends to destination BigQuery
 table [using BigQuery Write API](https://cloud.google.com/bigquery/docs/batch-loading-data#loading_data_from_local_files)
 .
 
-| Config                                             | Default            | Description                                                                                               |
-|----------------------------------------------------|--------------------|-----------------------------------------------------------------------------------------------------------|
-| `debezium.sink.bigquerybatch.dataset`              |                    | Destination Bigquery dataset name                                                                         |
-| `debezium.sink.bigquerybatch.location`             | `US`               | Bigquery table location                                                                                   |
-| `debezium.sink.bigquerybatch.project`              |                    | Bigquery project                                                                                          |
-| `debezium.sink.bigquerybatch.createDisposition`    | `CREATE_IF_NEEDED` | Create tables if needed                                                                                   |
-| `debezium.sink.bigquerybatch.partition-field`      | `__ts_ms`          | Partition target tables by `__ts_ms` field                                                                  |
-| `debezium.sink.bigquerybatch.clustering-field`     | `__source_ts_ms`   | Cluster target tables by `PK + __source_ts_ms` field                                                        |
-| `debezium.sink.bigquerybatch.partitionType`        | `MONTH`            | Partitioning type                                                                                         |
-| `debezium.sink.bigquerybatch.allowFieldAddition`   | `true`             | Allow field addition to target tables                                                                     |
-| `debezium.sink.bigquerybatch.allowFieldRelaxation` | `true`             | Allow field relaxation                                                                                    |
-| `debezium.sink.bigquerybatch.credentialsFile`      |                    | GCP service account credentialsFile                                                                       |
-| `debezium.sink.bigquerybatch.cast-deleted-field`   | `false`            | Cast deleted field to boolean type(by default it is string type)                                          |
-| `debezium.sink.batch.destination-regexp`           | ``                 | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
-| `debezium.sink.batch.destination-regexp-replace`   | ``                 | Regexp Replace part to modify destination                                                                 |
-| `debezium.sink.batch.batch-size-wait`              | `NoBatchSizeWait`  | Batch size wait strategy to optimize data files and upload interval. explained below.                     |
+| Config                                               | Default            | Description                                                                                               |
+|------------------------------------------------------|--------------------|-----------------------------------------------------------------------------------------------------------|
+| `debezium.sink.bigquerybatch.dataset`                |                    | Destination Bigquery dataset name                                                                         |
+| `debezium.sink.bigquerybatch.location`               | `US`               | Bigquery table location                                                                                   |
+| `debezium.sink.bigquerybatch.project`                |                    | Bigquery project                                                                                          |
+| `debezium.sink.bigquerybatch.create-disposition`     | `CREATE_IF_NEEDED` | Create tables if needed                                                                                   |
+| `debezium.sink.bigquerybatch.partition-field`        | `__ts_ms`          | Partition target tables by `__ts_ms` field                                                                  |
+| `debezium.sink.bigquerybatch.clustering-field`       | `__source_ts_ms`   | Cluster target tables by `PK + __source_ts_ms` field                                                        |
+| `debezium.sink.bigquerybatch.partition-type`         | `MONTH`            | Partitioning type                                                                                         |
+| `debezium.sink.bigquerybatch.allow-field-addition`   | `true`             | Allow field addition to target tables                                                                     |
+| `debezium.sink.bigquerybatch.allow-field-relaxation` | `true`             | Allow field relaxation                                                                                    |
+| `debezium.sink.bigquerybatch.credentials-file`       |                    | GCP service account credentialsFile                                                                       |
+| `debezium.sink.bigquerybatch.cast-deleted-field`     | `false`            | Cast deleted field to boolean type(by default it is string type)                                          |
+| `debezium.sink.batch.destination-regexp`             | ``                 | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
+| `debezium.sink.batch.destination-regexp-replace`     | ``                 | Regexp Replace part to modify destination                                                                 |
+| `debezium.sink.batch.batch-size-wait`                | `NoBatchSizeWait`  | Batch size wait strategy to optimize data files and upload interval. explained below.                     |
 
 ## `bigquerystream` Consumer
 
 Streams debezium events to Bigquery using
 the [Storage Write API](https://cloud.google.com/bigquery/docs/write-api-streaming).
 
-| Config                                             | Default           | Description                                                                                                |
-|----------------------------------------------------|-------------------|------------------------------------------------------------------------------------------------------------|
-| `debezium.sink.bigquerystream.dataset`             |                   | Destination Bigquery dataset name                                                                          |
-| `debezium.sink.bigquerystream.location`            | `US`              | Bigquery table location                                                                                    |
-| `debezium.sink.bigquerystream.project`             |                   | Bigquery project                                                                                           |
-| `debezium.sink.bigquerystream.ignoreUnknownFields` |                   | if true, unknown Json fields to BigQuery will be ignored instead of error out.                             |
-| `debezium.sink.bigquerystream.createIfNeeded`      | `true`            | Creates Bigquery table if not found                                                                        |
-| `debezium.sink.bigquerystream.partition-field`     | `__ts_ms`         | Partition target tables by `__ts_ms` field                                                                  |
-| `debezium.sink.bigquerystream.clustering-field`    | `__source_ts_ms`  | Cluster target tables by `PK + __source_ts_ms` field                                                        |
-| `debezium.sink.bigquerystream.partitionType`       | `MONTH`           | Partitioning type                                                                                          |
-| `debezium.sink.bigquerystream.allowFieldAddition`  | `false`           | Allow field addition to target tables                                                                      |
-| `debezium.sink.bigquerystream.credentialsFile`     |                   | GCP service account credentialsFile                                                                        |
-| `debezium.sink.bigquerystream.cast-deleted-field`  | `false`           | Cast deleted field to boolean type(by default it is string type)                                           |
-| `debezium.sink.batch.destination-regexp`           | ``                | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
-| `debezium.sink.batch.destination-regexp-replace`   | ``                | Regexp Replace part to modify destination                                                                  |
-| `debezium.sink.batch.batch-size-wait`              | `NoBatchSizeWait` | Batch size wait strategy to optimize data files and upload interval. explained below.                      |
+| Config                                               | Default           | Description                                                                                                |
+|------------------------------------------------------|-------------------|------------------------------------------------------------------------------------------------------------|
+| `debezium.sink.bigquerystream.dataset`               |                   | Destination Bigquery dataset name                                                                          |
+| `debezium.sink.bigquerystream.location`              | `US`              | Bigquery table location                                                                                    |
+| `debezium.sink.bigquerystream.project`               |                   | Bigquery project                                                                                           |
+| `debezium.sink.bigquerystream.ignore-unknown-fields` |                   | if true, unknown Json fields to BigQuery will be ignored instead of error out.                             |
+| `debezium.sink.bigquerystream.create-if-needed`      | `true`            | Creates Bigquery table if not found                                                                        |
+| `debezium.sink.bigquerystream.partition-field`       | `__ts_ms`         | Partition target tables by `__ts_ms` field                                                                  |
+| `debezium.sink.bigquerystream.clustering-field`      | `__source_ts_ms`  | Cluster target tables by `PK + __source_ts_ms` field                                                        |
+| `debezium.sink.bigquerystream.partition-type`        | `MONTH`           | Partitioning type                                                                                          |
+| `debezium.sink.bigquerystream.allow-field-addition`  | `false`           | Allow field addition to target tables                                                                      |
+| `debezium.sink.bigquerystream.credentials-file`      |                   | GCP service account credentialsFile                                                                        |
+| `debezium.sink.bigquerystream.cast-deleted-field`    | `false`           | Cast deleted field to boolean type(by default it is string type)                                           |
+| `debezium.sink.batch.destination-regexp`             | ``                | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
+| `debezium.sink.batch.destination-regexp-replace`     | ``                | Regexp Replace part to modify destination                                                                  |
+| `debezium.sink.batch.batch-size-wait`                | `NoBatchSizeWait` | Batch size wait strategy to optimize data files and upload interval. explained below.                      |
 
 ### Mandatory config
 
