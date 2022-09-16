@@ -213,21 +213,21 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
       LOGGER.warn("Created table {}", table.getTableId());
     }
 
-    if (allowFieldAddition) {
+    if (allowFieldAddition && table != null) {
       Schema eventSchema = sampleBqEvent.getBigQuerySchema(true, true);
 
       List<Field> tableFields = new ArrayList<>(table.getDefinition().getSchema().getFields());
       List<String> fieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());
 
-      boolean fieldAddition = false;
+      boolean newFieldFound = false;
       for (Field field : eventSchema.getFields()) {
         if (!fieldNames.contains(field.getName())) {
           tableFields.add(field);
-          fieldAddition = true;
+          newFieldFound = true;
         }
       }
 
-      if (fieldAddition) {
+      if (newFieldFound) {
         LOGGER.warn("Updating table {} with the new fields", table.getTableId());
         Schema newSchema = Schema.of(tableFields);
         Table updatedTable = table.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
