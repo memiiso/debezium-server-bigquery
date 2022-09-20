@@ -51,7 +51,7 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
   String bqLocation;
   @ConfigProperty(name = "debezium.sink.bigquerybatch.project", defaultValue = "")
   Optional<String> gcpProject;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.createDisposition", defaultValue = "CREATE_IF_NEEDED")
+  @ConfigProperty(name = "debezium.sink.bigquerybatch.create-disposition", defaultValue = "CREATE_IF_NEEDED")
   String createDisposition;
   @ConfigProperty(name = "debezium.sink.bigquerybatch.writeDisposition", defaultValue = "WRITE_APPEND")
   String writeDisposition;
@@ -59,13 +59,13 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
   String partitionField;
   @ConfigProperty(name = "debezium.sink.bigquerybatch.clustering-field", defaultValue = "__source_ts_ms")
   String clusteringField;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.partitionType", defaultValue = "MONTH")
+  @ConfigProperty(name = "debezium.sink.bigquerybatch.partition-type", defaultValue = "MONTH")
   String partitionType;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.allowFieldAddition", defaultValue = "true")
+  @ConfigProperty(name = "debezium.sink.bigquerybatch.allow-field-addition", defaultValue = "true")
   Boolean allowFieldAddition;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.allowFieldRelaxation", defaultValue = "true")
+  @ConfigProperty(name = "debezium.sink.bigquerybatch.allow-field-relaxation", defaultValue = "true")
   Boolean allowFieldRelaxation;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.credentialsFile", defaultValue = "")
+  @ConfigProperty(name = "debezium.sink.bigquerybatch.credentials-file", defaultValue = "")
   Optional<String> credentialsFile;
   @ConfigProperty(name = "debezium.sink.bigquerybatch.cast-deleted-field", defaultValue = "false")
   Boolean castDeletedField;

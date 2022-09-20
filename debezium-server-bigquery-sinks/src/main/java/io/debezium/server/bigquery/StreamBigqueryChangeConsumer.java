@@ -66,19 +66,19 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   String bqLocation;
   @ConfigProperty(name = "debezium.sink.bigquerystream.cast-deleted-field", defaultValue = "false")
   Boolean castDeletedField;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.ignoreUnknownFields", defaultValue = "true")
+  @ConfigProperty(name = "debezium.sink.bigquerystream.ignore-unknown-fields", defaultValue = "true")
   Boolean ignoreUnknownFields;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.createIfNeeded", defaultValue = "true")
+  @ConfigProperty(name = "debezium.sink.bigquerystream.create-if-needed", defaultValue = "true")
   Boolean createIfNeeded;
   @ConfigProperty(name = "debezium.sink.bigquerystream.partition-field", defaultValue = "__ts_ms")
   String partitionField;
   @ConfigProperty(name = "debezium.sink.bigquerystream.clustering-field", defaultValue = "__source_ts_ms")
   String clusteringField;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.partitionType", defaultValue = "MONTH")
+  @ConfigProperty(name = "debezium.sink.bigquerystream.partition-type", defaultValue = "MONTH")
   String partitionType;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.allowFieldAddition", defaultValue = "false")
+  @ConfigProperty(name = "debezium.sink.bigquerystream.allow-field-addition", defaultValue = "false")
   Boolean allowFieldAddition;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.credentialsFile", defaultValue = "")
+  @ConfigProperty(name = "debezium.sink.bigquerystream.credentials-file", defaultValue = "")
   Optional<String> credentialsFile;
   TimePartitioning timePartitioning;
   BigQuery bqClient;
@@ -213,21 +213,21 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
       LOGGER.warn("Created table {}", table.getTableId());
     }
 
-    if (allowFieldAddition) {
+    if (allowFieldAddition && table != null) {
       Schema eventSchema = sampleBqEvent.getBigQuerySchema(true, true);
 
       List<Field> tableFields = new ArrayList<>(table.getDefinition().getSchema().getFields());
       List<String> fieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());
 
-      boolean fieldAddition = false;
+      boolean newFieldFound = false;
       for (Field field : eventSchema.getFields()) {
         if (!fieldNames.contains(field.getName())) {
           tableFields.add(field);
-          fieldAddition = true;
+          newFieldFound = true;
         }
       }
 
-      if (fieldAddition) {
+      if (newFieldFound) {
         LOGGER.warn("Updating table {} with the new fields", table.getTableId());
         Schema newSchema = Schema.of(tableFields);
         Table updatedTable = table.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
