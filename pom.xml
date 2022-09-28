@@ -33,7 +33,7 @@
         <version.gcp.bigquerystorage>2.21.0</version.gcp.bigquerystorage>
         <version.log4j>2.17.2</version.log4j>
         <!-- Debezium -->
-        <version.debezium>1.9.5.Final</version.debezium>
+        <version.debezium>1.9.6.Final</version.debezium>
         <version.mysql.driver>8.0.28</version.mysql.driver>
         <!-- Quarkus -->
         <!-- DOWNGRADE TO TEST CONVERTER https://github.com/quarkusio/quarkus/issues/24895 -->
