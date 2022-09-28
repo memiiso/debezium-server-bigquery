@@ -44,7 +44,7 @@ jobs:
         with:
           name: Release ${{ env.RELEASE_NAME }}
           tag_name: ${{ env.RELEASE_NAME }}
-          body: Release master branch
+          body: Release 0.1 branch
           draft: false
           prerelease: true
           files: debezium-server-bigquery-dist/target/debezium-server-bigquery-dist-${{ env.RELEASE_NAME }}.zip
