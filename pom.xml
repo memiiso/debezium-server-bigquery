@@ -36,9 +36,7 @@
         <version.debezium>1.9.6.Final</version.debezium>
         <version.mysql.driver>8.0.28</version.mysql.driver>
         <!-- Quarkus -->
-        <!-- DOWNGRADE TO TEST CONVERTER https://github.com/quarkusio/quarkus/issues/24895 -->
-        <version.quarkus>2.6.3.Final</version.quarkus>
-        <!--        <version.quarkus>2.12.1.Final</version.quarkus>-->
+        <version.quarkus>2.13.0.Final</version.quarkus>
         <!-- ANTLR -->
         <!-- Align with Antlr runtime version pulled in via debezium -->
         <version.antlr>4.8</version.antlr>
