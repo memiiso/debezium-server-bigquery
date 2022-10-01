@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
- * Integration test that verifies basic reading from PostgreSQL database and writing to s3 destination.
  *
  * @author Ismail Simsek
  */
