@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import static io.debezium.server.bigquery.ConfigSource.*;
 
 /**
- * Integration test that verifies basic reading from PostgreSQL database and writing to s3 destination.
  *
  * @author Ismail Simsek
  */
