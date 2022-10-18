@@ -27,7 +27,7 @@
         <skipITs>true</skipITs>
 
         <version.groovy>3.0.12</version.groovy>
-        <version.assembly.plugin>3.1.1</version.assembly.plugin>
+        <version.assembly.plugin>3.4.2</version.assembly.plugin>
         <version.jackson>2.13.3</version.jackson>
         <version.gcp.bigquery>2.16.1</version.gcp.bigquery>
         <version.gcp.bigquerystorage>2.21.0</version.gcp.bigquerystorage>
