@@ -5,13 +5,13 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, 0.1 ]
     paths-ignore:
       - '.github/**'
       - '.idea/**'
       - '.run/**'
   pull_request:
-    branches: [ master, 0.2 ]
+    branches: [ master, 0.1]
     paths-ignore:
       - '.github/**'
       - '.idea/**'

@@ -66,6 +66,7 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5</artifactId>
+            <version>${version.quarkus}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
