@@ -29,6 +29,8 @@
         <version.groovy>3.0.12</version.groovy>
         <version.assembly.plugin>3.1.1</version.assembly.plugin>
         <version.jackson>2.13.3</version.jackson>
+        <version.gcp.bigquery>2.16.1</version.gcp.bigquery>
+        <version.gcp.bigquerystorage>2.21.0</version.gcp.bigquerystorage>
         <version.log4j>2.17.2</version.log4j>
         <!-- Debezium -->
         <version.debezium>1.9.6.Final</version.debezium>
@@ -88,12 +90,12 @@
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-bigquery</artifactId>
-                <version>2.14.6</version>
+                <version>${version.gcp.bigquery}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-bigquerystorage-bom</artifactId>
-                <version>2.20.1</version>
+                <version>${version.gcp.bigquerystorage}</version>
                 <type>pom</type>
             </dependency>
             <!-- END Google -->
