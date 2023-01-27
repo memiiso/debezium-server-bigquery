@@ -174,6 +174,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   public long uploadDestination(String destination, List<DebeziumBigqueryEvent> data) {
     long numRecords = data.size();
     Table table = getTable(destination, data.get(0));
+    // get stream writer create if not yet exists!
     DataWriter writer = jsonStreamWriters.computeIfAbsent(destination, k -> getDataWriter(table));
     try {
       JSONArray jsonArr = new JSONArray();
@@ -193,50 +194,84 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     return TableId.of(gcpProject.get(), bqDataset.get(), tableName);
   }
 
+
+  private Table createTable(TableId tableId, Schema schema, Clustering clustering) {
+
+    StandardTableDefinition tableDefinition =
+        StandardTableDefinition.newBuilder()
+            .setSchema(schema)
+            .setTimePartitioning(timePartitioning)
+            .setClustering(clustering)
+            .build();
+    TableInfo tableInfo =
+        TableInfo.newBuilder(tableId, tableDefinition).build();
+    Table table = bqClient.create(tableInfo);
+    LOGGER.warn("Created table {}", table.getTableId());
+
+    // NOTE ideally we should wait here for streaming cache to update with the new table information 
+    // but seems like there is no proper way to wait... 
+    // Without wait consumer fails
+
+    return table;
+  }
+
   private Table getTable(String destination, DebeziumBigqueryEvent sampleBqEvent) {
     TableId tableId = getTableId(destination);
     Table table = bqClient.getTable(tableId);
     // create table if missing
     if (createIfNeeded && table == null) {
-      Schema schema = sampleBqEvent.getBigQuerySchema(true, true);
-      Clustering clustering = sampleBqEvent.getBigQueryClustering(clusteringField);
-
-      StandardTableDefinition tableDefinition =
-          StandardTableDefinition.newBuilder()
-              .setSchema(schema)
-              .setTimePartitioning(timePartitioning)
-              .setClustering(clustering)
-              .build();
-      TableInfo tableInfo =
-          TableInfo.newBuilder(tableId, tableDefinition).build();
-      table = bqClient.create(tableInfo);
-      LOGGER.warn("Created table {}", table.getTableId());
+      table = this.createTable(tableId,
+          sampleBqEvent.getBigQuerySchema(true, true),
+          sampleBqEvent.getBigQueryClustering(clusteringField)
+      );
     }
 
+    // alter table schema add new fields
     if (allowFieldAddition && table != null) {
-      Schema eventSchema = sampleBqEvent.getBigQuerySchema(true, true);
+      table = this.updateTableSchema(table, sampleBqEvent.getBigQuerySchema(true, true), destination);
+    }
+    return table;
+  }
 
-      List<Field> tableFields = new ArrayList<>(table.getDefinition().getSchema().getFields());
-      List<String> fieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());
+  /**
+   * add new fields to table, using event schema.
+   *
+   * @param table
+   * @param eventSchema
+   * @param destination
+   * @return Table
+   */
+  private Table updateTableSchema(Table table, Schema eventSchema, String destination) {
 
-      boolean newFieldFound = false;
-      for (Field field : eventSchema.getFields()) {
-        if (!fieldNames.contains(field.getName())) {
-          tableFields.add(field);
-          newFieldFound = true;
-        }
-      }
+    List<Field> tableFields = new ArrayList<>(table.getDefinition().getSchema().getFields());
+    List<String> tableFieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());
 
-      if (newFieldFound) {
-        LOGGER.warn("Updating table {} with the new fields", table.getTableId());
-        Schema newSchema = Schema.of(tableFields);
-        Table updatedTable = table.toBuilder().setDefinition(StandardTableDefinition.of(newSchema)).build();
-        table = updatedTable.update();
-        jsonStreamWriters.get(destination).close();
-        jsonStreamWriters.replace(destination, getDataWriter(table));
-        LOGGER.info("New columns successfully added to {}", table.getTableId());
+    boolean newFieldFound = false;
+    StringBuilder newFields = new StringBuilder();
+    for (Field field : eventSchema.getFields()) {
+      if (!tableFieldNames.contains(field.getName())) {
+        tableFields.add(field);
+        newFields.append(field);
+        newFieldFound = true;
       }
     }
+
+    if (newFieldFound) {
+      LOGGER.warn("Updating table {} with the new fields", table.getTableId());
+      Schema newSchema = Schema.of(tableFields);
+      final Table updatedTable = table.toBuilder().setDefinition(
+          StandardTableDefinition.newBuilder()
+              .setSchema(newSchema)
+              .build()
+      ).build();
+      table = updatedTable.update();
+      LOGGER.info("New columns {} successfully added to {}, replacing stream writer...", newFields,
+          table.getTableId());
+      jsonStreamWriters.get(destination).close();
+      jsonStreamWriters.replace(destination, getDataWriter(table));
+      LOGGER.info("New columns {} added to {}", newFields, table.getTableId());
+    }
+
     return table;
   }
 
