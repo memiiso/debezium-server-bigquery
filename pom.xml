@@ -33,7 +33,7 @@
         <version.gcp.bigquerystorage>2.28.0</version.gcp.bigquerystorage>
         <version.log4j>2.19.0</version.log4j>
         <!-- Debezium -->
-        <version.debezium>1.9.6.Final</version.debezium>
+        <version.debezium>1.9.7.Final</version.debezium>
         <version.mysql.driver>8.0.28</version.mysql.driver>
         <!-- Quarkus -->
         <version.quarkus>2.14.2.Final</version.quarkus>
