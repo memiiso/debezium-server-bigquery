@@ -25,7 +25,7 @@ jobs:
         run: |
           echo "RELEASE_NAME=latest" >> $GITHUB_ENV
 
-      - name: Set env
+      - name: Set env for release
         if: github.ref_name != 'master'
         run: |
           echo "RELEASE_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
@@ -33,7 +33,7 @@ jobs:
       - name: Build project
         run: mvn -B clean package -Passembly --file pom.xml -Drevision=${{ env.RELEASE_NAME }}
 
-      - name: Delete ${{ env.RELEASE_NAME }} release
+      - name: Delete previous ${{ env.RELEASE_NAME }} release
         uses: dev-drprasad/delete-tag-and-release@v0.2.0
         with:
           delete_release: true # default: false
