@@ -80,47 +80,7 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
 
   public void initizalize() throws InterruptedException {
     super.initizalize();
-
-    if (gcpProject.isEmpty()) {
-      throw new InterruptedException("Please provide a value for `debezium.sink.bigquerybatch.project`");
-    }
-
-    if (bqDataset.isEmpty()) {
-      throw new InterruptedException("Please provide a value for `debezium.sink.bigquerybatch.dataset`");
-    }
-
-    GoogleCredentials credentials;
-    try {
-      if (credentialsFile.isPresent()) {
-        credentials = GoogleCredentials.fromStream(new FileInputStream(credentialsFile.get()));
-      } else {
-        credentials = GoogleCredentials.getApplicationDefault();
-      }
-    } catch (IOException e) {
-      throw new DebeziumException("Failed to initialize google credentials", e);
-    }
-
-    bqClient = BigQueryOptions.newBuilder()
-        .setCredentials(credentials)
-        .setProjectId(gcpProject.get())
-        .setLocation(bqLocation)
-        .setRetrySettings(
-            RetrySettings.newBuilder()
-                // Set the max number of attempts
-                .setMaxAttempts(5)
-                // InitialRetryDelay controls the delay before the first retry. 
-                // Subsequent retries will use this value adjusted according to the RetryDelayMultiplier. 
-                .setInitialRetryDelay(org.threeten.bp.Duration.ofSeconds(5))
-                .setMaxRetryDelay(org.threeten.bp.Duration.ofSeconds(60))
-                // Set the backoff multiplier
-                .setRetryDelayMultiplier(2.0)
-                // Set the max duration of all attempts
-                .setTotalTimeout(org.threeten.bp.Duration.ofMinutes(5))
-                .build()
-        )
-        .build()
-        .getService();
-
+    bqClient = BatchUtil.getBQClient(gcpProject, bqDataset, credentialsFile , bqLocation);
     timePartitioning =
         TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(partitionType)).setField(partitionField).build();
 
