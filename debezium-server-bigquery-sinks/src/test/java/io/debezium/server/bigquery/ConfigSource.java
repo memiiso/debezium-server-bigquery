@@ -29,8 +29,8 @@ public class ConfigSource extends TestConfigSource {
     config.put("debezium.source.poll.interval.ms", "5000");
     config.put("debezium.source.database.server.name", "testc");
     //
-    //config.put("debezium.source.offset.storage", "org.apache.kafka.connect.storage.MemoryOffsetBackingStore");
-    config.put("debezium.source.offset.storage", "io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore");
+    config.put("debezium.source.offset.storage", "org.apache.kafka.connect.storage.MemoryOffsetBackingStore");
+    //config.put("debezium.source.offset.storage", "io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore");
     config.put("debezium.source.offset.storage.bigquery.table-name", "__debezium_offset_storage_test_table");
     config.put("debezium.source.offset.flush.interval.ms", "60000");
     config.put("debezium.source.database.history.kafka.bootstrap.servers", "kafka:9092");
