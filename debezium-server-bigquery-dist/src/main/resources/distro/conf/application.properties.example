@@ -1,8 +1,8 @@
 # ==================== SOURCE DB == MYSQL ====================
 
 debezium.source.connector.class=io.debezium.connector.mysql.MySqlConnector
-debezium.source.offset.storage=org.apache.kafka.connect.storage.FileOffsetBackingStore
-debezium.source.offset.storage.file.filename=data/offsets.dat
+# debezium.source.offset.storage=org.apache.kafka.connect.storage.FileOffsetBackingStore
+# debezium.source.offset.storage.file.filename=data/offsets.dat
 debezium.source.offset.flush.interval.ms=60000
 
 debezium.source.database.hostname=127.0.0.1
@@ -30,6 +30,8 @@ debezium.sink.bigquerybatch.project=test
 debezium.sink.bigquerybatch.dataset=test
 debezium.sink.bigquerybatch.location=EU
 # debezium.sink.bigquerybatch.credentials-file=/path/to/application_credentials.json
+debezium.source.offset.storage=io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore
+debezium.source.offset.storage.bigquery.table-name=debezium_offset_storage_custom_table
 
 # ==================== Misc ====================
 
