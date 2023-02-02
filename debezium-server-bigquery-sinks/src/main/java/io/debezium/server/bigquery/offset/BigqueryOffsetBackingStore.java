@@ -230,7 +230,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     }
 
     public String getBigqueryCredentialsFile() {
-      return this.config.getString(Field.create(String.format("debezium.sink.%s.credentialsFile", this.sinkType())).withDefault(""));
+      return this.config.getString(Field.create(String.format("debezium.sink.%s.credentials-file", this.sinkType())).withDefault(""));
     }
 
     public String getBigqueryLocation() {
