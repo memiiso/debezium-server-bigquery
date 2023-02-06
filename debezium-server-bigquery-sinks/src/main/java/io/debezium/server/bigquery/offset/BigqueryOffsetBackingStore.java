@@ -230,7 +230,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     }
 
     public String getBigqueryTable() {
-      return this.config.getString(Field.create("debezium.source.offset.storage.bigquery.table-name").withDefault("debezium_offset_storage"));
+      return this.config.getString(Field.create("offset.storage.bigquery.table-name").withDefault("debezium_offset_storage"));
     }
 
     public String getBigqueryCredentialsFile() {
