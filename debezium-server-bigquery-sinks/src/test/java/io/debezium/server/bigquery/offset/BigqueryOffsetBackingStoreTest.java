@@ -23,13 +23,12 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.runtime.WorkerConfig;
 import org.apache.kafka.connect.util.Callback;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import static io.debezium.server.bigquery.ConfigSource.BQ_DATASET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Disabled
 @QuarkusTest
 @TestProfile(BigqueryOffsetBackingStoreTest.TestProfile.class)
 public class BigqueryOffsetBackingStoreTest {
@@ -37,15 +36,11 @@ public class BigqueryOffsetBackingStoreTest {
   private static final Map<ByteBuffer, ByteBuffer> firstSet = new HashMap<>();
   private static final Map<ByteBuffer, ByteBuffer> secondSet = new HashMap<>();
 
-  public static String fromByteBuffer(ByteBuffer data) {
-    return (data != null) ? String.valueOf(StandardCharsets.UTF_16.decode(data.asReadOnlyBuffer())) : null;
-  }
-
   public static ByteBuffer toByteBuffer(String data) {
     return (data != null) ? ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_16)) : null;
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() {
     firstSet.put(toByteBuffer("key"), toByteBuffer("value"));
     firstSet.put(toByteBuffer("key2"), null);
@@ -76,6 +71,7 @@ public class BigqueryOffsetBackingStoreTest {
     store.start();
     store.start();
     store.start();
+    assertEquals(store.getTableFullName(), BQ_DATASET + ".__debezium_offset_storage_test_table");
     store.stop();
   }
 
@@ -91,7 +87,7 @@ public class BigqueryOffsetBackingStoreTest {
 
     Map<ByteBuffer, ByteBuffer> values = store.get(Arrays.asList(toByteBuffer("key"), toByteBuffer("bad"))).get();
     assertEquals(toByteBuffer("value"), values.get(toByteBuffer("key")));
-    Assert.assertNull(values.get(toByteBuffer("bad")));
+    Assertions.assertNull(values.get(toByteBuffer("bad")));
   }
 
   @Test
@@ -129,8 +125,8 @@ public class BigqueryOffsetBackingStoreTest {
       Map<String, String> config = new HashMap<>();
       config.put("debezium.sink.type", "bigquerybatch");
       config.put("debezium.source.offset.storage", "io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore");
-      config.put("debezium.source.offset.flush.interval.ms", "60000");
-      config.put("debezium.source.offset.storage.bigquery.table-name", "debezium_offset_storage_custom_table");
+      config.put("debezium.source.offset.flush.interval.ms", "60010");
+      config.put("debezium.source.offset.storage.bigquery.table-name", "__debezium_offset_storage_test_table");
       return config;
     }
   }

@@ -61,6 +61,10 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   public BigqueryOffsetBackingStore() {
   }
 
+  public String getTableFullName() {
+    return tableFullName;
+  }
+  
   private TableResult executeQuery(String query, List<QueryParameterValue> parameters) throws SQLException {
     try {
       QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query)
@@ -99,12 +103,12 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   public synchronized void start() {
     super.start();
 
-    LOG.info("Starting BigqueryOffsetBackingStore db");
+    LOG.info("Starting BigqueryOffsetBackingStore table:{}", this.tableFullName);
     try {
       initializeTable();
     } catch (SQLException e) {
       e.printStackTrace();
-      throw new IllegalStateException("Failed to create bigquery offset table", e);
+      throw new IllegalStateException("Failed to create bigquery offset table:" + this.tableFullName, e);
     }
     load();
   }
