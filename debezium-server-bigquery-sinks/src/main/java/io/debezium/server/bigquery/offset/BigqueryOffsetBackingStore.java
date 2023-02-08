@@ -227,11 +227,11 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   }
 
   public String fromByteBuffer(ByteBuffer data) {
-    return (data != null) ? String.valueOf(StandardCharsets.UTF_16.decode(data.asReadOnlyBuffer())) : null;
+    return (data != null) ? String.valueOf(StandardCharsets.UTF_8.decode(data.asReadOnlyBuffer())) : null;
   }
 
   public ByteBuffer toByteBuffer(String data) {
-    return (data != null) ? ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_16)) : null;
+    return (data != null) ? ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)) : null;
   }
 
   public static class BigqueryOffsetBackingStoreConfig extends WorkerConfig {
