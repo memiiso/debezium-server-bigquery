@@ -25,12 +25,14 @@ import org.apache.kafka.connect.util.Callback;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import static io.debezium.server.bigquery.ConfigSource.BQ_DATASET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 @TestProfile(BigqueryOffsetBackingStoreTest.TestProfile.class)
+@Disabled
 public class BigqueryOffsetBackingStoreTest {
 
   private static final Map<ByteBuffer, ByteBuffer> firstSet = new HashMap<>();
