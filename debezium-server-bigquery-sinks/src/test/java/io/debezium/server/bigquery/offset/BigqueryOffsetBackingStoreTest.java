@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.runtime.WorkerConfig;
@@ -65,7 +66,7 @@ public class BigqueryOffsetBackingStoreTest {
   }
 
   @Test
-  public void testInitialize() {
+  public void testInitialize() throws ExecutionException, InterruptedException {
     // multiple initialization should not fail
     // first one should create the table and following ones should use the created table
     BigqueryOffsetBackingStore store = new BigqueryOffsetBackingStore();
@@ -75,6 +76,12 @@ public class BigqueryOffsetBackingStoreTest {
     store.start();
     assertEquals(store.getTableFullName(), BQ_DATASET + ".__debezium_offset_storage_test_table");
     store.stop();
+
+    BigqueryOffsetBackingStore restore = new BigqueryOffsetBackingStore();
+    restore.configure(new TestWorkerConfig(config()));
+    restore.start();
+    restore.get(Collections.singletonList(toByteBuffer("payload"))).get();
+    restore.stop();
   }
 
   @Test
@@ -129,6 +136,7 @@ public class BigqueryOffsetBackingStoreTest {
       config.put("debezium.source.offset.storage", "io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore");
       config.put("debezium.source.offset.flush.interval.ms", "60010");
       config.put("debezium.source.offset.storage.bigquery.table-name", "__debezium_offset_storage_test_table");
+      config.put("debezium.source.offset.storage.bigquery.migrate-offset-file", "src/test/resources/offsets.dat");
       return config;
     }
   }
