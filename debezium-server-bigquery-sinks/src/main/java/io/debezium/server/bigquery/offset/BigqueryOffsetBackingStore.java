@@ -12,9 +12,13 @@ import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
 import io.debezium.config.Field;
 import io.debezium.server.bigquery.BatchUtil;
+import io.debezium.util.Strings;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
@@ -26,10 +30,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.*;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.runtime.WorkerConfig;
 import org.apache.kafka.connect.storage.MemoryOffsetBackingStore;
 import org.apache.kafka.connect.storage.OffsetBackingStore;
 import org.apache.kafka.connect.util.Callback;
+import org.apache.kafka.connect.util.SafeObjectInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +60,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   BigQuery bqClient;
   private String tableFullName;
   private TableId tableId;
+  BigqueryOffsetBackingStoreConfig config;
   protected static final ObjectMapper mapper = new ObjectMapper();
   protected Map<String, String> data = new HashMap<>();
 
@@ -83,17 +90,17 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   @Override
   public void configure(WorkerConfig config) {
     super.configure(config);
-    BigqueryOffsetBackingStoreConfig config1 = new BigqueryOffsetBackingStoreConfig(Configuration.from(config.originalsStrings()));
+    this.config = new BigqueryOffsetBackingStoreConfig(Configuration.from(config.originalsStrings()));
 
     try {
       bqClient = BatchUtil.getBQClient(
-          Optional.ofNullable(config1.getBigqueryProject()),
-          Optional.ofNullable(config1.getBigqueryDataset()),
-          Optional.ofNullable(config1.getBigqueryCredentialsFile()),
-          config1.getBigqueryLocation()
+          Optional.ofNullable(this.config.getBigqueryProject()),
+          Optional.ofNullable(this.config.getBigqueryDataset()),
+          Optional.ofNullable(this.config.getBigqueryCredentialsFile()),
+          this.config.getBigqueryLocation()
       );
-      tableFullName = String.format("%s.%s", config1.getBigqueryDataset(), config1.getBigqueryTable());
-      tableId = TableId.of(config1.getBigqueryDataset(), config1.getBigqueryTable());
+      tableFullName = String.format("%s.%s", this.config.getBigqueryDataset(), this.config.getBigqueryTable());
+      tableId = TableId.of(this.config.getBigqueryDataset(), this.config.getBigqueryTable());
     } catch (Exception e) {
       throw new IllegalStateException("Failed to connect bigquery offset backing store", e);
     }
@@ -118,7 +125,12 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     if (table == null) {
       LOG.debug("Creating table {} to store offset", tableFullName);
       executeQuery(String.format(OFFSET_STORAGE_TABLE_DDL, tableFullName));
-      LOG.info("Created {} table to store offset", tableFullName);
+      LOG.warn("Created offset storage table {} to store offset", tableFullName);
+      
+      if (!Strings.isNullOrEmpty(config.getMigrateOffsetFile().strip())){
+        LOG.warn("Loading offset from file {}", config.getMigrateOffsetFile());
+        this.loadFileOffset(new File(config.getMigrateOffsetFile()));
+      }
     }
   }
 
@@ -160,11 +172,31 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
       }
     } catch (SQLException | JsonProcessingException e) {
       e.printStackTrace();
-      LOG.error("Failed recover offset data from bigquery", e);
+      LOG.error("Failed load offset data from bigquery", e);
       throw new RuntimeException(e);
     }
   }
 
+  private void loadFileOffset(File file) {
+    try (SafeObjectInputStream is = new SafeObjectInputStream(Files.newInputStream(file.toPath()))) {
+      Object obj = is.readObject();
+      
+      if (!(obj instanceof HashMap))
+        throw new ConnectException("Expected HashMap but found " + obj.getClass());
+      
+      Map<byte[], byte[]> raw = (Map<byte[], byte[]>) obj;
+      for (Map.Entry<byte[], byte[]> mapEntry : raw.entrySet()) {
+        ByteBuffer key = (mapEntry.getKey() != null) ? ByteBuffer.wrap(mapEntry.getKey()) : null;
+        ByteBuffer value = (mapEntry.getValue() != null) ? ByteBuffer.wrap(mapEntry.getValue()) : null;
+        data.put(fromByteBuffer(key), fromByteBuffer(value));
+      }
+    } catch (IOException | ClassNotFoundException e) {
+      throw new DebeziumException("Failed migrating offset from file", e);
+    }
+    
+    LOG.warn("Loaded file offset, saving it to Bigquery offset storage");
+    save();
+  }
   @Override
   public Future<Void> set(final Map<ByteBuffer, ByteBuffer> values,
                           final Callback<Void> callback) {
@@ -231,6 +263,10 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
 
     public String getBigqueryTable() {
       return this.config.getString(Field.create("offset.storage.bigquery.table-name").withDefault("debezium_offset_storage"));
+    }
+
+    public String getMigrateOffsetFile() {
+      return this.config.getString(Field.create("offset.storage.bigquery.migrate-offset-file").withDefault(""));
     }
 
     public String getBigqueryCredentialsFile() {
