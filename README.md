@@ -124,6 +124,21 @@ debezium.source.max.queue.size=16000";
 debezium.sink.batch.batch-size-wait.max-wait-ms=30000
 debezium.sink.batch.batch-size-wait.wait-interval-ms=5000
 ```
+##  BigqueryOffsetBackingStore Offset Storage
+This implementation saves CDC offset to a bigquery table.
+
+```
+debezium.source.offset.storage=io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore
+debezium.source.offset.storage.bigquery.table-name=debezium_offset_storage_custom_table
+```
+
+## BigquerySchemaHistory Database History Storage
+This implementation saves database history to a bigquery table.
+
+```properties
+debezium.source.database.history=io.debezium.server.bigquery.history.BigquerySchemaHistory
+debezium.source.database.history.bigquery.table-name=__debezium_database_history_storage_test_table
+```
 
 ## Configuring log levels
 
