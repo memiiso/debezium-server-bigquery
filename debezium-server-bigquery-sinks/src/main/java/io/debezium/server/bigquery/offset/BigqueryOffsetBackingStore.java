@@ -71,21 +71,6 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   public String getTableFullName() {
     return tableFullName;
   }
-  
-  private TableResult executeQuery(String query, List<QueryParameterValue> parameters) throws SQLException {
-    try {
-      QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query)
-          .setPositionalParameters(parameters)
-          .build();
-      return bqClient.query(queryConfig);
-    } catch (BigQueryException | InterruptedException e) {
-      throw new SQLException(e);
-    }
-  }
-
-  private TableResult executeQuery(String query) throws SQLException {
-    return this.executeQuery(query, null);
-  }
 
   @Override
   public void configure(WorkerConfig config) {
@@ -124,7 +109,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     Table table = bqClient.getTable(tableId);
     if (table == null) {
       LOG.debug("Creating table {} to store offset", tableFullName);
-      executeQuery(String.format(OFFSET_STORAGE_TABLE_DDL, tableFullName));
+      BatchUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DDL, tableFullName));
       LOG.warn("Created offset storage table {} to store offset", tableFullName);
       
       if (!Strings.isNullOrEmpty(config.getMigrateOffsetFile().strip())){
@@ -137,11 +122,11 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   protected void save() {
     LOG.debug("Saving offset data to bigquery table...");
     try {
-      this.executeQuery(String.format(OFFSET_STORAGE_TABLE_DELETE, tableFullName));
+      BatchUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DELETE, tableFullName));
       String dataJson = mapper.writeValueAsString(data);
       LOG.debug("Saving offset data {}", dataJson);
       Timestamp currentTs = new Timestamp(System.currentTimeMillis());
-      this.executeQuery(
+      BatchUtil.executeQuery(bqClient,
           String.format(OFFSET_STORAGE_TABLE_INSERT, tableFullName),
           ImmutableList.of(
               QueryParameterValue.string(UUID.randomUUID().toString()),
@@ -159,7 +144,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   private void load() {
     try {
       String dataJsonString = null;
-      TableResult rs = this.executeQuery(String.format(OFFSET_STORAGE_TABLE_SELECT, tableFullName));
+      TableResult rs = BatchUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_SELECT, tableFullName));
       for (FieldValueList row : rs.getValues()) {
         dataJsonString = row.get("offset_data").getStringValue();
         break;
