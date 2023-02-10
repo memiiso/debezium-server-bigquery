@@ -60,7 +60,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   BigQuery bqClient;
   private String tableFullName;
   private TableId tableId;
-  BigqueryOffsetBackingStoreConfig config;
+  BigqueryOffsetBackingStoreConfig offsetConfig;
   protected static final ObjectMapper mapper = new ObjectMapper();
   protected Map<String, String> data = new HashMap<>();
 
@@ -75,17 +75,17 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   @Override
   public void configure(WorkerConfig config) {
     super.configure(config);
-    this.config = new BigqueryOffsetBackingStoreConfig(Configuration.from(config.originalsStrings()));
+    this.offsetConfig = new BigqueryOffsetBackingStoreConfig(Configuration.from(config.originalsStrings()));
 
     try {
       bqClient = BatchUtil.getBQClient(
-          Optional.ofNullable(this.config.getBigqueryProject()),
-          Optional.ofNullable(this.config.getBigqueryDataset()),
-          Optional.ofNullable(this.config.getBigqueryCredentialsFile()),
-          this.config.getBigqueryLocation()
+          Optional.ofNullable(this.offsetConfig.getBigqueryProject()),
+          Optional.ofNullable(this.offsetConfig.getBigqueryDataset()),
+          Optional.ofNullable(this.offsetConfig.getBigqueryCredentialsFile()),
+          this.offsetConfig.getBigqueryLocation()
       );
-      tableFullName = String.format("%s.%s", this.config.getBigqueryDataset(), this.config.getBigqueryTable());
-      tableId = TableId.of(this.config.getBigqueryDataset(), this.config.getBigqueryTable());
+      tableFullName = String.format("%s.%s", this.offsetConfig.getBigqueryDataset(), this.offsetConfig.getBigqueryTable());
+      tableId = TableId.of(this.offsetConfig.getBigqueryDataset(), this.offsetConfig.getBigqueryTable());
     } catch (Exception e) {
       throw new IllegalStateException("Failed to connect bigquery offset backing store", e);
     }
@@ -112,9 +112,9 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
       BatchUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DDL, tableFullName));
       LOG.warn("Created offset storage table {} to store offset", tableFullName);
       
-      if (!Strings.isNullOrEmpty(config.getMigrateOffsetFile().strip())){
-        LOG.warn("Loading offset from file {}", config.getMigrateOffsetFile());
-        this.loadFileOffset(new File(config.getMigrateOffsetFile()));
+      if (!Strings.isNullOrEmpty(offsetConfig.getMigrateOffsetFile().strip())){
+        LOG.warn("Loading offset from file {}", offsetConfig.getMigrateOffsetFile());
+        this.loadFileOffset(new File(offsetConfig.getMigrateOffsetFile()));
       }
     }
   }
