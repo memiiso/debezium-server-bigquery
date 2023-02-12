@@ -11,6 +11,9 @@ package io.debezium.server.bigquery;
 import io.debezium.serde.DebeziumSerdes;
 import io.debezium.util.Testing;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,8 +23,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class BatchUtilTest {
 
-  final String serdeWithSchema = Testing.Files.readResourceAsString("json/serde-with-schema.json");
-  final String unwrapWithSchema = Testing.Files.readResourceAsString("json/unwrap-with-schema.json");
+  final String serdeWithSchema = Files.readString(Path.of("src/test/resources/json/serde-with-schema.json"));
+  final String unwrapWithSchema = Files.readString(Path.of("src/test/resources/json/unwrap-with-schema.json"));
+
+  BatchUtilTest() throws IOException {
+  }
 
   @Test
   public void testValuePayloadWithSchemaAsJsonNode() {
