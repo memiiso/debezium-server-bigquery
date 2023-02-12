@@ -9,7 +9,6 @@
 package io.debezium.server.bigquery;
 
 import io.debezium.serde.DebeziumSerdes;
-import io.debezium.util.Testing;
 
 import java.io.IOException;
 import java.nio.file.Files;
