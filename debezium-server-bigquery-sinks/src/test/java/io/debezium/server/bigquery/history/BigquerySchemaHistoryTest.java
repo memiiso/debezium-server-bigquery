@@ -23,7 +23,7 @@ import java.sql.Types;
 import java.util.Map;
 
 import org.junit.jupiter.api.*;
-import static io.debezium.server.bigquery.ConfigSource.*;
+import static io.debezium.server.bigquery.TestConfigSource.*;
 
 
 @Disabled
