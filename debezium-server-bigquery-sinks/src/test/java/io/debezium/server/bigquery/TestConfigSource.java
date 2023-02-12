@@ -8,11 +8,14 @@
 
 package io.debezium.server.bigquery;
 
-import io.debezium.server.TestConfigSource;
-
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-public class ConfigSource extends TestConfigSource {
+import org.eclipse.microprofile.config.spi.ConfigSource;
+
+public class TestConfigSource implements ConfigSource {
   public static String BQ_LOCATION = "EU";
   // overriden by user src/test/resources/application.properties
   public static String BQ_PROJECT = "test";
@@ -20,8 +23,9 @@ public class ConfigSource extends TestConfigSource {
   public static String BQ_CRED_FILE = ""; // "/path/to/application_credentials.json"
   public static List<String> TABLES = List.of("customers", "geom", "orders", "products", "products_on_hand",
       "test_data_types", "test_table");
+  protected Map<String, String> config = new HashMap<>();
 
-  public ConfigSource() {
+  public TestConfigSource() {
     config.put("debezium.sink.type", "bigquerybatch");
     config.put("debezium.source.include.schema.changes", "false");
     config.put("debezium.source.decimal.handling.mode", "double");
@@ -67,10 +71,24 @@ public class ConfigSource extends TestConfigSource {
     config.put("quarkus.log.category.\"com.google.cloud.bigquery\".level", "INFO");
   }
 
+
   @Override
-  public int getOrdinal() {
-    // Configuration property precedence is based on ordinal values and since we override the
-    // properties in TestConfigSource, we should give this a higher priority.
-    return super.getOrdinal() + 1;
+  public Map<String, String> getProperties() {
+    return config;
+  }
+
+  @Override
+  public String getValue(String propertyName) {
+    return config.get(propertyName);
+  }
+
+  @Override
+  public String getName() {
+    return "test";
+  }
+
+  @Override
+  public Set<String> getPropertyNames() {
+    return config.keySet();
   }
 }

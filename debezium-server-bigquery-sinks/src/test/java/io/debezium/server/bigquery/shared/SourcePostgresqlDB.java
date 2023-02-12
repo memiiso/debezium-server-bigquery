@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
-import static io.debezium.server.bigquery.ConfigSource.TABLES;
+import static io.debezium.server.bigquery.TestConfigSource.TABLES;
 
 public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
 

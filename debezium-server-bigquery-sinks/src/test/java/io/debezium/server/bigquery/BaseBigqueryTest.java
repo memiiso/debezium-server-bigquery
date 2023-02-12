@@ -21,7 +21,7 @@ import com.google.cloud.bigquery.*;
 import org.awaitility.Awaitility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static io.debezium.server.bigquery.ConfigSource.*;
+import static io.debezium.server.bigquery.TestConfigSource.*;
 
 /**
  *
