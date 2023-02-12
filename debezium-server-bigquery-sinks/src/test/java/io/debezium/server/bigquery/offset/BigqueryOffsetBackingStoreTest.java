@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import static io.debezium.server.bigquery.ConfigSource.BQ_DATASET;
+import static io.debezium.server.bigquery.TestConfigSource.BQ_DATASET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest

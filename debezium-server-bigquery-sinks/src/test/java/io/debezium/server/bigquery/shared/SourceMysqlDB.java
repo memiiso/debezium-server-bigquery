@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import static io.debezium.server.bigquery.ConfigSource.TABLES;
+import static io.debezium.server.bigquery.TestConfigSource.TABLES;
 
 public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
 

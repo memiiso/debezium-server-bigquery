@@ -6,4 +6,4 @@
 #  */
 #
 
-io.debezium.server.bigquery.ConfigSource
+io.debezium.server.bigquery.TestConfigSource
