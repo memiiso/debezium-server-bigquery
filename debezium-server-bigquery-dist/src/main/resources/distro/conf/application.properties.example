@@ -1,8 +1,12 @@
 # ==================== SOURCE DB == MYSQL ====================
 
 debezium.source.connector.class=io.debezium.connector.mysql.MySqlConnector
-# debezium.source.offset.storage=org.apache.kafka.connect.storage.FileOffsetBackingStore
-# debezium.source.offset.storage.file.filename=data/offsets.dat
+debezium.source.offset.storage=io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore
+debezium.source.offset.storage.bigquery.table-name=debezium_offset_storage_custom_table
+debezium.source.database.history=io.debezium.server.bigquery.history.BigquerySchemaHistory
+debezium.source.database.history.bigquery.table-name=__debezium_database_history_storage_test_table
+debezium.source.database.history.bigquery.migrate-history-file=data/dbhistory.txt
+
 debezium.source.offset.flush.interval.ms=60000
 
 debezium.source.database.hostname=127.0.0.1
@@ -30,19 +34,10 @@ debezium.sink.bigquerybatch.project=test
 debezium.sink.bigquerybatch.dataset=test
 debezium.sink.bigquerybatch.location=EU
 # debezium.sink.bigquerybatch.credentials-file=/path/to/application_credentials.json
-debezium.source.offset.storage=io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore
-debezium.source.offset.storage.bigquery.table-name=debezium_offset_storage_custom_table
 
 # ==================== Misc ====================
-
-debezium.source.database.history.kafka.bootstrap.servers=kafka:9092
-debezium.source.database.history.kafka.topic=dbhistory.fullfillment
 debezium.source.include.schema.changes=false
-debezium.source.database.history=io.debezium.relational.history.FileDatabaseHistory
-debezium.source.database.history.file.filename=data/dbhistory.txt
-
 quarkus.http.port=8014
-
 # ==================== LOG LEVELS ====================
 quarkus.log.level=INFO
 quarkus.log.console.json=false
