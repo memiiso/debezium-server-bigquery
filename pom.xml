@@ -91,9 +91,8 @@
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
-                <artifactId>google-cloud-bigquerystorage-bom</artifactId>
+                <artifactId>google-cloud-bigquerystorage</artifactId>
                 <version>${version.gcp.bigquerystorage}</version>
-                <type>pom</type>
             </dependency>
             <!-- END Google -->
             <dependency>
