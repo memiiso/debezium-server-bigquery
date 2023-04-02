@@ -68,8 +68,6 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   Optional<String> gcpProject;
   @ConfigProperty(name = "debezium.sink.bigquerystream.location", defaultValue = "US")
   String bqLocation;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.cast-deleted-field", defaultValue = "false")
-  Boolean castDeletedField;
   @ConfigProperty(name = "debezium.sink.bigquerystream.ignore-unknown-fields", defaultValue = "true")
   Boolean ignoreUnknownFields;
   @ConfigProperty(name = "debezium.sink.bigquerystream.create-if-needed", defaultValue = "true")
