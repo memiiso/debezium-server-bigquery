@@ -247,7 +247,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
       // Initialize a write stream for the specified table.
       // For more information on WriteStream.Type, see:
       // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/WriteStream.Type.html
-      WriteStream stream = WriteStream.newBuilder().setType(WriteStream.Type.PENDING).build();
+      WriteStream stream = WriteStream.newBuilder().setType(WriteStream.Type.COMMITTED).build();
 
       CreateWriteStreamRequest createWriteStreamRequest =
           CreateWriteStreamRequest.newBuilder()
