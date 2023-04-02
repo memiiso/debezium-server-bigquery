@@ -173,7 +173,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     Table table = bqClient.create(tableInfo);
     LOGGER.warn("Created table {}", table.getTableId());
 
-    // NOTE ideally we should wait here for streaming cache to update with the new table information 
+    // NOTE @TODO ideally we should wait here for streaming cache to update with the new table information 
     // but seems like there is no proper way to wait... 
     // Without wait consumer fails
 
@@ -230,10 +230,10 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
               .build()
       ).build();
       table = updatedTable.update();
-      LOGGER.info("New columns {} successfully added to {}, replacing stream writer...", newFields,
-          table.getTableId());
+      LOGGER.info("New columns {} successfully added to {}, refreshing stream writer...", newFields, table.getTableId());
       jsonStreamWriters.get(destination).close(bigQueryWriteClient);
       jsonStreamWriters.replace(destination, getDataWriter(table));
+
       LOGGER.info("New columns {} added to {}", newFields, table.getTableId());
     }
 
