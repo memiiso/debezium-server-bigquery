@@ -202,18 +202,18 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
    * add new fields to table, using event schema.
    *
    * @param table
-   * @param eventSchema
+   * @param updatedSchema
    * @param destination
    * @return Table
    */
-  private Table updateTableSchema(Table table, Schema eventSchema, String destination) {
+  private Table updateTableSchema(Table table, Schema updatedSchema, String destination) {
 
     List<Field> tableFields = new ArrayList<>(table.getDefinition().getSchema().getFields());
     List<String> tableFieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());
 
     boolean newFieldFound = false;
     StringBuilder newFields = new StringBuilder();
-    for (Field field : eventSchema.getFields()) {
+    for (Field field : updatedSchema.getFields()) {
       if (!tableFieldNames.contains(field.getName())) {
         tableFields.add(field);
         newFields.append(field);
