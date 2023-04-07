@@ -244,26 +244,14 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     public DataWriter(TableName parentTable, BigQueryWriteClient client, Boolean ignoreUnknownFields)
         throws DescriptorValidationException, IOException, InterruptedException {
 
-      // Initialize a write stream for the specified table.
-      // For more information on WriteStream.Type, see:
-      // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/WriteStream.Type.html
-      WriteStream stream = WriteStream.newBuilder().setType(WriteStream.Type.COMMITTED).build();
-
-      CreateWriteStreamRequest createWriteStreamRequest =
-          CreateWriteStreamRequest.newBuilder()
-              .setParent(parentTable.toString())
-              .setWriteStream(stream)
-              .build();
-      WriteStream writeStream = client.createWriteStream(createWriteStreamRequest);
-
-      // Use the JSON stream writer to send records in JSON format.
+      // Use the JSON stream writer to send records in JSON format. Specify the table name to write
+      // to the default stream.
       // For more information about JsonStreamWriter, see:
-      // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1beta2/JsonStreamWriter.html
-      streamWriter =
-          JsonStreamWriter
-              .newBuilder(writeStream.getName(), writeStream.getTableSchema())
-              .setIgnoreUnknownFields(ignoreUnknownFields)
-              .build();
+      // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/JsonStreamWriter.html
+      streamWriter = JsonStreamWriter
+          .newBuilder(parentTable.toString(), client)
+          .setIgnoreUnknownFields(ignoreUnknownFields)
+          .build();
     }
 
     private void appendSync(JSONArray data, int retryCount) throws DescriptorValidationException,
