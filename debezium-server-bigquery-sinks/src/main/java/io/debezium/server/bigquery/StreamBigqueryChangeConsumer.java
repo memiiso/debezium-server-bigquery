@@ -274,7 +274,8 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
           this.appendSync(data, ++retryCount);
           // Mark the existing attempt as done since it's being retried.
         } else {
-          throw new DebeziumException("Failed to append data to stream " + streamWriter.getStreamName(), throwable);
+          throw new DebeziumException("Failed to append data to stream " + streamWriter.getStreamName() + "\n" + throwable.getMessage(),
+              throwable);
         }
       }
 
