@@ -14,12 +14,13 @@ import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import io.debezium.relational.Tables;
 import io.debezium.relational.ddl.DdlParser;
-import io.debezium.relational.history.DatabaseHistoryListener;
 import io.debezium.relational.history.HistoryRecord;
+import io.debezium.relational.history.SchemaHistoryListener;
 import io.debezium.relational.history.TableChanges;
 import io.debezium.util.Collect;
 
 import java.sql.Types;
+import java.time.Instant;
 import java.util.Map;
 
 import org.junit.jupiter.api.*;
@@ -70,7 +71,7 @@ class BigquerySchemaHistoryTest {
         .setPrimaryKeyNames("first")
         .create();
     tableChanges = new TableChanges().create(table);
-    historyRecord = new HistoryRecord(source, position, databaseName, schemaName, ddl, tableChanges);
+    historyRecord = new HistoryRecord(source, position, databaseName, schemaName, ddl, tableChanges, Instant.now());
     //
     position2 = Collect.linkMapOf("file", "x.log", "positionInt", 100, "positionLong", Long.MAX_VALUE, "entry", 2);
     tableId2 = new TableId(databaseName, schemaName, "bar");
@@ -86,7 +87,7 @@ class BigquerySchemaHistoryTest {
         .setPrimaryKeyNames("first")
         .create();
     tableChanges2 = new TableChanges().create(table2);
-    historyRecord2 = new HistoryRecord(source, position, databaseName, schemaName, ddl, tableChanges2);
+    historyRecord2 = new HistoryRecord(source, position, databaseName, schemaName, ddl, tableChanges2, Instant.now());
   }
 
   @AfterEach
@@ -107,14 +108,14 @@ class BigquerySchemaHistoryTest {
 
   @Test
   public void shouldRecordChangesAndRecover() throws InterruptedException {
-    history.record(source, position, databaseName, schemaName, ddl, tableChanges);
-    history.record(source, position, databaseName, schemaName, ddl, tableChanges);
+    history.record(source, position, databaseName, schemaName, ddl, tableChanges, Instant.now());
+    history.record(source, position, databaseName, schemaName, ddl, tableChanges, Instant.now());
     Tables tables = new Tables();
     history.recover(source, position, tables, ddlParser);
     Assertions.assertEquals(tables.size(), 1);
     Assertions.assertEquals(tables.forTable(tableId), table);
-    history.record(source, position2, databaseName, schemaName, ddl, tableChanges2);
-    history.record(source, position2, databaseName, schemaName, ddl, tableChanges2);
+    history.record(source, position2, databaseName, schemaName, ddl, tableChanges2, Instant.now());
+    history.record(source, position2, databaseName, schemaName, ddl, tableChanges2, Instant.now());
     history.stop();
     // after restart, it should recover history correctly
     BigquerySchemaHistory history2 = getSchemaHist();
@@ -143,7 +144,7 @@ class BigquerySchemaHistoryTest {
         .with("debezium.sink.bigquerybatch.dataset", BQ_DATASET)
         .with("debezium.sink.bigquerybatch.location", BQ_LOCATION)
         .with("debezium.sink.bigquerybatch.credentials-file", BQ_CRED_FILE)
-        .build(), null, DatabaseHistoryListener.NOOP, true);
+        .build(), null, SchemaHistoryListener.NOOP, true);
     
     return history2;
   } 
