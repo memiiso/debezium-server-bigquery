@@ -10,7 +10,6 @@ package io.debezium.server.bigquery;
 
 import io.debezium.DebeziumException;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.channels.Channels;
@@ -26,8 +25,6 @@ import javax.enterprise.context.Dependent;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import com.google.api.gax.retrying.RetrySettings;
-import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.*;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
