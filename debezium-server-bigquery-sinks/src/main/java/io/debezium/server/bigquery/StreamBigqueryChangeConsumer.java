@@ -21,12 +21,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.storage.v1.*;
 import com.google.common.annotations.Beta;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -46,6 +48,7 @@ import org.json.JSONArray;
 @Beta
 public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   protected static final ConcurrentHashMap<String, DataWriter> jsonStreamWriters = new ConcurrentHashMap<>();
+  static final ImmutableMap<String, Integer> cdcOperations = ImmutableMap.of("c", 1, "r", 2, "u", 3, "d", 4);
   private static final int MAX_RETRY_COUNT = 3;
   private static final ImmutableList<Code> RETRIABLE_ERROR_CODES =
       ImmutableList.of(
@@ -76,12 +79,20 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   String partitionField;
   @ConfigProperty(name = "debezium.sink.bigquerystream.clustering-field", defaultValue = "__source_ts_ms")
   String clusteringField;
+  @ConfigProperty(name = "debezium.sink.bigquerystream.upsert-dedup-column", defaultValue = "__source_ts_ms")
+  String sourceTsMsColumn;
+  @ConfigProperty(name = "debezium.sink.bigquerystream.upsert-op-column", defaultValue = "__op")
+  String opColumn;
   @ConfigProperty(name = "debezium.sink.bigquerystream.partition-type", defaultValue = "MONTH")
   String partitionType;
   @ConfigProperty(name = "debezium.sink.bigquerystream.allow-field-addition", defaultValue = "false")
   Boolean allowFieldAddition;
   @ConfigProperty(name = "debezium.sink.bigquerystream.credentials-file", defaultValue = "")
   Optional<String> credentialsFile;
+  @ConfigProperty(name = "debezium.sink.bigquerystream.upsert", defaultValue = "false")
+  boolean upsert;
+  @ConfigProperty(name = "debezium.sink.bigquerystream.upsert-keep-deletes", defaultValue = "true")
+  boolean upsertKeepDeletes;
   TimePartitioning timePartitioning;
   BigQuery bqClient;
 
@@ -125,6 +136,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     try {
       return new DataWriter(
           TableName.of(table.getTableId().getProject(), table.getTableId().getDataset(), table.getTableId().getTable()),
+          BqToBqStorageSchemaConverter.convertTableSchema(table.getDefinition().getSchema()),
           bigQueryWriteClient,
           ignoreUnknownFields
       );
@@ -140,14 +152,70 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     // get stream writer create if not yet exists!
     DataWriter writer = jsonStreamWriters.computeIfAbsent(destination, k -> getDataWriter(table));
     try {
+      // running with upsert mode deduplicate data! for the tables having Primary Key
+      // for the tables without primary key run append mode
+      // Otherwise it throws Exception
+      // INVALID_ARGUMENT:Create UPSERT stream is not supported for primary key disabled table: xyz
+      final boolean tableHasPrimaryKey = table.getTableConstraints().getPrimaryKey() != null;
+      if (upsert && tableHasPrimaryKey) {
+        data = deduplicateBatch(data);
+      }
+      // add data to JSONArray
       JSONArray jsonArr = new JSONArray();
-      data.forEach(e -> jsonArr.put(e.valueAsJSONObject()));
+      data.forEach(e -> jsonArr.put(e.valueAsJSONObject(upsert && tableHasPrimaryKey, upsertKeepDeletes)));
       writer.appendSync(jsonArr);
     } catch (DescriptorValidationException | IOException e) {
       throw new DebeziumException("Failed to append data to stream " + writer.streamWriter.getStreamName(), e);
     }
-    LOGGER.debug("Appended {} records to {} successfully.", numRecords, destination);
+    LOGGER.debug("Added {} records to {} successfully.", numRecords, destination);
     return numRecords;
+  }
+
+
+  protected List<DebeziumBigqueryEvent> deduplicateBatch(List<DebeziumBigqueryEvent> events) {
+
+    ConcurrentHashMap<JsonNode, DebeziumBigqueryEvent> deduplicatedEvents = new ConcurrentHashMap<>();
+
+    events.forEach(e ->
+        // deduplicate using key(PK)
+        deduplicatedEvents.merge(e.key(), e, (oldValue, newValue) -> {
+          if (this.compareByTsThenOp(oldValue.value(), newValue.value()) <= 0) {
+            return newValue;
+          } else {
+            return oldValue;
+          }
+        })
+    );
+
+    return new ArrayList<>(deduplicatedEvents.values());
+  }
+
+  /**
+   * This is used to deduplicate events within given batch.
+   * <p>
+   * Forex ample a record can be updated multiple times in the source. for example insert followed by update and
+   * delete. for this case we need to only pick last change event for the row.
+   * <p>
+   * Its used when `upsert` feature enabled (when the consumer operating non append mode) which means it should not add
+   * duplicate records to target table.
+   *
+   * @param lhs
+   * @param rhs
+   * @return
+   */
+  private int compareByTsThenOp(JsonNode lhs, JsonNode rhs) {
+
+    int result = Long.compare(lhs.get(sourceTsMsColumn).asLong(0), rhs.get(sourceTsMsColumn).asLong(0));
+
+    if (result == 0) {
+      // return (x < y) ? -1 : ((x == y) ? 0 : 1);
+      result = cdcOperations.getOrDefault(lhs.get(opColumn).asText("c"), -1)
+          .compareTo(
+              cdcOperations.getOrDefault(rhs.get(opColumn).asText("c"), -1)
+          );
+    }
+
+    return result;
   }
 
   public TableId getTableId(String destination) {
@@ -158,19 +226,19 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   }
 
 
-  private Table createTable(TableId tableId, Schema schema, Clustering clustering) {
+  private Table createTable(TableId tableId, Schema schema, Clustering clustering, TableConstraints tableConstraints) {
 
     StandardTableDefinition tableDefinition =
         StandardTableDefinition.newBuilder()
             .setSchema(schema)
             .setTimePartitioning(timePartitioning)
             .setClustering(clustering)
+            .setTableConstraints(tableConstraints)
             .build();
     TableInfo tableInfo =
         TableInfo.newBuilder(tableId, tableDefinition).build();
     Table table = bqClient.create(tableInfo);
-    LOGGER.warn("Created table {}", table.getTableId());
-
+    LOGGER.warn("Created table {} PK {}", table.getTableId(), tableConstraints.getPrimaryKey());
     // NOTE @TODO ideally we should wait here for streaming cache to update with the new table information 
     // but seems like there is no proper way to wait... 
     // Without wait consumer fails
@@ -185,7 +253,8 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     if (createIfNeeded && table == null) {
       table = this.createTable(tableId,
           sampleBqEvent.getBigQuerySchema(true, true),
-          sampleBqEvent.getBigQueryClustering(clusteringField)
+          sampleBqEvent.getBigQueryClustering(clusteringField),
+          sampleBqEvent.getBigQueryTableConstraints()
       );
     }
 
@@ -241,7 +310,8 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   protected static class DataWriter {
     private final JsonStreamWriter streamWriter;
 
-    public DataWriter(TableName parentTable, BigQueryWriteClient client, Boolean ignoreUnknownFields)
+    public DataWriter(TableName parentTable, TableSchema tableSchema, BigQueryWriteClient client,
+                      Boolean ignoreUnknownFields)
         throws DescriptorValidationException, IOException, InterruptedException {
 
       // Use the JSON stream writer to send records in JSON format. Specify the table name to write
@@ -249,7 +319,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
       // For more information about JsonStreamWriter, see:
       // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/JsonStreamWriter.html
       streamWriter = JsonStreamWriter
-          .newBuilder(parentTable.toString(), client)
+          .newBuilder(parentTable.toString(), tableSchema, client)
           .setIgnoreUnknownFields(ignoreUnknownFields)
           .build();
     }
