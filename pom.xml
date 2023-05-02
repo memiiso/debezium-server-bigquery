@@ -31,7 +31,7 @@
         <version.jackson>2.13.3</version.jackson>
         <version.gcp.bigquery>2.24.4</version.gcp.bigquery>
         <version.gcp.bigquerystorage>2.36.1</version.gcp.bigquerystorage>
-        <version.log4j>2.19.0</version.log4j>
+        <version.log4j>2.20.0</version.log4j>
         <!-- Debezium -->
         <version.debezium>2.2.0.Final</version.debezium>
         <version.mysql.driver>8.0.32</version.mysql.driver>
