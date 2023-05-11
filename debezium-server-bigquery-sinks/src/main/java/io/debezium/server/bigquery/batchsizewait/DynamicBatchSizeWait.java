@@ -10,8 +10,8 @@ package io.debezium.server.bigquery.batchsizewait;
 
 import java.util.LinkedList;
 import java.util.LongSummaryStatistics;
-import javax.enterprise.context.Dependent;
-import javax.inject.Named;
+import jakarta.enterprise.context.Dependent;
+import jakarta.inject.Named;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;

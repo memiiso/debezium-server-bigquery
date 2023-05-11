@@ -36,10 +36,7 @@
         <version.debezium>2.2.0.Final</version.debezium>
         <version.mysql.driver>8.0.32</version.mysql.driver>
         <!-- Quarkus -->
-        <version.quarkus>2.16.7.Final</version.quarkus>
-        <!-- ANTLR -->
-        <!-- Align with Antlr runtime version pulled in via debezium -->
-        <version.antlr>4.8</version.antlr>
+        <version.quarkus>3.0.1.Final</version.quarkus>
 
         <!-- Plugin versions -->
         <version.maven-enforcer-plugin>3.2.1</version.maven-enforcer-plugin>
@@ -69,12 +66,6 @@
                 <version>${version.debezium}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <!-- Debezium antlr4 -->
-            <dependency>
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4-runtime</artifactId>
-                <version>${version.antlr}</version>
             </dependency>
             <!-- Debezium Scripting -->
             <dependency>

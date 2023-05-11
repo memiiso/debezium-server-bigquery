@@ -34,35 +34,6 @@ import org.junit.jupiter.api.Test;
 public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
   @Test
-  @Disabled
-  public void testPerformance() throws Exception {
-    int maxBatchSize = 1500;
-    int iteration = 1;
-    for (int i = 0; i <= iteration; i++) {
-      new Thread(() -> {
-        try {
-          SourcePostgresqlDB.PGLoadTestDataTable(maxBatchSize, false);
-        } catch (Exception e) {
-          e.printStackTrace();
-          Thread.currentThread().interrupt();
-        }
-      }).start();
-    }
-
-    Awaitility.await().atMost(Duration.ofSeconds(1200)).until(() -> {
-      try {
-        TableResult result = getTableData("testc.inventory.test_table");
-        return result.getTotalRows() >= (long) iteration * maxBatchSize;
-      } catch (Exception e) {
-        return false;
-      }
-    });
-
-    TableResult result = getTableData("testc.inventory.test_table");
-    System.out.println("Row Count=" + result.getTotalRows());
-  }
-
-  @Test
   public void testSimpleUpload() {
     super.testSimpleUpload();
   }

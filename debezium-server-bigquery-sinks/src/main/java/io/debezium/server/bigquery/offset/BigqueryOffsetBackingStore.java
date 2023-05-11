@@ -222,7 +222,8 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   public static class BigqueryOffsetBackingStoreConfig extends WorkerConfig {
     private final Configuration config;
 
-    static final Field SINK_TYPE_FIELD = Field.create("debezium.sink.type").required();
+    static final Field SINK_TYPE_FIELD = Field.create("debezium.sink.type").optional();
+    static final Field SINK_TYPE_FIELD_FALLBACK = Field.create("name").optional();
 
     public BigqueryOffsetBackingStoreConfig(Configuration config) {
       super(new ConfigDef(), config.asMap());
@@ -230,7 +231,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     }
 
     public String sinkType() {
-      String type = this.config.getString(SINK_TYPE_FIELD);
+      String type = this.config.getString(SINK_TYPE_FIELD, this.config.getString(SINK_TYPE_FIELD_FALLBACK));
       if (type == null) {
         throw new DebeziumException("The config property debezium.sink.type is required " +
             "but it could not be found in any config source");
@@ -239,11 +240,11 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     }
 
     public String getBigqueryProject() {
-      return this.config.getString(Field.create(String.format("debezium.sink.%s.project", this.sinkType())));
+      return this.config.getString(Field.create(String.format("offset.storage.%s.project", this.sinkType())));
     }
 
     public String getBigqueryDataset() {
-      return this.config.getString(Field.create(String.format("debezium.sink.%s.dataset", this.sinkType())));
+      return this.config.getString(Field.create(String.format("offset.storage.%s.dataset", this.sinkType())));
     }
 
     public String getBigqueryTable() {
@@ -255,11 +256,11 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     }
 
     public String getBigqueryCredentialsFile() {
-      return this.config.getString(Field.create(String.format("debezium.sink.%s.credentialsFile", this.sinkType())).withDefault(""));
+      return this.config.getString(Field.create(String.format("offset.storage.%s.credentialsFile", this.sinkType())).withDefault(""));
     }
 
     public String getBigqueryLocation() {
-      return this.config.getString(Field.create(String.format("debezium.sink.%s.location", this.sinkType())).withDefault("US"));
+      return this.config.getString(Field.create(String.format("offset.storage.%s.location", this.sinkType())).withDefault("US"));
     }
   }
 
