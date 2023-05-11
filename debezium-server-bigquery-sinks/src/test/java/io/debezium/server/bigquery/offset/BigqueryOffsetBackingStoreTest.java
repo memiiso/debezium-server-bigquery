@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import static io.debezium.server.bigquery.TestConfigSource.BQ_DATASET;
+import static io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore.toByteBuffer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
@@ -38,10 +39,6 @@ public class BigqueryOffsetBackingStoreTest {
 
   private static final Map<ByteBuffer, ByteBuffer> firstSet = new HashMap<>();
   private static final Map<ByteBuffer, ByteBuffer> secondSet = new HashMap<>();
-
-  public static ByteBuffer toByteBuffer(String data) {
-    return (data != null) ? ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_16)) : null;
-  }
 
   @BeforeAll
   public static void setup() {
@@ -134,7 +131,6 @@ public class BigqueryOffsetBackingStoreTest {
       Map<String, String> config = new HashMap<>();
       config.put("debezium.sink.type", "bigquerybatch");
       config.put("debezium.source.offset.storage", "io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore");
-      config.put("debezium.source.offset.flush.interval.ms", "60010");
       config.put("debezium.source.offset.storage.bigquery.table-name", "__debezium_offset_storage_test_table");
       config.put("debezium.source.offset.storage.bigquery.migrate-offset-file", "src/test/resources/offsets.dat");
       return config;
