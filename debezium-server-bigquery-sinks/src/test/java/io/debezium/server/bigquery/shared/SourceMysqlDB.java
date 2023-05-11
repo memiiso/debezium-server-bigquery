@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import static io.debezium.server.bigquery.TestConfigSource.TABLES;
+import static io.debezium.server.bigquery.TestConfigSource.*;
 
 public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
 
@@ -75,6 +75,8 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
 
     LOGGER.warn("Dropping all destination BQ tables");
     TABLES.forEach(t -> BaseBigqueryTest.dropTable("testc.inventory." + t));
+    BaseBigqueryTest.dropTable(OFFSET_TABLE);
+    BaseBigqueryTest.dropTable(HISTORY_TABLE);
 
     Map<String, String> params = new ConcurrentHashMap<>();
     params.put("debezium.source.database.hostname", MYSQL_HOST);
