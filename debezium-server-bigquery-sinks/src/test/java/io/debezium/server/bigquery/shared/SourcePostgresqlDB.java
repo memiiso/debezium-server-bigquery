@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
-import static io.debezium.server.bigquery.TestConfigSource.TABLES;
+import static io.debezium.server.bigquery.TestConfigSource.*;
 
 public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
 
@@ -122,6 +122,8 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
 
     LOGGER.warn("Dropping all destination BQ tables");
     TABLES.forEach(t -> BaseBigqueryTest.dropTable("testc.inventory." + t));
+    BaseBigqueryTest.dropTable(OFFSET_TABLE);
+    BaseBigqueryTest.dropTable(HISTORY_TABLE);
 
     Map<String, String> params = new ConcurrentHashMap<>();
     params.put("debezium.source.database.hostname", POSTGRES_HOST);
