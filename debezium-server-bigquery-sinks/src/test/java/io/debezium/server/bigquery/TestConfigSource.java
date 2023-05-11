@@ -21,6 +21,8 @@ public class TestConfigSource implements ConfigSource {
   public static String BQ_PROJECT = "test";
   public static String BQ_DATASET = "stage";
   public static String BQ_CRED_FILE = ""; // "/path/to/application_credentials.json"
+  public static String OFFSET_TABLE = "__debezium_offset_storage_test_table";
+  public static String HISTORY_TABLE = "__debezium_database_history_storage_test_table";
   public static List<String> TABLES = List.of("customers", "geom", "orders", "products", "products_on_hand",
       "test_data_types", "test_table");
   protected Map<String, String> config = new HashMap<>();
