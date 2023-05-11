@@ -55,6 +55,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   public static final String OFFSET_STORAGE_TABLE_INSERT = "INSERT INTO %s VALUES ( ?, ?, ? )";
 
   public static final String OFFSET_STORAGE_TABLE_DELETE = "DELETE FROM %s WHERE 1=1";
+  public static String CONFIGURATION_FIELD_PREFIX_STRING = "offset.storage.";
 
   private static final Logger LOG = LoggerFactory.getLogger(BigqueryOffsetBackingStore.class);
   BigQuery bqClient;
@@ -240,27 +241,27 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     }
 
     public String getBigqueryProject() {
-      return this.config.getString(Field.create(String.format("offset.storage.%s.project", this.sinkType())));
+      return this.config.getString(Field.create(String.format(CONFIGURATION_FIELD_PREFIX_STRING + "%s.project", this.sinkType())));
     }
 
     public String getBigqueryDataset() {
-      return this.config.getString(Field.create(String.format("offset.storage.%s.dataset", this.sinkType())));
+      return this.config.getString(Field.create(String.format(CONFIGURATION_FIELD_PREFIX_STRING + "%s.dataset", this.sinkType())));
     }
 
     public String getBigqueryTable() {
-      return this.config.getString(Field.create("offset.storage.bigquery.table-name").withDefault("debezium_offset_storage"));
+      return this.config.getString(Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "bigquery.table-name").withDefault("debezium_offset_storage"));
     }
 
     public String getMigrateOffsetFile() {
-      return this.config.getString(Field.create("offset.storage.bigquery.migrate-offset-file").withDefault(""));
+      return this.config.getString(Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "bigquery.migrate-offset-file").withDefault(""));
     }
 
     public String getBigqueryCredentialsFile() {
-      return this.config.getString(Field.create(String.format("offset.storage.%s.credentialsFile", this.sinkType())).withDefault(""));
+      return this.config.getString(Field.create(String.format(CONFIGURATION_FIELD_PREFIX_STRING + "%s.credentialsFile", this.sinkType())).withDefault(""));
     }
 
     public String getBigqueryLocation() {
-      return this.config.getString(Field.create(String.format("offset.storage.%s.location", this.sinkType())).withDefault("US"));
+      return this.config.getString(Field.create(String.format(CONFIGURATION_FIELD_PREFIX_STRING + "%s.location", this.sinkType())).withDefault("US"));
     }
   }
 

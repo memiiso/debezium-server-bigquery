@@ -39,11 +39,10 @@ public class TestConfigSource implements ConfigSource {
     //
     //config.put("debezium.source.offset.storage", "org.apache.kafka.connect.storage.MemoryOffsetBackingStore");
     config.put("debezium.source.offset.storage", "io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore");
-    config.put("debezium.source.offset.storage.bigquery.table-name", "__debezium_offset_storage_test_table");
+    config.put("debezium.source.offset.storage.bigquery.table-name", OFFSET_TABLE);
     config.put("debezium.source.offset.flush.interval.ms", "60000");
     config.put("debezium.source.schema.history.internal", "io.debezium.server.bigquery.history.BigquerySchemaHistory");
-    config.put("debezium.source.schema.history.internal.bigquery.table-name", 
-        "__debezium_database_history_storage_test_table");
+    config.put("debezium.source.schema.history.internal.bigquery.table-name", HISTORY_TABLE);
     //config.put("debezium.source.schema.history.internal", "io.debezium.relational.history.MemoryDatabaseHistory");
     //
     config.put("debezium.source.table.include.list", "inventory.*");
