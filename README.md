@@ -47,22 +47,26 @@ table [using BigQuery Write API](https://cloud.google.com/bigquery/docs/batch-lo
 Streams debezium events to Bigquery using
 the [Storage Write API](https://cloud.google.com/bigquery/docs/write-api-streaming).
 
-| Config                                               | Default           | Description                                                                                                |
-|------------------------------------------------------|-------------------|------------------------------------------------------------------------------------------------------------|
-| `debezium.sink.bigquerystream.dataset`               |                   | Destination Bigquery dataset name                                                                          |
-| `debezium.sink.bigquerystream.location`              | `US`              | Bigquery table location                                                                                    |
-| `debezium.sink.bigquerystream.project`               |                   | Bigquery project                                                                                           |
-| `debezium.sink.bigquerystream.ignore-unknown-fields` |                   | if true, unknown Json fields to BigQuery will be ignored instead of error out.                             |
-| `debezium.sink.bigquerystream.create-if-needed`      | `true`            | Creates Bigquery table if not found                                                                        |
-| `debezium.sink.bigquerystream.partition-field`       | `__ts_ms`         | Partition target tables by `__ts_ms` field                                                                  |
-| `debezium.sink.bigquerystream.clustering-field`      | `__source_ts_ms`  | Cluster target tables by `PK + __source_ts_ms` field                                                        |
-| `debezium.sink.bigquerystream.partition-type`        | `MONTH`           | Partitioning type                                                                                          |
-| `debezium.sink.bigquerystream.allow-field-addition`  | `false`           | Allow field addition to target tables                                                                      |
-| `debezium.sink.bigquerystream.credentials-file`      |                   | GCP service account credentialsFile                                                                        |
-| `debezium.sink.bigquerystream.cast-deleted-field`    | `false`           | Cast deleted field to boolean type(by default it is string type)                                           |
+| Config                                               | Default           | Description                                                                                    |
+|------------------------------------------------------|-------------------|------------------------------------------------------------------------------------------------|
+| `debezium.sink.bigquerystream.dataset`               |                   | Destination Bigquery dataset name                                                              |
+| `debezium.sink.bigquerystream.location`              | `US`              | Bigquery table location                                                                        |
+| `debezium.sink.bigquerystream.project`               |                   | Bigquery project                                                                               |
+| `debezium.sink.bigquerystream.ignore-unknown-fields` |                   | if true, unknown Json fields to BigQuery will be ignored instead of error out.                 |
+| `debezium.sink.bigquerystream.create-if-needed`      | `true`            | Creates Bigquery table if not found                                                            |
+| `debezium.sink.bigquerystream.partition-field`       | `__ts_ms`         | Partition target tables by `__ts_ms` field                                                     |
+| `debezium.sink.bigquerystream.clustering-field`      | `__source_ts_ms`  | Cluster target tables by `PK + __source_ts_ms` field                                           |
+| `debezium.sink.bigquerystream.partition-type`        | `MONTH`           | Partitioning type                                                                              |
+| `debezium.sink.bigquerystream.allow-field-addition`  | `false`           | Allow field addition to target tables                                                          |
+| `debezium.sink.bigquerystream.credentials-file`      |                   | GCP service account credentialsFile                                                            |
+| `debezium.sink.bigquerystream.cast-deleted-field`    | `false`           | Cast deleted field to boolean type(by default it is string type)                               |
 | `debezium.sink.batch.destination-regexp`             | ``                | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
-| `debezium.sink.batch.destination-regexp-replace`     | ``                | Regexp Replace part to modify destination                                                                  |
-| `debezium.sink.batch.batch-size-wait`                | `NoBatchSizeWait` | Batch size wait strategy to optimize data files and upload interval. explained below.                      |
+| `debezium.sink.batch.destination-regexp-replace`     | ``                | Regexp Replace part to modify destination                                                      |
+| `debezium.sink.batch.batch-size-wait`                | `NoBatchSizeWait` | Batch size wait strategy to optimize data files and upload interval. explained below.          |
+| `debezium.sink.bigquerystream.upsert`                | `false`           | Running upsert mode overwriting updated rows. Using [Bigquery CDC feature](https://cloud.google.com/bigquery/docs/change-data-capture) |
+| `debezium.sink.bigquerystream.upsert-keep-deletes`   | `true`            | With upsert mode, keeps deleted rows in bigquery table.                                        |
+| `debezium.sink.bigquerystream.upsert-dedup-column`   | `__source_ts_ms`  | With upsert mode used to deduplicate data. row with highest `__source_ts_ms` is kept.          |
+| `debezium.sink.bigquerystream.upsert-op-column`      | `__op`            | Used with upsert mode to deduplicate data when `__source_ts_ms` of rows are same.              |
 
 ### Mandatory config
 

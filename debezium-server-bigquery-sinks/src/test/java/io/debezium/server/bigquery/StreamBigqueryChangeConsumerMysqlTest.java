@@ -56,6 +56,7 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
     SourceMysqlDB.runSQL(sqlDelete);
     SourceMysqlDB.runSQL(sqlInsert);
     String dest = "testc.inventory.test_table";
+    BaseBigqueryTest.truncateTable(dest);
     Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
       try {
         TableResult result = getTableData(dest);

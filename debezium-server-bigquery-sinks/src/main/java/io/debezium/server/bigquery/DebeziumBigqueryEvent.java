@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -20,9 +21,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.cloud.bigquery.*;
-import com.google.cloud.bigquery.storage.v1.TableFieldSchema;
-import com.google.cloud.bigquery.storage.v1.TableSchema;
-import com.google.common.collect.ImmutableMap;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,19 +165,14 @@ public class DebeziumBigqueryEvent {
 
   }
 
-  private static Clustering getBigQueryClustering(JsonNode schemaNode, String clusteringField) {
+  public ArrayList<String> keyFields() {
 
-    ArrayList<String> clusteringFields = new ArrayList<>();
-    for (JsonNode jsonSchemaFieldNode : schemaNode.get("fields")) {
-      // NOTE Limit clustering fields to 4. it's the limit of Bigquery 
-      if (clusteringFields.size() >= 3) {
-        break;
-      }
-      clusteringFields.add(jsonSchemaFieldNode.get("field").textValue());
+    ArrayList<String> keyFields = new ArrayList<>();
+    for (JsonNode jsonSchemaFieldNode : this.keySchema().get("fields")) {
+      keyFields.add(jsonSchemaFieldNode.get("field").textValue());
     }
 
-    clusteringFields.add(clusteringField);
-    return Clustering.newBuilder().setFields(clusteringFields).build();
+    return keyFields;
   }
 
   public String destination() {
@@ -228,11 +221,22 @@ public class DebeziumBigqueryEvent {
 
   /**
    * See https://cloud.google.com/bigquery/docs/write-api#data_type_conversions
+   *
    * @return
    */
-  public JSONObject valueAsJSONObject() {
+  public JSONObject valueAsJSONObject(boolean upsert, boolean upsertKeepDeletes) {
     Map<String, Object> jsonMap = mapper.convertValue(value, new TypeReference<>() {
     });
+    // SET UPSERT meta field `_CHANGE_TYPE`
+    if (upsert) {
+      // if its deleted row and upsertKeepDeletes = false, deleted records are deleted from target table
+      if (!upsertKeepDeletes && jsonMap.get("__op").equals("d")) {
+        jsonMap.put("_CHANGE_TYPE", "DELETE");
+      } else {
+        // if it's not deleted row or upsertKeepDeletes = true then add deleted record to target table
+        jsonMap.put("_CHANGE_TYPE", "UPSERT");
+      }
+    }
 
     TS_MS_FIELDS.forEach(tsf -> {
       if (jsonMap.containsKey(tsf)) {
@@ -262,17 +266,28 @@ public class DebeziumBigqueryEvent {
     return keySchema;
   }
 
+
+  public TableConstraints getBigQueryTableConstraints() {
+    return
+    TableConstraints.newBuilder()
+        .setPrimaryKey(PrimaryKey.newBuilder().setColumns(this.keyFields()).build())
+        .build();
+  }
+  
   public Clustering getBigQueryClustering(String clusteringField) {
     // special destinations like "heartbeat.topics"
     if (this.destination().startsWith("__debezium")) {
       return Clustering.newBuilder().build();
     }
 
-    // key schema might not be enabled, use key field names instead!
     if (this.keySchema() == null) {
       return Clustering.newBuilder().setFields(List.of(clusteringField)).build();
     } else {
-      return getBigQueryClustering(this.keySchema(), clusteringField);
+      ArrayList<String> keyFields = this.keyFields();
+      // NOTE Limit clustering fields to 4. it's the limit of Bigquery
+      List<String> clusteringFields = keyFields.stream().limit(3).collect(Collectors.toList());
+      clusteringFields.add(clusteringField);
+      return Clustering.newBuilder().setFields(clusteringFields).build();
     }
   }
 
