@@ -39,7 +39,7 @@
         <version.quarkus>3.2.0.Final</version.quarkus>
 
         <!-- Plugin versions -->
-        <version.maven-enforcer-plugin>3.3.0</version.maven-enforcer-plugin>
+        <version.maven-enforcer-plugin>3.4.0</version.maven-enforcer-plugin>
         <version.maven-failsafe-plugin>3.1.2</version.maven-failsafe-plugin>
         <version.maven-surefire-plugin>3.1.2</version.maven-surefire-plugin>
     </properties>
