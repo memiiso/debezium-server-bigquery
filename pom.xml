@@ -36,7 +36,7 @@
         <version.debezium>2.3.0.Final</version.debezium>
         <version.mysql.driver>8.0.32</version.mysql.driver>
         <!-- Quarkus -->
-        <version.quarkus>3.2.0.Final</version.quarkus>
+        <version.quarkus>3.3.1</version.quarkus>
 
         <!-- Plugin versions -->
         <version.maven-enforcer-plugin>3.4.0</version.maven-enforcer-plugin>
