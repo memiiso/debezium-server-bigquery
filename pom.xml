@@ -30,7 +30,7 @@
         <version.assembly.plugin>3.6.0</version.assembly.plugin>
         <version.jackson>2.13.3</version.jackson>
         <version.gcp.bigquery>2.33.1</version.gcp.bigquery>
-        <version.gcp.bigquerystorage>2.41.1</version.gcp.bigquerystorage>
+        <version.gcp.bigquerystorage>2.44.0</version.gcp.bigquerystorage>
         <version.log4j>2.20.0</version.log4j>
         <!-- Debezium -->
         <version.debezium>2.3.0.Final</version.debezium>
