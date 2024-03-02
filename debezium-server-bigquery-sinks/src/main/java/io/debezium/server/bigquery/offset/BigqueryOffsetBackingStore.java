@@ -220,6 +220,10 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     return (data != null) ? ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)) : null;
   }
 
+  public Set<Map<String, Object>> connectorPartitions(String connectorName) {
+    return null;
+  }
+
   public static class BigqueryOffsetBackingStoreConfig extends WorkerConfig {
     private final Configuration config;
 
