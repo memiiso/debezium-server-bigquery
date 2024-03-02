@@ -136,7 +136,6 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     try {
       return new DataWriter(
           TableName.of(table.getTableId().getProject(), table.getTableId().getDataset(), table.getTableId().getTable()),
-          BqToBqStorageSchemaConverter.convertTableSchema(table.getDefinition().getSchema()),
           bigQueryWriteClient,
           ignoreUnknownFields
       );
@@ -310,7 +309,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   protected static class DataWriter {
     private final JsonStreamWriter streamWriter;
 
-    public DataWriter(TableName parentTable, TableSchema tableSchema, BigQueryWriteClient client,
+    public DataWriter(TableName parentTable, BigQueryWriteClient client,
                       Boolean ignoreUnknownFields)
         throws DescriptorValidationException, IOException, InterruptedException {
 
@@ -319,7 +318,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
       // For more information about JsonStreamWriter, see:
       // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/JsonStreamWriter.html
       streamWriter = JsonStreamWriter
-          .newBuilder(parentTable.toString(), tableSchema, client)
+          .newBuilder(parentTable.toString(), client)
           .setIgnoreUnknownFields(ignoreUnknownFields)
           .build();
     }
