@@ -8,8 +8,6 @@
 
 package io.debezium.server.bigquery.experiments;
 
-import io.debezium.server.bigquery.BqToBqStorageSchemaConverter;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -58,8 +56,6 @@ public class TestCDCStreamLoading {
         "(max_staleness = INTERVAL '0-0 0 0:0:2' YEAR TO SECOND);";
     bqClient.query(QueryJobConfiguration.newBuilder(query2).build());
 
-    TableSchema tableSchema = BqToBqStorageSchemaConverter.convertTableSchema(schema);
-
     BigQueryWriteSettings bigQueryWriteSettings = BigQueryWriteSettings
         .newBuilder()
         .setCredentialsProvider(FixedCredentialsProvider.create(GoogleCredentials.getApplicationDefault()))
@@ -67,7 +63,7 @@ public class TestCDCStreamLoading {
     BigQueryWriteClient bigQueryWriteClient = BigQueryWriteClient.create(bigQueryWriteSettings);
 
     Thread.sleep(10000);
-    JsonStreamWriter streamWriter = JsonStreamWriter.newBuilder(tableName.toString(),tableSchema,
+    JsonStreamWriter streamWriter = JsonStreamWriter.newBuilder(tableName.toString(),
         bigQueryWriteClient).build();
     LOGGER.error("Created streamWriter");
 

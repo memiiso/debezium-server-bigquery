@@ -8,7 +8,6 @@
 
 package io.debezium.server.bigquery.experiments;
 
-import io.debezium.server.bigquery.BqToBqStorageSchemaConverter;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -59,7 +58,7 @@ public class ManualTestStreamLoading {
 
     Thread.sleep(5000);
     JsonStreamWriter streamWriter = JsonStreamWriter
-        .newBuilder(tn.toString(), BqToBqStorageSchemaConverter.convertTableSchema(schema), bigQueryWriteClient)
+        .newBuilder(tn.toString(), bigQueryWriteClient)
         .build();
 
     JSONArray jsonArr = new JSONArray();
