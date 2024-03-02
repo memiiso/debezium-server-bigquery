@@ -23,6 +23,9 @@ public class TestChangeEvent<K, V> implements ChangeEvent<K, V>, RecordChangeEve
     this.destination = destination;
   }
 
+  public Integer partition() {
+    return 0;
+  }
   @Override
   public K key() {
     return key;
