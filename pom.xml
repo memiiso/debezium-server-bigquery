@@ -41,7 +41,7 @@
         <!-- Plugin versions -->
         <version.maven-enforcer-plugin>3.4.1</version.maven-enforcer-plugin>
         <version.maven-failsafe-plugin>3.2.5</version.maven-failsafe-plugin>
-        <version.maven-surefire-plugin>3.2.5</version.maven-surefire-plugin>
+        <version.maven-surefire-plugin>3.3.0</version.maven-surefire-plugin>
     </properties>
     <dependencyManagement>
         <dependencies>
