@@ -33,7 +33,7 @@ public class RecordConverter {
   public static final List<String> TS_MS_FIELDS = List.of("__ts_ms", "__source_ts_ms");
   public static final List<String> BOOLEAN_FIELDS = List.of("__deleted");
   protected static final ObjectMapper mapper = new ObjectMapper();
-  protected static String CHANGE_TYPE_PSEUDO_COLUMN = "_CHANGE_TYPE";
+  protected static final String CHANGE_TYPE_PSEUDO_COLUMN = "_CHANGE_TYPE";
 
   protected final String destination;
   protected final JsonNode value;
@@ -166,7 +166,7 @@ public class RecordConverter {
 
   }
 
-  public ArrayList<String> keyFields() {
+  private ArrayList<String> keyFields() {
 
     ArrayList<String> keyFields = new ArrayList<>();
     for (JsonNode jsonSchemaFieldNode : this.keySchema().get("fields")) {
@@ -268,14 +268,14 @@ public class RecordConverter {
   }
 
 
-  public TableConstraints getBigQueryTableConstraints() {
+  public TableConstraints tableConstraints() {
     return
     TableConstraints.newBuilder()
         .setPrimaryKey(PrimaryKey.newBuilder().setColumns(this.keyFields()).build())
         .build();
   }
-  
-  public Clustering getBigQueryClustering(String clusteringField) {
+
+  public Clustering tableClustering(String clusteringField) {
     // special destinations like "heartbeat.topics"
     if (this.destination().startsWith("__debezium")) {
       return Clustering.newBuilder().build();
@@ -292,7 +292,7 @@ public class RecordConverter {
     }
   }
 
-  public Schema getBigQuerySchema(Boolean binaryAsString, boolean isStream) {
+  public Schema tableSchema(Boolean binaryAsString, boolean isStream) {
     ArrayList<Field> fields = getBigQuerySchemaFields(this.valueSchema(), binaryAsString, isStream);
 
     if (fields.isEmpty()) {

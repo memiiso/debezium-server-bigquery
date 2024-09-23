@@ -99,12 +99,12 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
       TableId tableId = getTableId(destination);
 
       RecordConverter sampleEvent = data.get(0);
-      Schema schema = sampleEvent.getBigQuerySchema(false, false);
+      Schema schema = sampleEvent.tableSchema(false, false);
       if (schema == null) {
         schema = bqClient.getTable(tableId).getDefinition().getSchema();
       }
 
-      Clustering clustering = sampleEvent.getBigQueryClustering(clusteringField);
+      Clustering clustering = sampleEvent.tableClustering(clusteringField);
 
       // Google BigQuery Configuration for a load operation. A load configuration can be used to load data
       // into a table with a {@link com.google.cloud.WriteChannel}
