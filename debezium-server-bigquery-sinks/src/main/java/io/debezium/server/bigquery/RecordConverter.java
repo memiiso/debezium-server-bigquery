@@ -30,8 +30,8 @@ import java.util.stream.Collectors;
  */
 public class RecordConverter {
   protected static final Logger LOGGER = LoggerFactory.getLogger(RecordConverter.class);
-  public static final List<String> TS_MS_FIELDS = List.of("__ts_ms", "__source_ts_ms");
-  public static final List<String> BOOLEAN_FIELDS = List.of("__deleted");
+  protected static final List<String> TS_MS_FIELDS = List.of("__ts_ms", "__source_ts_ms");
+  protected static final List<String> BOOLEAN_FIELDS = List.of("__deleted");
   protected static final ObjectMapper mapper = new ObjectMapper();
   protected static final String CHANGE_TYPE_PSEUDO_COLUMN = "_CHANGE_TYPE";
 
@@ -51,8 +51,8 @@ public class RecordConverter {
     this.keySchema = keySchema;
   }
 
-  private static ArrayList<Field> getBigQuerySchemaFields(JsonNode schemaNode, Boolean binaryAsString,
-                                                          boolean isStream) {
+  private static ArrayList<Field> schemaFields(JsonNode schemaNode, Boolean binaryAsString,
+                                               boolean isStream) {
 
     ArrayList<Field> fields = new ArrayList<>();
 
@@ -79,12 +79,12 @@ public class RecordConverter {
       switch (fieldType) {
         case "struct":
           // recursive call for nested fields
-          ArrayList<Field> subFields = getBigQuerySchemaFields(jsonSchemaFieldNode, binaryAsString, isStream);
+          ArrayList<Field> subFields = schemaFields(jsonSchemaFieldNode, binaryAsString, isStream);
           fields.add(Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(subFields)).build());
           break;
         default:
           // default to String type
-          fields.add(getPrimitiveField(fieldType, fieldName, fieldSemanticType, binaryAsString, isStream));
+          fields.add(schemaPrimitiveField(fieldType, fieldName, fieldSemanticType, binaryAsString, isStream));
           break;
       }
     }
@@ -92,7 +92,7 @@ public class RecordConverter {
     return fields;
   }
 
-  private static Field getPrimitiveField(String fieldType, String fieldName, String fieldSemanticType, boolean binaryAsString, boolean isStream) {
+  private static Field schemaPrimitiveField(String fieldType, String fieldName, String fieldSemanticType, boolean binaryAsString, boolean isStream) {
     switch (fieldType) {
       case "int8":
       case "int16":
@@ -225,7 +225,7 @@ public class RecordConverter {
    *
    * @return
    */
-  public JSONObject valueAsJSONObject(boolean upsert, boolean upsertKeepDeletes) {
+  public JSONObject valueAsJsonObject(boolean upsert, boolean upsertKeepDeletes) {
     Map<String, Object> jsonMap = mapper.convertValue(value, new TypeReference<>() {
     });
     // SET UPSERT meta field `_CHANGE_TYPE`
@@ -293,7 +293,7 @@ public class RecordConverter {
   }
 
   public Schema tableSchema(Boolean binaryAsString, boolean isStream) {
-    ArrayList<Field> fields = getBigQuerySchemaFields(this.valueSchema(), binaryAsString, isStream);
+    ArrayList<Field> fields = schemaFields(this.valueSchema(), binaryAsString, isStream);
 
     if (fields.isEmpty()) {
       return null;

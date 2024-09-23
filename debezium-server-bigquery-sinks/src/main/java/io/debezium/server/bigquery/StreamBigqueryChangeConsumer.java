@@ -160,7 +160,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
       }
       // add data to JSONArray
       JSONArray jsonArr = new JSONArray();
-      data.forEach(e -> jsonArr.put(e.valueAsJSONObject(upsert && tableHasPrimaryKey, upsertKeepDeletes)));
+      data.forEach(e -> jsonArr.put(e.valueAsJsonObject(upsert && tableHasPrimaryKey, upsertKeepDeletes)));
       writer.appendSync(jsonArr);
     } catch (DescriptorValidationException | IOException e) {
       throw new DebeziumException("Failed to append data to stream " + writer.streamWriter.getStreamName(), e);
