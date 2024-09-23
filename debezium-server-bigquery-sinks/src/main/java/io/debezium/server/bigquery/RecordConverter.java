@@ -8,13 +8,6 @@
 
 package io.debezium.server.bigquery;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,14 +18,22 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 /**
  * @author Ismail Simsek
  */
-public class DebeziumBigqueryEvent {
-  protected static final Logger LOGGER = LoggerFactory.getLogger(DebeziumBigqueryEvent.class);
+public class RecordConverter {
+  protected static final Logger LOGGER = LoggerFactory.getLogger(RecordConverter.class);
   public static final List<String> TS_MS_FIELDS = List.of("__ts_ms", "__source_ts_ms");
   public static final List<String> BOOLEAN_FIELDS = List.of("__deleted");
   protected static final ObjectMapper mapper = new ObjectMapper();
+  protected static String CHANGE_TYPE_PSEUDO_COLUMN = "_CHANGE_TYPE";
 
   protected final String destination;
   protected final JsonNode value;
@@ -40,7 +41,7 @@ public class DebeziumBigqueryEvent {
   protected final JsonNode valueSchema;
   protected final JsonNode keySchema;
 
-  public DebeziumBigqueryEvent(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema) {
+  public RecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema) {
     this.destination = destination;
     // @TODO process values. ts_ms values etc...
     // TODO add field if exists backward compatible!
@@ -231,10 +232,10 @@ public class DebeziumBigqueryEvent {
     if (upsert) {
       // if its deleted row and upsertKeepDeletes = false, deleted records are deleted from target table
       if (!upsertKeepDeletes && jsonMap.get("__op").equals("d")) {
-        jsonMap.put("_CHANGE_TYPE", "DELETE");
+        jsonMap.put(CHANGE_TYPE_PSEUDO_COLUMN, "DELETE");
       } else {
         // if it's not deleted row or upsertKeepDeletes = true then add deleted record to target table
-        jsonMap.put("_CHANGE_TYPE", "UPSERT");
+        jsonMap.put(CHANGE_TYPE_PSEUDO_COLUMN, "UPSERT");
       }
     }
 

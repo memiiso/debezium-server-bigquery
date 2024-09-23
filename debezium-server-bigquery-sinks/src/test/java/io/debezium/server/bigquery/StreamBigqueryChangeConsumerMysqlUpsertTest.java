@@ -8,27 +8,25 @@
 
 package io.debezium.server.bigquery;
 
-import io.debezium.server.bigquery.shared.DebeziumBigqueryEventBuilder;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableResult;
+import io.debezium.server.bigquery.shared.RecordConverterBuilder;
 import io.debezium.server.bigquery.shared.SourceMysqlDB;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableResult;
 import jakarta.inject.Inject;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Ismail Simsek
@@ -125,14 +123,14 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
 
   @Test
   public void testDeduplicateBatch() throws Exception {
-    DebeziumBigqueryEvent e1 = new DebeziumBigqueryEventBuilder()
+    RecordConverter e1 = new RecordConverterBuilder()
         .destination("destination")
         .addKeyField("id", 1)
         .addKeyField("first_name", "row1")
         .addField("__op", "r")
         .addField("__source_ts_ms", 3L)
         .build();
-    DebeziumBigqueryEvent e2 = new DebeziumBigqueryEventBuilder()
+    RecordConverter e2 = new RecordConverterBuilder()
         .destination("destination")
         .addKeyField("id", 1)
         .addKeyField("first_name", "row1")
@@ -140,26 +138,26 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
         .addField("__source_ts_ms", 1L)
         .build();
 
-    List<DebeziumBigqueryEvent> records = List.of(e1,e2);
-    List<DebeziumBigqueryEvent> dedups = consumer.deduplicateBatch(records);
+    List<RecordConverter> records = List.of(e1, e2);
+    List<RecordConverter> dedups = consumer.deduplicateBatch(records);
     Assertions.assertEquals(1, dedups.size());
     Assertions.assertEquals(3L, dedups.get(0).value().get("__source_ts_ms").asLong(0L));
-    
-    DebeziumBigqueryEvent e21 = new DebeziumBigqueryEventBuilder()
+
+    RecordConverter e21 = new RecordConverterBuilder()
         .destination("destination")
         .addKeyField("id", 1)
         .addField("__op", "r")
         .addField("__source_ts_ms", 1L)
         .build();
-    DebeziumBigqueryEvent e22 = new DebeziumBigqueryEventBuilder()
+    RecordConverter e22 = new RecordConverterBuilder()
         .destination("destination")
         .addKeyField("id", 1)
         .addField("__op", "u")
         .addField("__source_ts_ms", 1L)
         .build();
 
-    List<DebeziumBigqueryEvent> records2 = List.of(e21,e22);
-    List<DebeziumBigqueryEvent> dedups2 = consumer.deduplicateBatch(records2);
+    List<RecordConverter> records2 = List.of(e21, e22);
+    List<RecordConverter> dedups2 = consumer.deduplicateBatch(records2);
     Assertions.assertEquals(1, dedups2.size());
     Assertions.assertEquals("u", dedups2.get(0).value().get("__op").asText("x"));
   }
