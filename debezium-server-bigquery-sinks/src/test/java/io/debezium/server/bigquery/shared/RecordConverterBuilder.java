@@ -8,50 +8,49 @@
 
 package io.debezium.server.bigquery.shared;
 
-import io.debezium.server.bigquery.DebeziumBigqueryEvent;
-
-import java.util.Iterator;
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.debezium.server.bigquery.RecordConverter;
+
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * helper class used to generate test change events
  *
  * @author Ismail Simsek
  */
-public class DebeziumBigqueryEventBuilder {
+public class RecordConverterBuilder {
 
   ObjectNode payload = JsonNodeFactory.instance.objectNode();
   ObjectNode keyPayload = JsonNodeFactory.instance.objectNode();
   String destination = "test";
 
-  public DebeziumBigqueryEventBuilder() {
+  public RecordConverterBuilder() {
   }
 
-  public DebeziumBigqueryEventBuilder destination(String destination) {
+  public RecordConverterBuilder destination(String destination) {
     this.destination = destination;
     return this;
   }
 
-  public DebeziumBigqueryEventBuilder addField(String parentFieldName, String name, String val) {
+  public RecordConverterBuilder addField(String parentFieldName, String name, String val) {
     ObjectNode nestedField = JsonNodeFactory.instance.objectNode();
     nestedField.put(name, val);
     this.payload.set(parentFieldName, nestedField);
     return this;
   }
 
-  public DebeziumBigqueryEventBuilder addField(String parentFieldName, String name, int val) {
+  public RecordConverterBuilder addField(String parentFieldName, String name, int val) {
     ObjectNode nestedField = JsonNodeFactory.instance.objectNode();
     nestedField.put(name, val);
     this.payload.set(parentFieldName, nestedField);
     return this;
   }
 
-  public DebeziumBigqueryEventBuilder addField(String parentFieldName, String name, boolean val) {
+  public RecordConverterBuilder addField(String parentFieldName, String name, boolean val) {
 
     ObjectNode nestedField = JsonNodeFactory.instance.objectNode();
     if (this.payload.has(parentFieldName)) {
@@ -62,45 +61,45 @@ public class DebeziumBigqueryEventBuilder {
     return this;
   }
 
-  public DebeziumBigqueryEventBuilder addField(String name, int val) {
+  public RecordConverterBuilder addField(String name, int val) {
     payload.put(name, val);
     return this;
   }
 
-  public DebeziumBigqueryEventBuilder addField(String name, String val) {
+  public RecordConverterBuilder addField(String name, String val) {
     payload.put(name, val);
     return this;
   }
 
-  public DebeziumBigqueryEventBuilder addField(String name, long val) {
+  public RecordConverterBuilder addField(String name, long val) {
     payload.put(name, val);
     return this;
   }
 
-  public DebeziumBigqueryEventBuilder addField(String name, double val) {
+  public RecordConverterBuilder addField(String name, double val) {
     payload.put(name, val);
     return this;
   }
 
-  public DebeziumBigqueryEventBuilder addField(String name, boolean val) {
+  public RecordConverterBuilder addField(String name, boolean val) {
     payload.put(name, val);
     return this;
   }
 
-  public DebeziumBigqueryEventBuilder addKeyField(String name, int val) {
+  public RecordConverterBuilder addKeyField(String name, int val) {
     keyPayload.put(name, val);
     payload.put(name, val);
     return this;
   }
 
-  public DebeziumBigqueryEventBuilder addKeyField(String name, String val) {
+  public RecordConverterBuilder addKeyField(String name, String val) {
     keyPayload.put(name, val);
     payload.put(name, val);
     return this;
   }
 
-  public DebeziumBigqueryEvent build() {
-    return new DebeziumBigqueryEvent(
+  public RecordConverter build() {
+    return new RecordConverter(
         this.destination,
         payload,
         keyPayload,

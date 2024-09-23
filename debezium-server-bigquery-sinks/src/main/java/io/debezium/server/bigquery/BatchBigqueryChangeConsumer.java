@@ -8,7 +8,13 @@
 
 package io.debezium.server.bigquery;
 
+import com.google.cloud.bigquery.*;
 import io.debezium.DebeziumException;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.Dependent;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -20,13 +26,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import com.google.cloud.bigquery.*;
-import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.Dependent;
-import jakarta.inject.Inject;
-import jakarta.inject.Named;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
  * Implementation of the consumer that delivers the messages into Amazon S3 destination.
@@ -92,20 +91,20 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
   }
 
   @Override
-  public long uploadDestination(String destination, List<DebeziumBigqueryEvent> data) {
+  public long uploadDestination(String destination, List<RecordConverter> data) {
 
     try {
       Instant start = Instant.now();
       final long numRecords;
       TableId tableId = getTableId(destination);
 
-      DebeziumBigqueryEvent sampleEvent = data.get(0);
-      Schema schema = sampleEvent.getBigQuerySchema(false, false);
+      RecordConverter sampleEvent = data.get(0);
+      Schema schema = sampleEvent.tableSchema(false);
       if (schema == null) {
         schema = bqClient.getTable(tableId).getDefinition().getSchema();
       }
 
-      Clustering clustering = sampleEvent.getBigQueryClustering(clusteringField);
+      Clustering clustering = sampleEvent.tableClustering(clusteringField);
 
       // Google BigQuery Configuration for a load operation. A load configuration can be used to load data
       // into a table with a {@link com.google.cloud.WriteChannel}
@@ -123,7 +122,7 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
       try (TableDataWriteChannel writer = bqClient.writer(wCCBuilder.build())) {
         //Constructs a stream that writes bytes to the given channel.
         try (OutputStream stream = Channels.newOutputStream(writer)) {
-          for (DebeziumBigqueryEvent e : data) {
+          for (RecordConverter e : data) {
 
             final String val = e.valueAsJsonLine(schema);
 

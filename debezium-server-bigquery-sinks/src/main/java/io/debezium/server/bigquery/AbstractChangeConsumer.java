@@ -8,6 +8,8 @@
 
 package io.debezium.server.bigquery;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.debezium.DebeziumException;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
@@ -18,6 +20,14 @@ import io.debezium.server.bigquery.batchsizewait.InterfaceBatchSizeWait;
 import io.debezium.util.Clock;
 import io.debezium.util.Strings;
 import io.debezium.util.Threads;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -27,17 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.enterprise.inject.Any;
-import jakarta.enterprise.inject.Instance;
-import jakarta.inject.Inject;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serde;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of the consumer that delivers the messages into Amazon S3 destination.
@@ -96,11 +95,11 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
     LOGGER.trace("Received {} events", records.size());
 
     Instant start = Instant.now();
-    Map<String, List<DebeziumBigqueryEvent>> events = records.stream()
+    Map<String, List<RecordConverter>> events = records.stream()
         .map((ChangeEvent<Object, Object> e)
             -> {
           try {
-            return new DebeziumBigqueryEvent(e.destination(),
+            return new RecordConverter(e.destination(),
                 valDeserializer.deserialize(e.destination(), getBytes(e.value())),
                 e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
                 mapper.readTree(getBytes(e.value())).get("schema"),
@@ -110,20 +109,20 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
             throw new DebeziumException(ex);
           }
         })
-        .collect(Collectors.groupingBy(DebeziumBigqueryEvent::destination));
+        .collect(Collectors.groupingBy(RecordConverter::destination));
 
     long numUploadedEvents = 0;
-    for (Map.Entry<String, List<DebeziumBigqueryEvent>> destinationEvents : events.entrySet()) {
+    for (Map.Entry<String, List<RecordConverter>> destinationEvents : events.entrySet()) {
       // group list of events by their schema, if in the batch we have schema change events grouped by their schema
       // so with this uniform schema is guaranteed for each batch
-      Map<JsonNode, List<DebeziumBigqueryEvent>> eventsGroupedBySchema =
+      Map<JsonNode, List<RecordConverter>> eventsGroupedBySchema =
           destinationEvents.getValue().stream()
-              .collect(Collectors.groupingBy(DebeziumBigqueryEvent::valueSchema));
+              .collect(Collectors.groupingBy(RecordConverter::valueSchema));
       LOGGER.debug("Destination {} got {} records with {} different schema!!", destinationEvents.getKey(),
           destinationEvents.getValue().size(),
           eventsGroupedBySchema.keySet().size());
 
-      for (List<DebeziumBigqueryEvent> schemaEvents : eventsGroupedBySchema.values()) {
+      for (List<RecordConverter> schemaEvents : eventsGroupedBySchema.values()) {
         numUploadedEvents += this.uploadDestination(destinationEvents.getKey(), schemaEvents);
       }
     }
@@ -150,7 +149,7 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
       logTimer = Threads.timer(clock, LOG_INTERVAL);
     }
   }
-  
-  public abstract long uploadDestination(String destination, List<DebeziumBigqueryEvent> data);
+
+  public abstract long uploadDestination(String destination, List<RecordConverter> data);
 
 }

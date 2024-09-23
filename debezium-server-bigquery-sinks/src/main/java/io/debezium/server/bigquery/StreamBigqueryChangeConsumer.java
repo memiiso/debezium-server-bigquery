@@ -8,19 +8,6 @@
 
 package io.debezium.server.bigquery;
 
-import io.debezium.DebeziumException;
-import io.grpc.Status;
-import io.grpc.Status.Code;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.core.FixedCredentialsProvider;
@@ -30,6 +17,9 @@ import com.google.common.annotations.Beta;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
+import io.debezium.DebeziumException;
+import io.grpc.Status;
+import io.grpc.Status.Code;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.Dependent;
@@ -37,6 +27,15 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.json.JSONArray;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of the consumer that delivers the messages to Bigquery
@@ -145,7 +144,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   }
 
   @Override
-  public long uploadDestination(String destination, List<DebeziumBigqueryEvent> data) {
+  public long uploadDestination(String destination, List<RecordConverter> data) {
     long numRecords = data.size();
     Table table = getTable(destination, data.get(0));
     // get stream writer create if not yet exists!
@@ -161,7 +160,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
       }
       // add data to JSONArray
       JSONArray jsonArr = new JSONArray();
-      data.forEach(e -> jsonArr.put(e.valueAsJSONObject(upsert && tableHasPrimaryKey, upsertKeepDeletes)));
+      data.forEach(e -> jsonArr.put(e.valueAsJsonObject(upsert && tableHasPrimaryKey, upsertKeepDeletes)));
       writer.appendSync(jsonArr);
     } catch (DescriptorValidationException | IOException e) {
       throw new DebeziumException("Failed to append data to stream " + writer.streamWriter.getStreamName(), e);
@@ -171,9 +170,9 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   }
 
 
-  protected List<DebeziumBigqueryEvent> deduplicateBatch(List<DebeziumBigqueryEvent> events) {
+  protected List<RecordConverter> deduplicateBatch(List<RecordConverter> events) {
 
-    ConcurrentHashMap<JsonNode, DebeziumBigqueryEvent> deduplicatedEvents = new ConcurrentHashMap<>();
+    ConcurrentHashMap<JsonNode, RecordConverter> deduplicatedEvents = new ConcurrentHashMap<>();
 
     events.forEach(e ->
         // deduplicate using key(PK)
@@ -245,21 +244,21 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     return table;
   }
 
-  private Table getTable(String destination, DebeziumBigqueryEvent sampleBqEvent) {
+  private Table getTable(String destination, RecordConverter sampleBqEvent) {
     TableId tableId = getTableId(destination);
     Table table = bqClient.getTable(tableId);
     // create table if missing
     if (createIfNeeded && table == null) {
       table = this.createTable(tableId,
-          sampleBqEvent.getBigQuerySchema(true, true),
-          sampleBqEvent.getBigQueryClustering(clusteringField),
-          sampleBqEvent.getBigQueryTableConstraints()
+          sampleBqEvent.tableSchema(true),
+          sampleBqEvent.tableClustering(clusteringField),
+          sampleBqEvent.tableConstraints()
       );
     }
 
     // alter table schema add new fields
     if (allowFieldAddition && table != null) {
-      table = this.updateTableSchema(table, sampleBqEvent.getBigQuerySchema(true, true), destination);
+      table = this.updateTableSchema(table, sampleBqEvent.tableSchema(true), destination);
     }
     return table;
   }
