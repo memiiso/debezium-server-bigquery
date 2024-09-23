@@ -8,6 +8,8 @@
 
 package io.debezium.server.bigquery.history;
 
+import autovalue.shaded.com.google.common.collect.ImmutableList;
+import com.google.cloud.bigquery.*;
 import io.debezium.DebeziumException;
 import io.debezium.annotation.ThreadSafe;
 import io.debezium.common.annotation.Incubating;
@@ -18,6 +20,9 @@ import io.debezium.relational.history.*;
 import io.debezium.server.bigquery.BatchUtil;
 import io.debezium.util.FunctionalReadWriteLock;
 import io.debezium.util.Strings;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -25,16 +30,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-
-import autovalue.shaded.com.google.common.collect.ImmutableList;
-import com.google.cloud.bigquery.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A {@link SchemaHistory} implementation that stores the schema history to database table
@@ -241,45 +243,42 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
   }
 
   public static class BigquerySchemaHistoryConfig {
-    private final Configuration config;
+    Properties configCombined = new Properties();
 
     public BigquerySchemaHistoryConfig(Configuration config) {
-      this.config = config;
-    }
-
-    private String getConfig(String configName, String fallbackConfigName, String defaultValue) {
-      return this.config.getString(configName, this.config.getString(fallbackConfigName, defaultValue));
+      Configuration confIcebergSubset1 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + "bigquerybatch.", true);
+      confIcebergSubset1.forEach(configCombined::put);
+      Configuration confIcebergSubset2 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + "bigquerystream.", true);
+      confIcebergSubset2.forEach(configCombined::putIfAbsent);
+      // debezium is doing config filtering before passing it down to this class! so we are taking unfiltered configs!
+      Map<String, String> confIcebergSubset3 = BatchUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink.bigquerybatch.");
+      confIcebergSubset3.forEach(configCombined::putIfAbsent);
+      Map<String, String> confIcebergSubset4 = BatchUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink.bigquerystream.");
+      confIcebergSubset4.forEach(configCombined::putIfAbsent);
     }
 
     public String getBigqueryProject() {
-      return getConfig(CONFIGURATION_FIELD_PREFIX_STRING + "bigquerybatch.project",
-          CONFIGURATION_FIELD_PREFIX_STRING + "bigquerystream.project", null);
+      return (String) configCombined.getOrDefault("project", null);
     }
 
     public String getBigqueryDataset() {
-      return getConfig(CONFIGURATION_FIELD_PREFIX_STRING + "bigquerybatch.dataset",
-          CONFIGURATION_FIELD_PREFIX_STRING + "bigquerystream.dataset", null);
+      return (String) configCombined.getOrDefault("dataset", null);
     }
 
     public String getBigqueryTable() {
-      return getConfig(CONFIGURATION_FIELD_PREFIX_STRING + "bigquery.table-name",
-          CONFIGURATION_FIELD_PREFIX_STRING + "bigquerystream.table-name", "debezium_database_history_storage"
-      );
+      return (String) configCombined.getOrDefault("bigquery.table-name", "debezium_database_history_storage");
     }
 
     public String getMigrateHistoryFile() {
-      return this.getConfig(CONFIGURATION_FIELD_PREFIX_STRING + "bigquery.migrate-history-file",
-          CONFIGURATION_FIELD_PREFIX_STRING + "bigquerystream.migrate-history-file", "");
+      return (String) configCombined.getOrDefault("bigquery.migrate-history-file", "");
     }
 
     public String getBigqueryCredentialsFile() {
-      return this.getConfig(CONFIGURATION_FIELD_PREFIX_STRING + "bigquerybatch.credentials-file",
-          CONFIGURATION_FIELD_PREFIX_STRING + "bigquerystream.credentials-file", "");
+      return (String) configCombined.getOrDefault("credentials-file", "");
     }
 
     public String getBigqueryLocation() {
-      return this.getConfig(CONFIGURATION_FIELD_PREFIX_STRING + "bigquerybatch.location",
-          CONFIGURATION_FIELD_PREFIX_STRING + "bigquerystream.location", "US");
+      return (String) configCombined.getOrDefault("location", "US");
     }
   }
 
