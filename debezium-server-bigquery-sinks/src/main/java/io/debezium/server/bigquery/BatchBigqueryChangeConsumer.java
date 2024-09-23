@@ -99,7 +99,7 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
       TableId tableId = getTableId(destination);
 
       RecordConverter sampleEvent = data.get(0);
-      Schema schema = sampleEvent.tableSchema(false, false);
+      Schema schema = sampleEvent.tableSchema(false);
       if (schema == null) {
         schema = bqClient.getTable(tableId).getDefinition().getSchema();
       }

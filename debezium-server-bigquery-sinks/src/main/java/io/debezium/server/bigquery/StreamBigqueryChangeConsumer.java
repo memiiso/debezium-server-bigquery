@@ -250,7 +250,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     // create table if missing
     if (createIfNeeded && table == null) {
       table = this.createTable(tableId,
-          sampleBqEvent.tableSchema(true, true),
+          sampleBqEvent.tableSchema(true),
           sampleBqEvent.tableClustering(clusteringField),
           sampleBqEvent.tableConstraints()
       );
@@ -258,7 +258,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
 
     // alter table schema add new fields
     if (allowFieldAddition && table != null) {
-      table = this.updateTableSchema(table, sampleBqEvent.tableSchema(true, true), destination);
+      table = this.updateTableSchema(table, sampleBqEvent.tableSchema(true), destination);
     }
     return table;
   }

@@ -51,8 +51,7 @@ public class RecordConverter {
     this.keySchema = keySchema;
   }
 
-  private static ArrayList<Field> schemaFields(JsonNode schemaNode, Boolean binaryAsString,
-                                               boolean isStream) {
+  private static ArrayList<Field> schemaFields(JsonNode schemaNode, Boolean binaryAsString) {
 
     ArrayList<Field> fields = new ArrayList<>();
 
@@ -79,12 +78,12 @@ public class RecordConverter {
       switch (fieldType) {
         case "struct":
           // recursive call for nested fields
-          ArrayList<Field> subFields = schemaFields(jsonSchemaFieldNode, binaryAsString, isStream);
+          ArrayList<Field> subFields = schemaFields(jsonSchemaFieldNode, binaryAsString);
           fields.add(Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(subFields)).build());
           break;
         default:
           // default to String type
-          fields.add(schemaPrimitiveField(fieldType, fieldName, fieldSemanticType, binaryAsString, isStream));
+          fields.add(schemaPrimitiveField(fieldType, fieldName, fieldSemanticType, binaryAsString));
           break;
       }
     }
@@ -92,7 +91,7 @@ public class RecordConverter {
     return fields;
   }
 
-  private static Field schemaPrimitiveField(String fieldType, String fieldName, String fieldSemanticType, boolean binaryAsString, boolean isStream) {
+  private static Field schemaPrimitiveField(String fieldType, String fieldName, String fieldSemanticType, boolean binaryAsString) {
     switch (fieldType) {
       case "int8":
       case "int16":
@@ -292,8 +291,8 @@ public class RecordConverter {
     }
   }
 
-  public Schema tableSchema(Boolean binaryAsString, boolean isStream) {
-    ArrayList<Field> fields = schemaFields(this.valueSchema(), binaryAsString, isStream);
+  public Schema tableSchema(Boolean binaryAsString) {
+    ArrayList<Field> fields = schemaFields(this.valueSchema(), binaryAsString);
 
     if (fields.isEmpty()) {
       return null;
