@@ -13,7 +13,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.shared.RecordConverterBuilder;
 import io.debezium.server.bigquery.shared.SourceMysqlDB;
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
@@ -32,7 +32,7 @@ import java.util.Map;
  * @author Ismail Simsek
  */
 @QuarkusTest
-@QuarkusTestResource(value = SourceMysqlDB.class, restrictToAnnotatedClass = true)
+@WithTestResource(value = SourceMysqlDB.class)
 @TestProfile(StreamBigqueryChangeConsumerMysqlUpsertTest.TestProfile.class)
 @Disabled("manual run")
 public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTest {

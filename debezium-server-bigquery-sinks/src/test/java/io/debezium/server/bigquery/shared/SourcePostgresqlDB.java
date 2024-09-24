@@ -10,6 +10,11 @@ package io.debezium.server.bigquery.shared;
 
 import io.debezium.server.bigquery.BaseBigqueryTest;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -20,11 +25,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.images.builder.ImageFromDockerfile;
 import static io.debezium.server.bigquery.TestConfigSource.*;
 
 public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
