@@ -8,7 +8,17 @@
 
 package io.debezium.server.bigquery;
 
+import com.google.api.gax.retrying.RetrySettings;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.bigquery.*;
 import io.debezium.DebeziumException;
+import io.debezium.config.Configuration;
+import io.debezium.config.Field;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.literal.NamedLiteral;
+import org.eclipse.microprofile.config.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -18,21 +28,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import com.google.api.gax.retrying.RetrySettings;
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.bigquery.*;
-import jakarta.enterprise.inject.Instance;
-import jakarta.enterprise.inject.literal.NamedLiteral;
-import org.eclipse.microprofile.config.Config;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  *
  * @author Ismail Simsek
  */
 public class BatchUtil {
   protected static final Logger LOGGER = LoggerFactory.getLogger(BatchUtil.class);
+
+  static final io.debezium.config.Field SINK_TYPE_FIELD = io.debezium.config.Field.create("debezium.sink.type").optional();
+  static final io.debezium.config.Field SINK_TYPE_FIELD_FALLBACK = Field.create("name").optional();
 
   public static Map<String, String> getConfigSubset(Config config, String prefix) {
     final Map<String, String> ret = new HashMap<>();
@@ -45,6 +49,15 @@ public class BatchUtil {
     }
 
     return ret;
+  }
+
+
+  public static String sinkType(Configuration config) {
+    String type = config.getString(SINK_TYPE_FIELD, config.getString(SINK_TYPE_FIELD_FALLBACK));
+    if (type == null) {
+      throw new DebeziumException("The config property debezium.sink.type is required " + "but it could not be found in any config source");
+    }
+    return type;
   }
 
   public static <T> T selectInstance(Instance<T> instances, String name) {

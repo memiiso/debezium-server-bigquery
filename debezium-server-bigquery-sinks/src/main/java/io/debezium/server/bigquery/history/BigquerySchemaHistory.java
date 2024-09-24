@@ -246,16 +246,14 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
     Properties configCombined = new Properties();
 
     public BigquerySchemaHistoryConfig(Configuration config) {
-      Configuration confIcebergSubset1 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + "bigquerybatch.", true);
+      String sinkType = BatchUtil.sinkType(config);
+      Configuration confIcebergSubset1 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + sinkType + ".", true);
       confIcebergSubset1.forEach(configCombined::put);
-      Configuration confIcebergSubset2 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + "bigquerystream.", true);
-      confIcebergSubset2.forEach(configCombined::putIfAbsent);
       // debezium is doing config filtering before passing it down to this class! so we are taking unfiltered configs!
-      Map<String, String> confIcebergSubset3 = BatchUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink.bigquerybatch.");
-      confIcebergSubset3.forEach(configCombined::putIfAbsent);
-      Map<String, String> confIcebergSubset4 = BatchUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink.bigquerystream.");
-      confIcebergSubset4.forEach(configCombined::putIfAbsent);
+      Map<String, String> confIcebergSubset2 = BatchUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink." + sinkType + ".");
+      confIcebergSubset2.forEach(configCombined::putIfAbsent);
     }
+
 
     public String getBigqueryProject() {
       return (String) configCombined.getOrDefault("project", null);

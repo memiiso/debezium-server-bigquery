@@ -226,7 +226,6 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   }
 
   public static class BigqueryOffsetBackingStoreConfig extends WorkerConfig {
-    private final Configuration config;
     Properties configCombined = new Properties();
 
     static final Field SINK_TYPE_FIELD = Field.create("debezium.sink.type").optional();
@@ -234,49 +233,36 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
 
     public BigqueryOffsetBackingStoreConfig(Configuration config) {
       super(new ConfigDef(), config.asMap());
-      this.config = config;
-      Configuration confIcebergSubset1 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + "bigquerybatch.", true);
+      String sinkType = BatchUtil.sinkType(config);
+      Configuration confIcebergSubset1 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + sinkType + ".", true);
       confIcebergSubset1.forEach(configCombined::put);
-      Configuration confIcebergSubset2 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + "bigquerystream.", true);
-      confIcebergSubset2.forEach(configCombined::putIfAbsent);
       // debezium is doing config filtering before passing it down to this class! so we are taking unfiltered configs!
-      Map<String, String> confIcebergSubset3 = BatchUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink.bigquerybatch.");
-      confIcebergSubset3.forEach(configCombined::putIfAbsent);
-      Map<String, String> confIcebergSubset4 = BatchUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink.bigquerystream.");
-      confIcebergSubset4.forEach(configCombined::putIfAbsent);
-    }
-
-    public String sinkType() {
-      String type = this.config.getString(SINK_TYPE_FIELD, this.config.getString(SINK_TYPE_FIELD_FALLBACK));
-      if (type == null) {
-        throw new DebeziumException("The config property debezium.sink.type is required " +
-            "but it could not be found in any config source");
-      }
-      return type;
+      Map<String, String> confIcebergSubset2 = BatchUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink." + sinkType + ".");
+      confIcebergSubset2.forEach(configCombined::putIfAbsent);
     }
 
     public String getBigqueryProject() {
-      return (String) this.configCombined.getOrDefault("project", null);
+      return (String) configCombined.getOrDefault("project", null);
     }
 
     public String getBigqueryDataset() {
-      return (String) this.configCombined.getOrDefault("dataset", null);
+      return (String) configCombined.getOrDefault("dataset", null);
     }
 
     public String getBigqueryTable() {
-      return (String) this.configCombined.getOrDefault("bigquery.table-name", "debezium_offset_storage");
+      return (String) configCombined.getOrDefault("bigquery.table-name", "debezium_offset_storage");
     }
 
     public String getMigrateOffsetFile() {
-      return (String) this.configCombined.getOrDefault("bigquery.migrate-offset-file", "");
+      return (String) configCombined.getOrDefault("bigquery.migrate-offset-file", "");
     }
 
     public String getBigqueryCredentialsFile() {
-      return (String) this.configCombined.getOrDefault("credentialsFile", "");
+      return (String) configCombined.getOrDefault("credentials-file", "");
     }
 
     public String getBigqueryLocation() {
-      return (String) this.configCombined.getOrDefault("location", "US");
+      return (String) configCombined.getOrDefault("location", "US");
     }
   }
 
