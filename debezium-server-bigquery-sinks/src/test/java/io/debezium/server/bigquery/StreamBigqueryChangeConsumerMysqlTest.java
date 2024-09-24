@@ -8,27 +8,26 @@
 
 package io.debezium.server.bigquery;
 
+import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.shared.SourceMysqlDB;
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import org.awaitility.Awaitility;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.google.cloud.bigquery.TableResult;
-import org.awaitility.Awaitility;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
 
 /**
  *
  * @author Ismail Simsek
  */
 @QuarkusTest
-@QuarkusTestResource(value = SourceMysqlDB.class, restrictToAnnotatedClass = true)
+@WithTestResource(value = SourceMysqlDB.class)
 @TestProfile(StreamBigqueryChangeConsumerMysqlTest.StreamBigqueryChangeConsumerMysqlTestProfile.class)
 @Disabled("manual run")
 public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {

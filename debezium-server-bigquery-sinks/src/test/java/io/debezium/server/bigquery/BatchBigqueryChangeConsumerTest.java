@@ -8,27 +8,26 @@
 
 package io.debezium.server.bigquery;
 
+import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.shared.SourcePostgresqlDB;
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import org.awaitility.Awaitility;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.google.cloud.bigquery.TableResult;
-import org.awaitility.Awaitility;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
 
 /**
  *
  * @author Ismail Simsek
  */
 @QuarkusTest
-@QuarkusTestResource(value = SourcePostgresqlDB.class, restrictToAnnotatedClass = true)
+@WithTestResource(value = SourcePostgresqlDB.class)
 @TestProfile(BatchBigqueryChangeConsumerTest.BatchBigqueryChangeConsumerTestProfile.class)
 @Disabled("manual run")
 public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {

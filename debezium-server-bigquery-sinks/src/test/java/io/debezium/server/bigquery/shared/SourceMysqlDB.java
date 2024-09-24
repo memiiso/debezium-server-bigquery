@@ -10,6 +10,10 @@ package io.debezium.server.bigquery.shared;
 
 import io.debezium.server.bigquery.BaseBigqueryTest;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -19,10 +23,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import static io.debezium.server.bigquery.TestConfigSource.*;
 
 public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
