@@ -84,7 +84,7 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
       throw new InterruptedException("debezium.format.key={" + valueFormat + "} not supported! Supported (debezium.format.key=*) formats are {json,}!");
     }
 
-    batchSizeWait = BatchUtil.selectInstance(batchSizeWaitInstances, batchSizeWaitName);
+    batchSizeWait = ConsumerUtil.selectInstance(batchSizeWaitInstances, batchSizeWaitName);
     LOGGER.info("Using {} to optimize batch size", batchSizeWait.getClass().getSimpleName());
     batchSizeWait.initizalize();
   }

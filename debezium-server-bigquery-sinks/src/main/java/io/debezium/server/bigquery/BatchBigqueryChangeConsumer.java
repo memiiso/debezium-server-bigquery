@@ -77,7 +77,7 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
 
   public void initizalize() throws InterruptedException {
     super.initizalize();
-    bqClient = BatchUtil.getBQClient(gcpProject, bqDataset, credentialsFile , bqLocation);
+    bqClient = ConsumerUtil.bigqueryClient(gcpProject, bqDataset, credentialsFile, bqLocation);
     timePartitioning =
         TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(partitionType)).setField(partitionField).build();
 

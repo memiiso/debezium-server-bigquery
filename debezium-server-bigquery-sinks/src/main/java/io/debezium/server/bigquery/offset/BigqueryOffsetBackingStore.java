@@ -8,11 +8,26 @@
 
 package io.debezium.server.bigquery.offset;
 
+import autovalue.shaded.com.google.common.collect.ImmutableList;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.bigquery.*;
 import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
 import io.debezium.config.Field;
-import io.debezium.server.bigquery.BatchUtil;
+import io.debezium.server.bigquery.ConsumerUtil;
 import io.debezium.util.Strings;
+import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.runtime.WorkerConfig;
+import org.apache.kafka.connect.storage.MemoryOffsetBackingStore;
+import org.apache.kafka.connect.storage.OffsetBackingStore;
+import org.apache.kafka.connect.util.Callback;
+import org.apache.kafka.connect.util.SafeObjectInputStream;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,21 +38,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.Future;
-
-import autovalue.shaded.com.google.common.collect.ImmutableList;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.bigquery.*;
-import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.connect.errors.ConnectException;
-import org.apache.kafka.connect.runtime.WorkerConfig;
-import org.apache.kafka.connect.storage.MemoryOffsetBackingStore;
-import org.apache.kafka.connect.storage.OffsetBackingStore;
-import org.apache.kafka.connect.util.Callback;
-import org.apache.kafka.connect.util.SafeObjectInputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of OffsetBackingStore that saves data to database table.
@@ -79,7 +79,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     this.offsetConfig = new BigqueryOffsetBackingStoreConfig(Configuration.from(config.originalsStrings()));
 
     try {
-      bqClient = BatchUtil.getBQClient(
+      bqClient = ConsumerUtil.bigqueryClient(
           Optional.ofNullable(this.offsetConfig.getBigqueryProject()),
           Optional.ofNullable(this.offsetConfig.getBigqueryDataset()),
           Optional.ofNullable(this.offsetConfig.getBigqueryCredentialsFile()),
@@ -110,10 +110,10 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     Table table = bqClient.getTable(tableId);
     if (table == null) {
       LOG.debug("Creating table {} to store offset", tableFullName);
-      BatchUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DDL, tableFullName));
+      ConsumerUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DDL, tableFullName));
       LOG.warn("Created offset storage table {} to store offset", tableFullName);
-      
-      if (!Strings.isNullOrEmpty(offsetConfig.getMigrateOffsetFile().strip())){
+
+      if (!Strings.isNullOrEmpty(offsetConfig.getMigrateOffsetFile().strip())) {
         LOG.warn("Loading offset from file {}", offsetConfig.getMigrateOffsetFile());
         this.loadFileOffset(new File(offsetConfig.getMigrateOffsetFile()));
       }
@@ -123,11 +123,11 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   protected void save() {
     LOG.debug("Saving offset data to bigquery table...");
     try {
-      BatchUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DELETE, tableFullName));
+      ConsumerUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DELETE, tableFullName));
       String dataJson = mapper.writeValueAsString(data);
       LOG.debug("Saving offset data {}", dataJson);
       Timestamp currentTs = new Timestamp(System.currentTimeMillis());
-      BatchUtil.executeQuery(bqClient,
+      ConsumerUtil.executeQuery(bqClient,
           String.format(OFFSET_STORAGE_TABLE_INSERT, tableFullName),
           ImmutableList.of(
               QueryParameterValue.string(UUID.randomUUID().toString()),
@@ -145,7 +145,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   private void load() {
     try {
       String dataJsonString = null;
-      TableResult rs = BatchUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_SELECT, tableFullName));
+      TableResult rs = ConsumerUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_SELECT, tableFullName));
       for (FieldValueList row : rs.getValues()) {
         dataJsonString = row.get("offset_data").getStringValue();
         break;
@@ -166,10 +166,10 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   private void loadFileOffset(File file) {
     try (SafeObjectInputStream is = new SafeObjectInputStream(Files.newInputStream(file.toPath()))) {
       Object obj = is.readObject();
-      
+
       if (!(obj instanceof HashMap))
         throw new ConnectException("Expected HashMap but found " + obj.getClass());
-      
+
       Map<byte[], byte[]> raw = (Map<byte[], byte[]>) obj;
       for (Map.Entry<byte[], byte[]> mapEntry : raw.entrySet()) {
         ByteBuffer key = (mapEntry.getKey() != null) ? ByteBuffer.wrap(mapEntry.getKey()) : null;
@@ -179,10 +179,11 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     } catch (IOException | ClassNotFoundException e) {
       throw new DebeziumException("Failed migrating offset from file", e);
     }
-    
+
     LOG.warn("Loaded file offset, saving it to Bigquery offset storage");
     save();
   }
+
   @Override
   public Future<Void> set(final Map<ByteBuffer, ByteBuffer> values,
                           final Callback<Void> callback) {
@@ -225,47 +226,43 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   }
 
   public static class BigqueryOffsetBackingStoreConfig extends WorkerConfig {
-    private final Configuration config;
+    Properties configCombined = new Properties();
 
     static final Field SINK_TYPE_FIELD = Field.create("debezium.sink.type").optional();
     static final Field SINK_TYPE_FIELD_FALLBACK = Field.create("name").optional();
 
     public BigqueryOffsetBackingStoreConfig(Configuration config) {
       super(new ConfigDef(), config.asMap());
-      this.config = config;
-    }
-
-    public String sinkType() {
-      String type = this.config.getString(SINK_TYPE_FIELD, this.config.getString(SINK_TYPE_FIELD_FALLBACK));
-      if (type == null) {
-        throw new DebeziumException("The config property debezium.sink.type is required " +
-            "but it could not be found in any config source");
-      }
-      return type;
+      String sinkType = ConsumerUtil.sinkType(config);
+      Configuration confIcebergSubset1 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + sinkType + ".", true);
+      confIcebergSubset1.forEach(configCombined::put);
+      // debezium is doing config filtering before passing it down to this class! so we are taking unfiltered configs!
+      Map<String, String> confIcebergSubset2 = ConsumerUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink." + sinkType + ".");
+      confIcebergSubset2.forEach(configCombined::putIfAbsent);
     }
 
     public String getBigqueryProject() {
-      return this.config.getString(Field.create(String.format(CONFIGURATION_FIELD_PREFIX_STRING + "%s.project", this.sinkType())));
+      return (String) configCombined.getOrDefault("project", null);
     }
 
     public String getBigqueryDataset() {
-      return this.config.getString(Field.create(String.format(CONFIGURATION_FIELD_PREFIX_STRING + "%s.dataset", this.sinkType())));
+      return (String) configCombined.getOrDefault("dataset", null);
     }
 
     public String getBigqueryTable() {
-      return this.config.getString(Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "bigquery.table-name").withDefault("debezium_offset_storage"));
+      return (String) configCombined.getOrDefault("bigquery.table-name", "debezium_offset_storage");
     }
 
     public String getMigrateOffsetFile() {
-      return this.config.getString(Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "bigquery.migrate-offset-file").withDefault(""));
+      return (String) configCombined.getOrDefault("bigquery.migrate-offset-file", "");
     }
 
     public String getBigqueryCredentialsFile() {
-      return this.config.getString(Field.create(String.format(CONFIGURATION_FIELD_PREFIX_STRING + "%s.credentialsFile", this.sinkType())).withDefault(""));
+      return (String) configCombined.getOrDefault("credentials-file", "");
     }
 
     public String getBigqueryLocation() {
-      return this.config.getString(Field.create(String.format(CONFIGURATION_FIELD_PREFIX_STRING + "%s.location", this.sinkType())).withDefault("US"));
+      return (String) configCombined.getOrDefault("location", "US");
     }
   }
 
