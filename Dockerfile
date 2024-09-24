@@ -1,4 +1,4 @@
-FROM eclipse-temurin:11-jdk as builder
+FROM eclipse-temurin:17-jdk as builder
 RUN apt-get -qq update && apt-get -qq install maven unzip
 COPY . /app
 WORKDIR /app

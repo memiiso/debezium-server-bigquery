@@ -23,7 +23,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <release>11</release>
+        <maven.compiler.release>11</maven.compiler.release>
         <skipITs>true</skipITs>
 
         <version.groovy>3.0.22</version.groovy>
