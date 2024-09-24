@@ -32,8 +32,8 @@ import java.util.Optional;
  *
  * @author Ismail Simsek
  */
-public class BatchUtil {
-  protected static final Logger LOGGER = LoggerFactory.getLogger(BatchUtil.class);
+public class ConsumerUtil {
+  protected static final Logger LOGGER = LoggerFactory.getLogger(ConsumerUtil.class);
 
   static final io.debezium.config.Field SINK_TYPE_FIELD = io.debezium.config.Field.create("debezium.sink.type").optional();
   static final io.debezium.config.Field SINK_TYPE_FIELD_FALLBACK = Field.create("name").optional();
@@ -73,7 +73,7 @@ public class BatchUtil {
     return instance.get();
   }
 
-  public static BigQuery getBQClient(Optional<String> gcpProject, Optional<String> bqDataset, Optional<String> credentialsFile, String bqLocation) throws InterruptedException {
+  public static BigQuery bigqueryClient(Optional<String> gcpProject, Optional<String> bqDataset, Optional<String> credentialsFile, String bqLocation) throws InterruptedException {
 
     if (gcpProject.isEmpty()) {
       throw new InterruptedException("Please provide a value for `debezium.sink.{bigquerybatch|bigquerystream}.project`");
@@ -129,7 +129,7 @@ public class BatchUtil {
   }
 
   public static TableResult executeQuery(BigQuery bqClient, String query) throws SQLException {
-    return BatchUtil.executeQuery(bqClient, query, null);
+    return ConsumerUtil.executeQuery(bqClient, query, null);
   }
   
 }

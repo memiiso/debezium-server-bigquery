@@ -17,7 +17,7 @@ import io.debezium.config.Configuration;
 import io.debezium.document.DocumentReader;
 import io.debezium.document.DocumentWriter;
 import io.debezium.relational.history.*;
-import io.debezium.server.bigquery.BatchUtil;
+import io.debezium.server.bigquery.ConsumerUtil;
 import io.debezium.util.FunctionalReadWriteLock;
 import io.debezium.util.Strings;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -73,7 +73,7 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
     super.configure(config, comparator, listener, useCatalogBeforeSchema);
     this.historyConfig = new BigquerySchemaHistoryConfig(config);
     try {
-      bqClient = BatchUtil.getBQClient(
+      bqClient = ConsumerUtil.bigqueryClient(
           Optional.ofNullable(this.historyConfig.getBigqueryProject()),
           Optional.ofNullable(this.historyConfig.getBigqueryDataset()),
           Optional.ofNullable(this.historyConfig.getBigqueryCredentialsFile()),
@@ -124,7 +124,7 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
         String recordDocString = writer.write(record.document());
         LOG.trace("Saving history data {}", recordDocString);
         Timestamp currentTs = new Timestamp(System.currentTimeMillis());
-        BatchUtil.executeQuery(bqClient,
+        ConsumerUtil.executeQuery(bqClient,
             String.format(DATABASE_HISTORY_STORAGE_TABLE_INSERT, tableFullName),
             ImmutableList.of(
                 QueryParameterValue.string(UUID.randomUUID().toString()),
@@ -150,7 +150,7 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
     lock.write(() -> {
       try {
         if (exists()) {
-          TableResult rs = BatchUtil.executeQuery(bqClient, String.format(DATABASE_HISTORY_STORAGE_TABLE_SELECT, tableFullName));
+          TableResult rs = ConsumerUtil.executeQuery(bqClient, String.format(DATABASE_HISTORY_STORAGE_TABLE_SELECT, tableFullName));
           for (FieldValueList row : rs.getValues()) {
             String line = row.get("history_data").getStringValue();
             if (line == null) {
@@ -182,7 +182,7 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
 
     int numRows = 0;
     try {
-      TableResult rs = BatchUtil.executeQuery(bqClient, "SELECT COUNT(*) as row_count FROM " + tableFullName);
+      TableResult rs = ConsumerUtil.executeQuery(bqClient, "SELECT COUNT(*) as row_count FROM " + tableFullName);
       for (FieldValueList row : rs.getValues()) {
         numRows = row.get("row_count").getNumericValue().intValue();
         break;
@@ -203,7 +203,7 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
     if (!storageExists()) {
       try {
         LOG.debug("Creating table {} to store database history", tableFullName);
-        BatchUtil.executeQuery(bqClient, String.format(DATABASE_HISTORY_TABLE_DDL, tableFullName));
+        ConsumerUtil.executeQuery(bqClient, String.format(DATABASE_HISTORY_TABLE_DDL, tableFullName));
         LOG.warn("Created database history storage table {} to store history", tableFullName);
 
         if (!Strings.isNullOrEmpty(historyConfig.getMigrateHistoryFile().strip())) {
@@ -246,11 +246,11 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
     Properties configCombined = new Properties();
 
     public BigquerySchemaHistoryConfig(Configuration config) {
-      String sinkType = BatchUtil.sinkType(config);
+      String sinkType = ConsumerUtil.sinkType(config);
       Configuration confIcebergSubset1 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + sinkType + ".", true);
       confIcebergSubset1.forEach(configCombined::put);
       // debezium is doing config filtering before passing it down to this class! so we are taking unfiltered configs!
-      Map<String, String> confIcebergSubset2 = BatchUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink." + sinkType + ".");
+      Map<String, String> confIcebergSubset2 = ConsumerUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink." + sinkType + ".");
       confIcebergSubset2.forEach(configCombined::putIfAbsent);
     }
 

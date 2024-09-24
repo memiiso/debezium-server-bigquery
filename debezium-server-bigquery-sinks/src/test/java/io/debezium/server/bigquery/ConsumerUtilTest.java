@@ -8,24 +8,24 @@
 
 package io.debezium.server.bigquery;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.debezium.serde.DebeziumSerdes;
+import org.apache.kafka.common.serialization.Serde;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.kafka.common.serialization.Serde;
-import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-class BatchUtilTest {
+class ConsumerUtilTest {
 
   final String serdeWithSchema = Files.readString(Path.of("src/test/resources/json/serde-with-schema.json"));
   final String unwrapWithSchema = Files.readString(Path.of("src/test/resources/json/unwrap-with-schema.json"));
 
-  BatchUtilTest() throws IOException {
+  ConsumerUtilTest() throws IOException {
   }
 
   @Test

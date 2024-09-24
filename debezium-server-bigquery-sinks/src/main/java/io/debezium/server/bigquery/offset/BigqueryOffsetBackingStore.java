@@ -16,7 +16,7 @@ import com.google.cloud.bigquery.*;
 import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
 import io.debezium.config.Field;
-import io.debezium.server.bigquery.BatchUtil;
+import io.debezium.server.bigquery.ConsumerUtil;
 import io.debezium.util.Strings;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.errors.ConnectException;
@@ -79,7 +79,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     this.offsetConfig = new BigqueryOffsetBackingStoreConfig(Configuration.from(config.originalsStrings()));
 
     try {
-      bqClient = BatchUtil.getBQClient(
+      bqClient = ConsumerUtil.bigqueryClient(
           Optional.ofNullable(this.offsetConfig.getBigqueryProject()),
           Optional.ofNullable(this.offsetConfig.getBigqueryDataset()),
           Optional.ofNullable(this.offsetConfig.getBigqueryCredentialsFile()),
@@ -110,7 +110,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     Table table = bqClient.getTable(tableId);
     if (table == null) {
       LOG.debug("Creating table {} to store offset", tableFullName);
-      BatchUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DDL, tableFullName));
+      ConsumerUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DDL, tableFullName));
       LOG.warn("Created offset storage table {} to store offset", tableFullName);
 
       if (!Strings.isNullOrEmpty(offsetConfig.getMigrateOffsetFile().strip())) {
@@ -123,11 +123,11 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   protected void save() {
     LOG.debug("Saving offset data to bigquery table...");
     try {
-      BatchUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DELETE, tableFullName));
+      ConsumerUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DELETE, tableFullName));
       String dataJson = mapper.writeValueAsString(data);
       LOG.debug("Saving offset data {}", dataJson);
       Timestamp currentTs = new Timestamp(System.currentTimeMillis());
-      BatchUtil.executeQuery(bqClient,
+      ConsumerUtil.executeQuery(bqClient,
           String.format(OFFSET_STORAGE_TABLE_INSERT, tableFullName),
           ImmutableList.of(
               QueryParameterValue.string(UUID.randomUUID().toString()),
@@ -145,7 +145,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   private void load() {
     try {
       String dataJsonString = null;
-      TableResult rs = BatchUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_SELECT, tableFullName));
+      TableResult rs = ConsumerUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_SELECT, tableFullName));
       for (FieldValueList row : rs.getValues()) {
         dataJsonString = row.get("offset_data").getStringValue();
         break;
@@ -233,11 +233,11 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
 
     public BigqueryOffsetBackingStoreConfig(Configuration config) {
       super(new ConfigDef(), config.asMap());
-      String sinkType = BatchUtil.sinkType(config);
+      String sinkType = ConsumerUtil.sinkType(config);
       Configuration confIcebergSubset1 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + sinkType + ".", true);
       confIcebergSubset1.forEach(configCombined::put);
       // debezium is doing config filtering before passing it down to this class! so we are taking unfiltered configs!
-      Map<String, String> confIcebergSubset2 = BatchUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink." + sinkType + ".");
+      Map<String, String> confIcebergSubset2 = ConsumerUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink." + sinkType + ".");
       confIcebergSubset2.forEach(configCombined::putIfAbsent);
     }
 
