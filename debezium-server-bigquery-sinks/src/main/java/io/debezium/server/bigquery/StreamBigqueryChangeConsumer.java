@@ -9,16 +9,14 @@
 package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.api.core.ApiFuture;
 import com.google.cloud.bigquery.*;
-import com.google.cloud.bigquery.storage.v1.*;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
+import com.google.cloud.bigquery.storage.v1.TableName;
 import com.google.common.annotations.Beta;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import io.debezium.DebeziumException;
-import io.grpc.Status;
-import io.grpc.Status.Code;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.Dependent;
@@ -33,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
@@ -45,18 +42,8 @@ import java.util.stream.Collectors;
 @Dependent
 @Beta
 public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
-  protected static final ConcurrentHashMap<String, DataWriter> jsonStreamWriters = new ConcurrentHashMap<>();
+  protected static final ConcurrentHashMap<String, StreamDataWriter> jsonStreamWriters = new ConcurrentHashMap<>();
   static final ImmutableMap<String, Integer> cdcOperations = ImmutableMap.of("c", 1, "r", 2, "u", 3, "d", 4);
-  private static final int MAX_RETRY_COUNT = 3;
-  private static final ImmutableList<Code> RETRIABLE_ERROR_CODES =
-      ImmutableList.of(
-          Code.INTERNAL,
-          Code.ABORTED,
-          Code.CANCELLED,
-          Code.FAILED_PRECONDITION,
-          Code.DEADLINE_EXCEEDED,
-          Code.UNAVAILABLE);
-
   public static BigQueryWriteClient bigQueryWriteClient;
   @ConfigProperty(name = "debezium.sink.batch.destination-regexp", defaultValue = "")
   protected Optional<String> destinationRegexp;
@@ -107,7 +94,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
 
   @PreDestroy
   void closeStreams() {
-    for (Map.Entry<String, DataWriter> sw : jsonStreamWriters.entrySet()) {
+    for (Map.Entry<String, StreamDataWriter> sw : jsonStreamWriters.entrySet()) {
       try {
         sw.getValue().close(bigQueryWriteClient);
       } catch (Exception e) {
@@ -131,13 +118,16 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     }
   }
 
-  private DataWriter getDataWriter(Table table) {
+  private StreamDataWriter getDataWriter(Table table) {
     try {
-      return new DataWriter(
+      StreamDataWriter writer = new StreamDataWriter(
           TableName.of(table.getTableId().getProject(), table.getTableId().getDataset(), table.getTableId().getTable()),
           bigQueryWriteClient,
-          ignoreUnknownFields
+          ignoreUnknownFields,
+          ConsumerUtil.bigQueryTransportChannelProvider(isBigqueryDevEmulator, bigQueryCustomGRPCHost)
       );
+      writer.initialize();
+      return writer;
     } catch (DescriptorValidationException | IOException | InterruptedException e) {
       throw new DebeziumException("Failed to initialize stream writer for table " + table.getTableId(), e);
     }
@@ -148,7 +138,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     long numRecords = data.size();
     Table table = getTable(destination, data.get(0));
     // get stream writer create if not yet exists!
-    DataWriter writer = jsonStreamWriters.computeIfAbsent(destination, k -> getDataWriter(table));
+    StreamDataWriter writer = jsonStreamWriters.computeIfAbsent(destination, k -> getDataWriter(table));
     try {
       // running with upsert mode deduplicate data! for the tables having Primary Key
       // for the tables without primary key run append mode
@@ -305,61 +295,6 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     return table;
   }
 
-  protected static class DataWriter {
-    private final JsonStreamWriter streamWriter;
-
-    public DataWriter(TableName parentTable, BigQueryWriteClient client,
-                      Boolean ignoreUnknownFields)
-        throws DescriptorValidationException, IOException, InterruptedException {
-
-      // Use the JSON stream writer to send records in JSON format. Specify the table name to write
-      // to the default stream.
-      // For more information about JsonStreamWriter, see:
-      // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/JsonStreamWriter.html
-      streamWriter = JsonStreamWriter
-          .newBuilder(parentTable.toString(), client)
-          .setIgnoreUnknownFields(ignoreUnknownFields)
-          .build();
-    }
-
-    private void appendSync(JSONArray data, int retryCount) throws DescriptorValidationException,
-        IOException {
-      ApiFuture<AppendRowsResponse> future = streamWriter.append(data);
-      try {
-        AppendRowsResponse response = future.get();
-        if (response.hasError()) {
-          throw new DebeziumException("Failed to append data to stream. " + response.getError().getMessage());
-        }
-      } catch (InterruptedException | ExecutionException throwable) {
-        // If the wrapped exception is a StatusRuntimeException, check the state of the operation.
-        // If the state is INTERNAL, CANCELLED, or ABORTED, you can retry. For more information,
-        // see: https://grpc.github.io/grpc-java/javadoc/io/grpc/StatusRuntimeException.html
-        Status status = Status.fromThrowable(throwable);
-        if (retryCount < MAX_RETRY_COUNT
-            && RETRIABLE_ERROR_CODES.contains(status.getCode())) {
-          // Since default stream appends are not ordered, we can simply retry the appends.
-          // Retrying with exclusive streams requires more careful consideration.
-          this.appendSync(data, ++retryCount);
-          // Mark the existing attempt as done since it's being retried.
-        } else {
-          throw new DebeziumException("Failed to append data to stream " + streamWriter.getStreamName() + "\n" + throwable.getMessage(),
-              throwable);
-        }
-      }
-
-    }
-
-    public void appendSync(JSONArray data) throws DescriptorValidationException, IOException {
-      this.appendSync(data, 0);
-    }
-
-    public void close(BigQueryWriteClient client) {
-      if (streamWriter != null) {
-        streamWriter.close();
-        client.finalizeWriteStream(streamWriter.getStreamName());
-      }
-    }
-  }
 
 }
 

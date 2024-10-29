@@ -11,6 +11,7 @@ package io.debezium.server.bigquery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
+import io.debezium.server.bigquery.shared.BigQueryGCP;
 import io.debezium.server.bigquery.shared.RecordConverterBuilder;
 import io.debezium.server.bigquery.shared.SourceMysqlDB;
 import io.quarkus.test.common.WithTestResource;
@@ -20,8 +21,9 @@ import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -34,8 +36,13 @@ import java.util.Map;
 @QuarkusTest
 @WithTestResource(value = SourceMysqlDB.class)
 @TestProfile(StreamBigqueryChangeConsumerMysqlUpsertTest.TestProfile.class)
-@Disabled("manual run")
+@DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
 public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTest {
+
+  @BeforeAll
+  public static void setup() {
+    bqClient = BigQueryGCP.bigQueryClient();
+  }
 
   @Inject
   StreamBigqueryChangeConsumer consumer;

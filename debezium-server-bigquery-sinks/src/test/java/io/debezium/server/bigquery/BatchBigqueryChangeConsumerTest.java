@@ -8,70 +8,74 @@
 
 package io.debezium.server.bigquery;
 
+import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.TableResult;
+import io.debezium.server.bigquery.shared.BigQueryGCP;
 import io.debezium.server.bigquery.shared.SourcePostgresqlDB;
 import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- *
  * @author Ismail Simsek
  */
 @QuarkusTest
 @WithTestResource(value = SourcePostgresqlDB.class)
-@TestProfile(BatchBigqueryChangeConsumerTest.BatchBigqueryChangeConsumerTestProfile.class)
-@Disabled("manual run")
+@WithTestResource(value = BigQueryGCP.class)
+@TestProfile(BatchBigqueryChangeConsumerTest.TestProfile.class)
+@DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
 public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
-  @Test
-  @Disabled
-  public void testPerformance() throws Exception {
-    int maxBatchSize = 1500;
-    int iteration = 1;
-    for (int i = 0; i <= iteration; i++) {
-      new Thread(() -> {
-        try {
-          SourcePostgresqlDB.PGLoadTestDataTable(maxBatchSize, false);
-        } catch (Exception e) {
-          e.printStackTrace();
-          Thread.currentThread().interrupt();
-        }
-      }).start();
-    }
+  @BeforeAll
+  public static void setup() {
+    bqClient = BigQueryGCP.bigQueryClient();
+  }
+  public static final Logger LOGGER = LoggerFactory.getLogger(BaseBigqueryTest.class);
 
-    Awaitility.await().atMost(Duration.ofSeconds(1200)).until(() -> {
+  @Test
+  public void testSimpleUpload() {
+
+    Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
+      String dest = "testc.inventory.customers";
       try {
-        TableResult result = getTableData("testc.inventory.test_table");
-        return result.getTotalRows() >= (long) iteration * maxBatchSize;
+        TableResult result = getTableData(dest);
+        result.iterateAll().forEach(System.out::println);
+        return getTableData(dest).getTotalRows() >= 4
+            && getTableData(dest, "DATE(__source_ts_ms) = CURRENT_DATE").getTotalRows() >= 4
+            && getTableData(dest, "DATE(__ts_ms) = CURRENT_DATE").getTotalRows() >= 4
+            && getTableField(dest, "__source_ts_ms").getType() == LegacySQLTypeName.TIMESTAMP
+            && getTableField(dest, "__ts_ms").getType() == LegacySQLTypeName.TIMESTAMP
+            && getTableField(dest, "__deleted").getType() == LegacySQLTypeName.BOOLEAN
+            ;
       } catch (Exception e) {
+//        e.printStackTrace();
         return false;
       }
     });
 
-    TableResult result = getTableData("testc.inventory.test_table");
-    System.out.println("Row Count=" + result.getTotalRows());
+    Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
+      try {
+        TableResult result = getTableData("testc.inventory.geom");
+        result.iterateAll().forEach(System.out::println);
+        return result.getTotalRows() >= 3;
+      } catch (Exception e) {
+        return false;
+      }
+    });
   }
 
-  @Test
-  public void testSimpleUpload() {
-    super.testSimpleUpload();
-  }
-
-  @Test
-  public void testVariousDataTypeConversion() throws Exception {
-    this.loadVariousDataTypeConversion();
-  }
-
-  public static class BatchBigqueryChangeConsumerTestProfile implements QuarkusTestProfile {
+  public static class TestProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
       Map<String, String> config = new HashMap<>();

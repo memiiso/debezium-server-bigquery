@@ -10,6 +10,7 @@ package io.debezium.server.bigquery;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.core.NoCredentialsProvider;
+import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -156,23 +157,41 @@ public class ConsumerUtil {
     return ConsumerUtil.executeQuery(bqClient, query, null);
   }
 
+  public static InstantiatingGrpcChannelProvider bigQueryTransportChannelProvider(Boolean isBigqueryDevEmulator, Optional<String> bigQueryCustomGRPCHost) {
+
+    InstantiatingGrpcChannelProvider.Builder builder = BigQueryWriteSettings.defaultGrpcTransportProviderBuilder();
+    if (isBigqueryDevEmulator) {
+      builder.setChannelConfigurator(ManagedChannelBuilder::usePlaintext);
+    }
+
+    if (!bigQueryCustomGRPCHost.orElse("").isEmpty()) {
+      builder.setEndpoint(bigQueryCustomGRPCHost.get());
+    }
+
+    builder
+        .setKeepAliveTime(org.threeten.bp.Duration.ofMinutes(1))
+        .setKeepAliveTimeout(org.threeten.bp.Duration.ofMinutes(1))
+        .setKeepAliveWithoutCalls(true)
+        .setChannelsPerCpu(2)
+    ;
+    return builder.build();
+  }
+
   public static BigQueryWriteSettings bigQueryWriteSettings(Boolean isBigqueryDevEmulator, BigQuery bqClient, Optional<String> bigQueryCustomGRPCHost) throws IOException {
     BigQueryWriteSettings.Builder builder = BigQueryWriteSettings.newBuilder();
 
     if (isBigqueryDevEmulator) {
       // it is bigquery emulator
-      builder.setCredentialsProvider(NoCredentialsProvider.create())
-          .setTransportChannelProvider(
-              BigQueryWriteSettings.defaultGrpcTransportProviderBuilder()
-                  .setChannelConfigurator(ManagedChannelBuilder::usePlaintext)
-                  .build()
-          );
+      builder.setCredentialsProvider(NoCredentialsProvider.create());
     } else {
       builder.setCredentialsProvider(FixedCredentialsProvider.create(bqClient.getOptions().getCredentials()));
     }
+
     if (!bigQueryCustomGRPCHost.orElse("").isEmpty()) {
       builder.setEndpoint(bigQueryCustomGRPCHost.get());
     }
+
+    builder.setTransportChannelProvider(bigQueryTransportChannelProvider(isBigqueryDevEmulator, bigQueryCustomGRPCHost));
     return builder.build();
   }
 }

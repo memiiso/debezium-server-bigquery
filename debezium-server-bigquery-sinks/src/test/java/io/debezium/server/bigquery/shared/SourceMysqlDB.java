@@ -8,7 +8,6 @@
 
 package io.debezium.server.bigquery.shared;
 
-import io.debezium.server.bigquery.BaseBigqueryTest;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +22,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static io.debezium.server.bigquery.TestConfigSource.*;
-
 public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
 
   public static final String MYSQL_ROOT_PASSWORD = "debezium";
@@ -32,7 +29,7 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
   public static final String MYSQL_PASSWORD = "mysqlpw";
   public static final String MYSQL_DEBEZIUM_USER = "debezium";
   public static final String MYSQL_DEBEZIUM_PASSWORD = "dbz";
-  public static final String MYSQL_IMAGE = "debezium/example-mysql:1.9";
+  public static final String MYSQL_IMAGE = "debezium/example-mysql:2.7.3.Final";
   public static final String MYSQL_HOST = "127.0.0.1";
   public static final String MYSQL_DATABASE = "inventory";
   public static final Integer MYSQL_PORT_DEFAULT = 3306;
@@ -74,9 +71,9 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
     container.start();
 
     LOGGER.warn("Dropping all destination BQ tables");
-    TABLES.forEach(t -> BaseBigqueryTest.dropTable("testc.inventory." + t));
-    BaseBigqueryTest.dropTable(OFFSET_TABLE);
-    BaseBigqueryTest.dropTable(HISTORY_TABLE);
+//    TABLES.forEach(t -> BaseBigqueryTest.dropTable("testc.inventory." + t));
+//    BaseBigqueryTest.dropTable(OFFSET_TABLE);
+//    BaseBigqueryTest.dropTable(HISTORY_TABLE);
 
     Map<String, String> params = new ConcurrentHashMap<>();
     params.put("debezium.source.database.hostname", MYSQL_HOST);
