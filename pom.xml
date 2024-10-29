@@ -29,8 +29,7 @@
         <version.groovy>3.0.22</version.groovy>
         <version.assembly.plugin>3.7.1</version.assembly.plugin>
         <version.jackson>2.13.3</version.jackson>
-        <version.gcp.bigquery>2.42.3</version.gcp.bigquery>
-        <version.gcp.bigquerystorage>3.9.1</version.gcp.bigquerystorage>
+        <version.gcp.librariesbom>26.49.0</version.gcp.librariesbom>
         <version.log4j>2.23.1</version.log4j>
         <!-- Debezium -->
         <version.debezium>2.5.4.Final</version.debezium>
@@ -45,6 +44,15 @@
     </properties>
     <dependencyManagement>
         <dependencies>
+            <!-- Google -->
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>${version.gcp.librariesbom}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- END Google -->
             <!-- quarkus -->
             <dependency>
                 <groupId>io.quarkus</groupId>
@@ -76,18 +84,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- Google -->
-            <dependency>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>google-cloud-bigquery</artifactId>
-                <version>${version.gcp.bigquery}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>google-cloud-bigquerystorage</artifactId>
-                <version>${version.gcp.bigquerystorage}</version>
-            </dependency>
-            <!-- END Google -->
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpcore</artifactId>
