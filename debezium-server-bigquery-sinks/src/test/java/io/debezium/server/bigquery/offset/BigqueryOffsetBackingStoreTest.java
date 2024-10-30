@@ -8,33 +8,33 @@
 
 package io.debezium.server.bigquery.offset;
 
+import io.debezium.server.bigquery.shared.BigQueryDB;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
-
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.runtime.WorkerConfig;
 import org.apache.kafka.connect.util.Callback;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import static io.debezium.server.bigquery.TestConfigSource.BQ_DATASET;
+
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+
 import static io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore.toByteBuffer;
+import static io.debezium.server.bigquery.shared.BigQueryDB.BQ_DATASET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 @TestProfile(BigqueryOffsetBackingStoreTest.TestProfile.class)
-@Disabled
+@WithTestResource(value = BigQueryDB.class)
 public class BigqueryOffsetBackingStoreTest {
 
   private static final Map<ByteBuffer, ByteBuffer> firstSet = new HashMap<>();

@@ -9,7 +9,9 @@
 package io.debezium.server.bigquery;
 
 import com.google.api.gax.retrying.RetrySettings;
+import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.NoCredentials;
 import com.google.cloud.bigquery.*;
 import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
@@ -17,8 +19,10 @@ import io.debezium.config.Field;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.literal.NamedLiteral;
 import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.threeten.bp.Duration;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -29,7 +33,6 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- *
  * @author Ismail Simsek
  */
 public class ConsumerUtil {
@@ -38,7 +41,8 @@ public class ConsumerUtil {
   static final io.debezium.config.Field SINK_TYPE_FIELD = io.debezium.config.Field.create("debezium.sink.type").optional();
   static final io.debezium.config.Field SINK_TYPE_FIELD_FALLBACK = Field.create("name").optional();
 
-  public static Map<String, String> getConfigSubset(Config config, String prefix) {
+  public static Map<String, String> getConfigSubset(String prefix) {
+    Config config = ConfigProvider.getConfig();
     final Map<String, String> ret = new HashMap<>();
 
     for (String propName : config.getPropertyNames()) {
@@ -54,9 +58,15 @@ public class ConsumerUtil {
 
   public static String sinkType(Configuration config) {
     String type = config.getString(SINK_TYPE_FIELD, config.getString(SINK_TYPE_FIELD_FALLBACK));
+
+    if (type == null) {
+      type = ConfigProvider.getConfig().getOptionalValue(SINK_TYPE_FIELD.name(), String.class).orElse(null);
+    }
+
     if (type == null) {
       throw new DebeziumException("The config property debezium.sink.type is required " + "but it could not be found in any config source");
     }
+
     return type;
   }
 
@@ -74,6 +84,10 @@ public class ConsumerUtil {
   }
 
   public static BigQuery bigqueryClient(Optional<String> gcpProject, Optional<String> bqDataset, Optional<String> credentialsFile, String bqLocation) throws InterruptedException {
+    return bigqueryClient(gcpProject, bqDataset, credentialsFile, bqLocation, Optional.empty());
+  }
+
+  public static BigQuery bigqueryClient(Optional<String> gcpProject, Optional<String> bqDataset, Optional<String> credentialsFile, String bqLocation, Optional<String> hostUrl) throws InterruptedException {
 
     if (gcpProject.isEmpty()) {
       throw new InterruptedException("Please provide a value for `debezium.sink.{bigquerybatch|bigquerystream}.project`");
@@ -83,9 +97,12 @@ public class ConsumerUtil {
       throw new InterruptedException("Please provide a value for `debezium.sink.{bigquerybatch|bigquerystream}.dataset`");
     }
 
-    GoogleCredentials credentials;
+    Credentials credentials;
     try {
-      if (credentialsFile.isPresent() && !credentialsFile.orElse("").isEmpty()) {
+      // testing only
+      if (credentialsFile.orElse("").equals("bigquery-testing-emulator.json")) {
+        credentials = NoCredentials.getInstance();
+      } else if (credentialsFile.isPresent() && !credentialsFile.orElse("").isEmpty()) {
         credentials = GoogleCredentials.fromStream(new FileInputStream(credentialsFile.get()));
       } else {
         credentials = GoogleCredentials.getApplicationDefault();
@@ -94,7 +111,7 @@ public class ConsumerUtil {
       throw new DebeziumException("Failed to initialize google credentials", e);
     }
 
-    return BigQueryOptions.newBuilder()
+    BigQueryOptions.Builder builder = BigQueryOptions.newBuilder()
         .setCredentials(credentials)
         .setProjectId(gcpProject.get())
         .setLocation(bqLocation)
@@ -104,17 +121,26 @@ public class ConsumerUtil {
                 .setMaxAttempts(5)
                 // InitialRetryDelay controls the delay before the first retry. 
                 // Subsequent retries will use this value adjusted according to the RetryDelayMultiplier. 
-                .setInitialRetryDelay(org.threeten.bp.Duration.ofSeconds(5))
-                .setMaxRetryDelay(org.threeten.bp.Duration.ofSeconds(60))
+                .setInitialRetryDelay(Duration.ofSeconds(5))
+                .setMaxRetryDelay(Duration.ofSeconds(60))
                 // Set the backoff multiplier
                 .setRetryDelayMultiplier(2.0)
                 // Set the max duration of all attempts
-                .setTotalTimeout(org.threeten.bp.Duration.ofMinutes(5))
+                .setTotalTimeout(Duration.ofMinutes(5))
                 .build()
-        )
+        );
+
+    if (hostUrl.orElse("").isEmpty()) {
+      return builder
         .build()
         .getService();
-    
+    } else {
+      return builder
+          .setHost(hostUrl.get())
+          .setLocation(hostUrl.get())
+          .build()
+          .getService();
+    }
   }
 
   public static TableResult executeQuery(BigQuery bqClient, String query, List<QueryParameterValue> parameters) throws SQLException {

@@ -17,17 +17,17 @@ import io.debezium.relational.ddl.DdlParser;
 import io.debezium.relational.history.HistoryRecord;
 import io.debezium.relational.history.SchemaHistoryListener;
 import io.debezium.relational.history.TableChanges;
+import io.debezium.server.bigquery.shared.BigQueryDB;
 import io.debezium.util.Collect;
+import org.junit.jupiter.api.*;
 
 import java.sql.Types;
 import java.time.Instant;
 import java.util.Map;
 
-import org.junit.jupiter.api.*;
-import static io.debezium.server.bigquery.TestConfigSource.*;
+import static io.debezium.server.bigquery.shared.BigQueryDB.*;
 
 
-@Disabled
 class BigquerySchemaHistoryTest {
 
   protected BigquerySchemaHistory history;
@@ -88,6 +88,9 @@ class BigquerySchemaHistoryTest {
         .create();
     tableChanges2 = new TableChanges().create(table2);
     historyRecord2 = new HistoryRecord(source, position, databaseName, schemaName, ddl, tableChanges2, Instant.now());
+
+    BigQueryDB container = new BigQueryDB();
+    container.start();
   }
 
   @AfterEach
@@ -139,10 +142,12 @@ class BigquerySchemaHistoryTest {
         .with("schema.history.internal", "io.debezium.server.bigquery.history.BigquerySchemaHistory")
         .with("schema.history.internal.bigquery.table-name", "__debezium_database_history_storage_test_table")
         .with("schema.history.internal.bigquery.migrate-history-file", "src/test/resources/dbhistory.txt")
-        .with("debezium.sink.bigquerybatch.project", "test")
+        .with("debezium.sink.bigquerybatch.project", BQ_PROJECT)
         .with("debezium.sink.bigquerybatch.dataset", BQ_DATASET)
         .with("debezium.sink.bigquerybatch.location", BQ_LOCATION)
         .with("debezium.sink.bigquerybatch.credentials-file", BQ_CRED_FILE)
+        .with("debezium.sink.bigquerybatch.credentials-file", BQ_CRED_FILE)
+        .with("debezium.sink.bigquerybatch.bigquery-custom-host", container.getEmulatorHttpEndpoint())
         .build(), null, SchemaHistoryListener.NOOP, true);
     
     return history2;
