@@ -22,6 +22,10 @@ public abstract class AbstractBigqueryStorageConfig {
   }
 
 
+  public Boolean getIsBigqueryDevEmulator() {
+    return Boolean.parseBoolean((String) configCombined.getOrDefault("bigquery-dev-emulator", "false"));
+  }
+
   public String getBigqueryProject() {
     return (String) configCombined.getOrDefault("project", null);
   }
@@ -48,6 +52,7 @@ public abstract class AbstractBigqueryStorageConfig {
 
   public BigQuery bigqueryClient() throws InterruptedException {
     return ConsumerUtil.bigqueryClient(
+        getIsBigqueryDevEmulator(),
         Optional.ofNullable(this.getBigqueryProject()),
         Optional.ofNullable(this.getBigqueryDataset()),
         Optional.ofNullable(this.getBigqueryCredentialsFile()),

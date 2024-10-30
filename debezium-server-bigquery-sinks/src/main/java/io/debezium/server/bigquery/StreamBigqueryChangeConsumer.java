@@ -10,7 +10,6 @@ package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.api.core.ApiFuture;
-import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.bigquery.storage.v1.*;
 import com.google.common.annotations.Beta;
@@ -88,6 +87,12 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   Boolean allowFieldAddition;
   @ConfigProperty(name = "debezium.sink.bigquerystream.credentials-file", defaultValue = "")
   Optional<String> credentialsFile;
+  @ConfigProperty(name = "debezium.sink.bigquerystream.bigquery-custom-host", defaultValue = "")
+  Optional<String> bigQueryCustomHost;
+  @ConfigProperty(name = "debezium.sink.bigquerystream.bigquery-custom-grpc-host", defaultValue = "")
+  Optional<String> bigQueryCustomGRPCHost;
+  @ConfigProperty(name = "debezium.sink.bigquerystream.bigquery-dev-emulator", defaultValue = "false")
+  Boolean isBigqueryDevEmulator;
   @ConfigProperty(name = "debezium.sink.bigquerystream.upsert", defaultValue = "false")
   boolean upsert;
   @ConfigProperty(name = "debezium.sink.bigquerystream.upsert-keep-deletes", defaultValue = "true")
@@ -115,16 +120,11 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   public void initizalize() throws InterruptedException {
     super.initizalize();
 
-    bqClient = ConsumerUtil.bigqueryClient(gcpProject, bqDataset, credentialsFile, bqLocation);
-
+    bqClient = ConsumerUtil.bigqueryClient(isBigqueryDevEmulator, gcpProject, bqDataset, credentialsFile, bqLocation, bigQueryCustomHost);
     timePartitioning =
         TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(partitionType)).setField(partitionField).build();
-
     try {
-      BigQueryWriteSettings bigQueryWriteSettings = BigQueryWriteSettings
-          .newBuilder()
-          .setCredentialsProvider(FixedCredentialsProvider.create(bqClient.getOptions().getCredentials()))
-          .build();
+      BigQueryWriteSettings bigQueryWriteSettings = ConsumerUtil.bigQueryWriteSettings(isBigqueryDevEmulator, bqClient, bigQueryCustomGRPCHost);
       bigQueryWriteClient = BigQueryWriteClient.create(bigQueryWriteSettings);
     } catch (IOException e) {
       throw new DebeziumException("Failed to create BigQuery Write Client", e);

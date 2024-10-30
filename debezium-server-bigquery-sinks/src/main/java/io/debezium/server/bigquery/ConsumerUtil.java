@@ -8,14 +8,18 @@
 
 package io.debezium.server.bigquery;
 
+import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.core.NoCredentialsProvider;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.NoCredentials;
 import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
 import io.debezium.config.Field;
+import io.grpc.ManagedChannelBuilder;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.literal.NamedLiteral;
 import org.eclipse.microprofile.config.Config;
@@ -83,11 +87,11 @@ public class ConsumerUtil {
     return instance.get();
   }
 
-  public static BigQuery bigqueryClient(Optional<String> gcpProject, Optional<String> bqDataset, Optional<String> credentialsFile, String bqLocation) throws InterruptedException {
-    return bigqueryClient(gcpProject, bqDataset, credentialsFile, bqLocation, Optional.empty());
+  public static BigQuery bigqueryClient(Boolean isBigqueryDevEmulator, Optional<String> gcpProject, Optional<String> bqDataset, Optional<String> credentialsFile, String bqLocation) throws InterruptedException {
+    return bigqueryClient(isBigqueryDevEmulator, gcpProject, bqDataset, credentialsFile, bqLocation, Optional.empty());
   }
 
-  public static BigQuery bigqueryClient(Optional<String> gcpProject, Optional<String> bqDataset, Optional<String> credentialsFile, String bqLocation, Optional<String> hostUrl) throws InterruptedException {
+  public static BigQuery bigqueryClient(Boolean isBigqueryDevEmulator, Optional<String> gcpProject, Optional<String> bqDataset, Optional<String> credentialsFile, String bqLocation, Optional<String> hostUrl) throws InterruptedException {
 
     if (gcpProject.isEmpty()) {
       throw new InterruptedException("Please provide a value for `debezium.sink.{bigquerybatch|bigquerystream}.project`");
@@ -100,7 +104,7 @@ public class ConsumerUtil {
     Credentials credentials;
     try {
       // testing only
-      if (credentialsFile.orElse("").equals("bigquery-testing-emulator.json")) {
+      if (isBigqueryDevEmulator) {
         credentials = NoCredentials.getInstance();
       } else if (credentialsFile.isPresent() && !credentialsFile.orElse("").isEmpty()) {
         credentials = GoogleCredentials.fromStream(new FileInputStream(credentialsFile.get()));
@@ -132,8 +136,8 @@ public class ConsumerUtil {
 
     if (hostUrl.orElse("").isEmpty()) {
       return builder
-        .build()
-        .getService();
+          .build()
+          .getService();
     } else {
       return builder
           .setHost(hostUrl.get())
@@ -157,5 +161,28 @@ public class ConsumerUtil {
   public static TableResult executeQuery(BigQuery bqClient, String query) throws SQLException {
     return ConsumerUtil.executeQuery(bqClient, query, null);
   }
-  
+
+  public static BigQueryWriteSettings bigQueryWriteSettings(Boolean isBigqueryDevEmulator, BigQuery bqClient, Optional<String> bigQueryCustomGRPCHost) throws IOException {
+    if (isBigqueryDevEmulator) {
+      // it is bigquery emulator
+      BigQueryWriteSettings.Builder builder = BigQueryWriteSettings.newBuilder()
+          .setCredentialsProvider(NoCredentialsProvider.create())
+          .setTransportChannelProvider(
+              BigQueryWriteSettings.defaultGrpcTransportProviderBuilder()
+                  .setChannelConfigurator(ManagedChannelBuilder::usePlaintext)
+                  .build()
+          );
+      if (bigQueryCustomGRPCHost.orElse("").isEmpty()) {
+        builder
+            .setEndpoint(bigQueryCustomGRPCHost.orElse(null));
+      }
+      return builder.build();
+
+    } else {
+      return BigQueryWriteSettings
+          .newBuilder()
+          .setCredentialsProvider(FixedCredentialsProvider.create(bqClient.getOptions().getCredentials()))
+          .build();
+    }
+  }
 }

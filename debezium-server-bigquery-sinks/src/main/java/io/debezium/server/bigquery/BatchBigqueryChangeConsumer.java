@@ -63,6 +63,10 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
   Boolean allowFieldRelaxation;
   @ConfigProperty(name = "debezium.sink.bigquerybatch.credentials-file", defaultValue = "")
   Optional<String> credentialsFile;
+  @ConfigProperty(name = "debezium.sink.bigquerybatch.bigquery-custom-host", defaultValue = "")
+  Optional<String> bigQueryCustomHost;
+  @ConfigProperty(name = "debezium.sink.bigquerybatch.bigquery-dev-emulator", defaultValue = "false")
+  Boolean isBigqueryDevEmulator;
   @ConfigProperty(name = "debezium.sink.bigquerybatch.cast-deleted-field", defaultValue = "false")
   Boolean castDeletedField;
 
@@ -77,7 +81,7 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
 
   public void initizalize() throws InterruptedException {
     super.initizalize();
-    bqClient = ConsumerUtil.bigqueryClient(gcpProject, bqDataset, credentialsFile, bqLocation);
+    bqClient = ConsumerUtil.bigqueryClient(isBigqueryDevEmulator, gcpProject, bqDataset, credentialsFile, bqLocation, bigQueryCustomHost);
     timePartitioning =
         TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(partitionType)).setField(partitionField).build();
 
