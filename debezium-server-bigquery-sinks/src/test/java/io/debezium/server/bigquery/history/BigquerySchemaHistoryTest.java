@@ -147,6 +147,7 @@ class BigquerySchemaHistoryTest {
         .with("debezium.sink.bigquerybatch.location", BQ_LOCATION)
         .with("debezium.sink.bigquerybatch.credentials-file", BQ_CRED_FILE)
         .with("debezium.sink.bigquerybatch.credentials-file", BQ_CRED_FILE)
+        .with("debezium.sink.bigquerybatch.bigquery-dev-emulator", "true")
         .with("debezium.sink.bigquerybatch.bigquery-custom-host", container.getEmulatorHttpEndpoint())
         .build(), null, SchemaHistoryListener.NOOP, true);
     
