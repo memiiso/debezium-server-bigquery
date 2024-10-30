@@ -8,20 +8,20 @@
 
 package io.debezium.server.bigquery;
 
+import com.google.api.gax.retrying.RetrySettings;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.bigquery.*;
 import io.debezium.DebeziumException;
+import org.awaitility.Awaitility;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Objects;
 
-import com.google.api.gax.retrying.RetrySettings;
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.bigquery.*;
-import org.awaitility.Awaitility;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import static io.debezium.server.bigquery.TestConfigSource.*;
+import static io.debezium.server.bigquery.shared.BigQueryDB.*;
 
 /**
  *

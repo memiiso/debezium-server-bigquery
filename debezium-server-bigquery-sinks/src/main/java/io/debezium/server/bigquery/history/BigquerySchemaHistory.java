@@ -20,7 +20,6 @@ import io.debezium.relational.history.*;
 import io.debezium.server.bigquery.ConsumerUtil;
 import io.debezium.util.FunctionalReadWriteLock;
 import io.debezium.util.Strings;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +29,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -55,7 +51,7 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
       "record_insert_ts TIMESTAMP NOT NULL " +
       ")";
 
-  public static final String DATABASE_HISTORY_STORAGE_TABLE_INSERT = "INSERT INTO %s VALUES ( ?, ?, ? )";
+  public static final String DATABASE_HISTORY_STORAGE_TABLE_INSERT = "INSERT INTO %s (id, history_data, record_insert_ts) VALUES ( ?, ?, ? )";
   public static final String DATABASE_HISTORY_STORAGE_TABLE_SELECT = "SELECT id, history_data, record_insert_ts FROM %s ORDER BY " +
       "record_insert_ts ASC";
   private final FunctionalReadWriteLock lock = FunctionalReadWriteLock.reentrant();
@@ -71,14 +67,9 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
   public void configure(Configuration config, HistoryRecordComparator comparator, SchemaHistoryListener listener, boolean useCatalogBeforeSchema) {
 
     super.configure(config, comparator, listener, useCatalogBeforeSchema);
-    this.historyConfig = new BigquerySchemaHistoryConfig(config);
+    this.historyConfig = new BigquerySchemaHistoryConfig(config, CONFIGURATION_FIELD_PREFIX_STRING);
     try {
-      bqClient = ConsumerUtil.bigqueryClient(
-          Optional.ofNullable(this.historyConfig.getBigqueryProject()),
-          Optional.ofNullable(this.historyConfig.getBigqueryDataset()),
-          Optional.ofNullable(this.historyConfig.getBigqueryCredentialsFile()),
-          this.historyConfig.getBigqueryLocation()
-      );
+      bqClient = this.historyConfig.bigqueryClient();
       tableFullName = String.format("%s.%s", this.historyConfig.getBigqueryDataset(), this.historyConfig.getBigqueryTable());
       tableId = TableId.of(this.historyConfig.getBigqueryDataset(), this.historyConfig.getBigqueryTable());
     } catch (Exception e) {
@@ -180,17 +171,17 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
       return false;
     }
 
-    int numRows = 0;
     try {
-      TableResult rs = ConsumerUtil.executeQuery(bqClient, "SELECT COUNT(*) as row_count FROM " + tableFullName);
+      TableResult rs = ConsumerUtil.executeQuery(bqClient, String.format(DATABASE_HISTORY_STORAGE_TABLE_SELECT, tableFullName) + " LIMIT 5");
       for (FieldValueList row : rs.getValues()) {
-        numRows = row.get("row_count").getNumericValue().intValue();
+        row.get("id").getStringValue();
         break;
       }
     } catch (SQLException e) {
       throw new SchemaHistoryException("Failed to check database history storage", e);
     }
-    return numRows > 0;
+    // history table exists if we are able to run a select on it
+    return true;
   }
 
   @Override
@@ -206,9 +197,9 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
         ConsumerUtil.executeQuery(bqClient, String.format(DATABASE_HISTORY_TABLE_DDL, tableFullName));
         LOG.warn("Created database history storage table {} to store history", tableFullName);
 
-        if (!Strings.isNullOrEmpty(historyConfig.getMigrateHistoryFile().strip())) {
-          LOG.warn("Migrating history from file {}", historyConfig.getMigrateHistoryFile());
-          this.loadFileSchemaHistory(new File(historyConfig.getMigrateHistoryFile()));
+        if (!Strings.isNullOrEmpty(historyConfig.getMigrationFile().strip())) {
+          LOG.warn("Migrating history from file {}", historyConfig.getMigrationFile());
+          this.loadFileSchemaHistory(new File(historyConfig.getMigrationFile()));
         }
       } catch (Exception e) {
         throw new SchemaHistoryException("Creation of database history topic failed, please create the topic manually", e);
@@ -240,44 +231,6 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
     });
     LOG.warn("Migrated {} database history record. " +
         "Migrating file database history to Bigquery database history storage successfully completed", numRecords.get());
-  }
-
-  public static class BigquerySchemaHistoryConfig {
-    Properties configCombined = new Properties();
-
-    public BigquerySchemaHistoryConfig(Configuration config) {
-      String sinkType = ConsumerUtil.sinkType(config);
-      Configuration confIcebergSubset1 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + sinkType + ".", true);
-      confIcebergSubset1.forEach(configCombined::put);
-      // debezium is doing config filtering before passing it down to this class! so we are taking unfiltered configs!
-      Map<String, String> confIcebergSubset2 = ConsumerUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink." + sinkType + ".");
-      confIcebergSubset2.forEach(configCombined::putIfAbsent);
-    }
-
-
-    public String getBigqueryProject() {
-      return (String) configCombined.getOrDefault("project", null);
-    }
-
-    public String getBigqueryDataset() {
-      return (String) configCombined.getOrDefault("dataset", null);
-    }
-
-    public String getBigqueryTable() {
-      return (String) configCombined.getOrDefault("bigquery.table-name", "debezium_database_history_storage");
-    }
-
-    public String getMigrateHistoryFile() {
-      return (String) configCombined.getOrDefault("bigquery.migrate-history-file", "");
-    }
-
-    public String getBigqueryCredentialsFile() {
-      return (String) configCombined.getOrDefault("credentials-file", "");
-    }
-
-    public String getBigqueryLocation() {
-      return (String) configCombined.getOrDefault("location", "US");
-    }
   }
 
 }

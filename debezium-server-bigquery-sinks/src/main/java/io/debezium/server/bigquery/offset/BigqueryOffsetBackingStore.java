@@ -15,17 +15,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.*;
 import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
-import io.debezium.config.Field;
 import io.debezium.server.bigquery.ConsumerUtil;
 import io.debezium.util.Strings;
-import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.runtime.WorkerConfig;
 import org.apache.kafka.connect.storage.MemoryOffsetBackingStore;
 import org.apache.kafka.connect.storage.OffsetBackingStore;
 import org.apache.kafka.connect.util.Callback;
 import org.apache.kafka.connect.util.SafeObjectInputStream;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,10 +49,9 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
 
   public static final String OFFSET_STORAGE_TABLE_SELECT = "SELECT id, offset_data FROM %s ";
 
-  public static final String OFFSET_STORAGE_TABLE_INSERT = "INSERT INTO %s VALUES ( ?, ?, ? )";
+  public static final String OFFSET_STORAGE_TABLE_INSERT = "INSERT INTO %s (id, offset_data, record_insert_ts) VALUES ( ?, ?, ? )";
 
   public static final String OFFSET_STORAGE_TABLE_DELETE = "DELETE FROM %s WHERE 1=1";
-  public static String CONFIGURATION_FIELD_PREFIX_STRING = "offset.storage.";
 
   private static final Logger LOG = LoggerFactory.getLogger(BigqueryOffsetBackingStore.class);
   BigQuery bqClient;
@@ -64,7 +60,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   BigqueryOffsetBackingStoreConfig offsetConfig;
   protected static final ObjectMapper mapper = new ObjectMapper();
   protected Map<String, String> data = new HashMap<>();
-
+  public static String CONFIGURATION_FIELD_PREFIX_STRING = "offset.storage.";
 
   public BigqueryOffsetBackingStore() {
   }
@@ -76,15 +72,10 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   @Override
   public void configure(WorkerConfig config) {
     super.configure(config);
-    this.offsetConfig = new BigqueryOffsetBackingStoreConfig(Configuration.from(config.originalsStrings()));
+    this.offsetConfig = new BigqueryOffsetBackingStoreConfig(Configuration.from(config.originalsStrings()), CONFIGURATION_FIELD_PREFIX_STRING);
 
     try {
-      bqClient = ConsumerUtil.bigqueryClient(
-          Optional.ofNullable(this.offsetConfig.getBigqueryProject()),
-          Optional.ofNullable(this.offsetConfig.getBigqueryDataset()),
-          Optional.ofNullable(this.offsetConfig.getBigqueryCredentialsFile()),
-          this.offsetConfig.getBigqueryLocation()
-      );
+      bqClient = this.offsetConfig.bigqueryClient();
       tableFullName = String.format("%s.%s", this.offsetConfig.getBigqueryDataset(), this.offsetConfig.getBigqueryTable());
       tableId = TableId.of(this.offsetConfig.getBigqueryDataset(), this.offsetConfig.getBigqueryTable());
     } catch (Exception e) {
@@ -113,9 +104,9 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
       ConsumerUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DDL, tableFullName));
       LOG.warn("Created offset storage table {} to store offset", tableFullName);
 
-      if (!Strings.isNullOrEmpty(offsetConfig.getMigrateOffsetFile().strip())) {
-        LOG.warn("Loading offset from file {}", offsetConfig.getMigrateOffsetFile());
-        this.loadFileOffset(new File(offsetConfig.getMigrateOffsetFile()));
+      if (!Strings.isNullOrEmpty(offsetConfig.getMigrationFile().strip())) {
+        LOG.warn("Loading offset from file {}", offsetConfig.getMigrationFile());
+        this.loadFileOffset(new File(offsetConfig.getMigrationFile()));
       }
     }
   }
@@ -164,6 +155,10 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   }
 
   private void loadFileOffset(File file) {
+    if (!file.isFile() || !file.exists()) {
+      LOG.warn("Offset file not found, skipping migration! " + file.toPath().toAbsolutePath());
+      return;
+    }
     try (SafeObjectInputStream is = new SafeObjectInputStream(Files.newInputStream(file.toPath()))) {
       Object obj = is.readObject();
 
@@ -225,45 +220,5 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     return null;
   }
 
-  public static class BigqueryOffsetBackingStoreConfig extends WorkerConfig {
-    Properties configCombined = new Properties();
-
-    static final Field SINK_TYPE_FIELD = Field.create("debezium.sink.type").optional();
-    static final Field SINK_TYPE_FIELD_FALLBACK = Field.create("name").optional();
-
-    public BigqueryOffsetBackingStoreConfig(Configuration config) {
-      super(new ConfigDef(), config.asMap());
-      String sinkType = ConsumerUtil.sinkType(config);
-      Configuration confIcebergSubset1 = config.subset(CONFIGURATION_FIELD_PREFIX_STRING + sinkType + ".", true);
-      confIcebergSubset1.forEach(configCombined::put);
-      // debezium is doing config filtering before passing it down to this class! so we are taking unfiltered configs!
-      Map<String, String> confIcebergSubset2 = ConsumerUtil.getConfigSubset(ConfigProvider.getConfig(), "debezium.sink." + sinkType + ".");
-      confIcebergSubset2.forEach(configCombined::putIfAbsent);
-    }
-
-    public String getBigqueryProject() {
-      return (String) configCombined.getOrDefault("project", null);
-    }
-
-    public String getBigqueryDataset() {
-      return (String) configCombined.getOrDefault("dataset", null);
-    }
-
-    public String getBigqueryTable() {
-      return (String) configCombined.getOrDefault("bigquery.table-name", "debezium_offset_storage");
-    }
-
-    public String getMigrateOffsetFile() {
-      return (String) configCombined.getOrDefault("bigquery.migrate-offset-file", "");
-    }
-
-    public String getBigqueryCredentialsFile() {
-      return (String) configCombined.getOrDefault("credentials-file", "");
-    }
-
-    public String getBigqueryLocation() {
-      return (String) configCombined.getOrDefault("location", "US");
-    }
-  }
 
 }
