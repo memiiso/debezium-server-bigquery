@@ -124,12 +124,16 @@ public class BigQueryDB implements QuarkusTestResourceLifecycleManager {
     config.put("debezium.sink.bigquerybatch.location", BQ_LOCATION);
     config.put("debezium.sink.bigquerybatch.credentials-file", BQ_CRED_FILE);
     config.put("debezium.sink.bigquerybatch.bigquery-custom-host", container.getEmulatorHttpEndpoint());
+    config.put("debezium.sink.bigquerybatch.bigquery-dev-emulator", "true");
+    config.put("debezium.sink.bigquerybatch.bigquery-custom-grpc-host", String.format("%s:%d", container.getHost(), container.getMappedPort(9060)));
     // stream
     config.put("debezium.sink.bigquerystream.project", BQ_PROJECT);
     config.put("debezium.sink.bigquerystream.dataset", BQ_DATASET);
     config.put("debezium.sink.bigquerystream.location", BQ_LOCATION);
     config.put("debezium.sink.bigquerystream.credentials-file", BQ_CRED_FILE);
+    config.put("debezium.sink.bigquerystream.bigquery-dev-emulator", "true");
     config.put("debezium.sink.bigquerystream.bigquery-custom-host", container.getEmulatorHttpEndpoint());
+    config.put("debezium.sink.bigquerystream.bigquery-custom-grpc-host", String.format("%s:%d", container.getHost(), container.getMappedPort(9060)));
     return config;
   }
 }

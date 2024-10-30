@@ -7,8 +7,8 @@ public class BigqueryOffsetBackingStoreConfig extends AbstractBigqueryStorageCon
 
   public BigqueryOffsetBackingStoreConfig(Configuration config, String configFieldPrefix) {
     super(config);
-    Configuration confIcebergSubset1 = config.subset("debezium.source." + configFieldPrefix, true);
-    confIcebergSubset1.forEach(configCombined::put);
+    config.subset("debezium.source." + configFieldPrefix, true).forEach(configCombined::put);
+    config.subset(configFieldPrefix, true).forEach(configCombined::put);
   }
 
   public String getBigqueryTable() {
