@@ -8,13 +8,11 @@
 
 package io.debezium.server.bigquery.shared;
 
-import io.debezium.server.bigquery.BaseBigqueryTest;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.images.builder.ImageFromDockerfile;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -25,34 +23,26 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static io.debezium.server.bigquery.TestConfigSource.*;
-
 public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
 
   public static final String POSTGRES_USER = "postgres";
   public static final String POSTGRES_PASSWORD = "postgres";
   public static final String POSTGRES_DBNAME = "postgres";
+  public static final String POSTGRES_IMAGE = "debezium/example-postgres:2.5";
   public static final String POSTGRES_HOST = "localhost";
   public static final Integer POSTGRES_PORT_DEFAULT = 5432;
   private static final Logger LOGGER = LoggerFactory.getLogger(SourcePostgresqlDB.class);
 
-  private static GenericContainer<?> container;
-  private static Connection con = null;
+  private static GenericContainer<?> container = new GenericContainer<>(POSTGRES_IMAGE)
+      .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*", 2))
+      .withEnv("POSTGRES_USER", POSTGRES_USER)
+      .withEnv("POSTGRES_PASSWORD", POSTGRES_PASSWORD)
+      .withEnv("POSTGRES_DB", POSTGRES_DBNAME)
+      .withEnv("POSTGRES_INITDB_ARGS", "-E UTF8")
+      .withEnv("LANG", "en_US.utf8")
+      .withExposedPorts(POSTGRES_PORT_DEFAULT)
+      .withStartupTimeout(Duration.ofSeconds(30));
 
-  @Override
-  public void stop() {
-    if (container != null) {
-      container.stop();
-    }
-
-    try {
-      if (con != null) {
-        con.close();
-      }
-    } catch (SQLException e) {
-      //
-    }
-  }
 
   public static int PGLoadTestDataTable(int numRows, boolean addRandomDelay) {
     int numInsert = 0;
@@ -87,16 +77,13 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
 
   public static void runSQL(String query) throws SQLException, ClassNotFoundException {
     try {
-      if (con == null) {
-        String url = "jdbc:postgresql://" + POSTGRES_HOST + ":" + container.getMappedPort(POSTGRES_PORT_DEFAULT) + "/" + POSTGRES_DBNAME;
-        Class.forName("org.postgresql.Driver");
-        con = DriverManager.getConnection(url, POSTGRES_USER, POSTGRES_PASSWORD);
-      }
 
+      String url = "jdbc:postgresql://" + POSTGRES_HOST + ":" + container.getMappedPort(POSTGRES_PORT_DEFAULT) + "/" + POSTGRES_DBNAME;
+      Class.forName("org.postgresql.Driver");
+      Connection con = DriverManager.getConnection(url, POSTGRES_USER, POSTGRES_PASSWORD);
       Statement st = con.createStatement();
       st.execute(query);
-      st.close();
-      LOGGER.debug("Successfully executed\n{}", query);
+      con.close();
     } catch (Exception e) {
       e.printStackTrace();
       throw e;
@@ -105,25 +92,12 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
 
   @Override
   public Map<String, String> start() {
-    container = new GenericContainer(
-        new ImageFromDockerfile("debezium_postgresql", true)
-            .withFileFromClasspath("Dockerfile", "postgresql/Dockerfile")
-            .withFileFromClasspath("inventory.sql", "postgresql/inventory.sql"))
-        .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*", 2))
-        .withEnv("POSTGRES_USER", POSTGRES_USER)
-        .withEnv("POSTGRES_PASSWORD", POSTGRES_PASSWORD)
-        .withEnv("POSTGRES_DB", POSTGRES_DBNAME)
-        .withEnv("POSTGRES_INITDB_ARGS", "-E UTF8")
-        .withEnv("LANG", "en_US.utf8")
-        .withExposedPorts(POSTGRES_PORT_DEFAULT)
-        .withStartupTimeout(Duration.ofSeconds(30L));
-
     container.start();
-
-    LOGGER.warn("Dropping all destination BQ tables");
-    TABLES.forEach(t -> BaseBigqueryTest.dropTable("testc.inventory." + t));
-    BaseBigqueryTest.dropTable(OFFSET_TABLE);
-    BaseBigqueryTest.dropTable(HISTORY_TABLE);
+    try {
+      SourcePostgresqlDB.runSQL("CREATE EXTENSION hstore;");
+    } catch (SQLException | ClassNotFoundException e) {
+      throw new RuntimeException(e);
+    }
 
     Map<String, String> params = new ConcurrentHashMap<>();
     params.put("debezium.source.database.hostname", POSTGRES_HOST);
@@ -135,6 +109,13 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
     params.put("debezium.source.connector.class", "io.debezium.connector.postgresql.PostgresConnector");
     params.put("debezium.transforms.unwrap.add.fields", "op,table,ts_ms,source.ts_ms,db,source.lsn,source.txId");
     return params;
+  }
+
+  @Override
+  public void stop() {
+    if (container != null) {
+      container.stop();
+    }
   }
 
 }

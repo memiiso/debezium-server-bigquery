@@ -9,14 +9,16 @@
 package io.debezium.server.bigquery;
 
 import com.google.cloud.bigquery.TableResult;
+import io.debezium.server.bigquery.shared.BigQueryGCP;
 import io.debezium.server.bigquery.shared.SourceMysqlDB;
 import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -28,9 +30,15 @@ import java.util.Map;
  */
 @QuarkusTest
 @WithTestResource(value = SourceMysqlDB.class)
-@TestProfile(StreamBigqueryChangeConsumerMysqlTest.StreamBigqueryChangeConsumerMysqlTestProfile.class)
-@Disabled("manual run")
+@WithTestResource(value = BigQueryGCP.class)
+@TestProfile(StreamBigqueryChangeConsumerMysqlTest.TestProfile.class)
+@DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
 public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
+
+  @BeforeAll
+  public static void setup() {
+    bqClient = BigQueryGCP.bigQueryClient();
+  }
 
   @Test
   public void testMysqlSimpleUploadWithDelete() throws Exception {
@@ -55,12 +63,12 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
     SourceMysqlDB.runSQL(sqlDelete);
     SourceMysqlDB.runSQL(sqlInsert);
     String dest = "testc.inventory.test_table";
-    BaseBigqueryTest.truncateTable(dest);
+//    BaseBigqueryTest.truncateTable(dest);
     Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
       try {
         TableResult result = getTableData(dest);
         result.iterateAll().forEach(System.out::println);
-        System.out.println(result.getTotalRows());
+//        System.out.println(result.getTotalRows());
         return result.getTotalRows() >= 4
             && getTableData(dest, "__deleted = true").getTotalRows() >= 2
             && getTableData(dest, "__op = 'd'").getTotalRows() >= 2;
@@ -71,7 +79,7 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
     });
   }
 
-  public static class StreamBigqueryChangeConsumerMysqlTestProfile implements QuarkusTestProfile {
+  public static class TestProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
       Map<String, String> config = new HashMap<>();

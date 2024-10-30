@@ -9,7 +9,9 @@
 package io.debezium.server.bigquery.shared;
 
 import com.google.cloud.NoCredentials;
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.TableId;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +19,6 @@ import org.testcontainers.containers.BigQueryEmulatorContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class BigQueryDB implements QuarkusTestResourceLifecycleManager {
@@ -48,55 +49,6 @@ public class BigQueryDB implements QuarkusTestResourceLifecycleManager {
         .setCredentials(NoCredentials.getInstance())
         .build();
     return options.getService();
-  }
-
-  // HELPER METHODS
-  public static TableResult getTableData(String destination) throws InterruptedException {
-    return getTableData(destination, "1=1");
-  }
-
-  public static void dropTable(String destination) {
-    TableId tableId = getTableId(destination);
-    LOGGER.warn("Dropping table {}", tableId);
-    try {
-      simpleQuery("DROP TABLE IF EXISTS " + tableId.getProject() + "." + tableId.getDataset() + "." + tableId.getTable());
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static TableResult getTableData(String destination, String where) throws InterruptedException {
-    TableId tableId = getTableId(destination);
-    return simpleQuery("SELECT * FROM " + tableId.getProject() + "." + tableId.getDataset() + "." + tableId.getTable()
-        + " WHERE " + where
-    );
-  }
-
-  public static Field getTableField(String destination, String fieldName) throws InterruptedException {
-    Field field = null;
-    TableId tableId = getTableId(destination);
-    for (Field f : getTableSchema(destination).getFields()) {
-      if (Objects.equals(f.getName(), fieldName)) {
-        field = f;
-        break;
-      }
-    }
-    return field;
-  }
-
-  public static TableResult simpleQuery(String query) throws InterruptedException {
-    //System.out.println(query);
-    QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
-    try {
-      return bqClient.query(queryConfig);
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  public static Schema getTableSchema(String destination) throws InterruptedException {
-    TableId tableId = getTableId(destination);
-    return bqClient.getTable(tableId).getDefinition().getSchema();
   }
 
   public static TableId getTableId(String destination) {

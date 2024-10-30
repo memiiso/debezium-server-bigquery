@@ -11,14 +11,17 @@ package io.debezium.server.converters;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.BaseBigqueryTest;
+import io.debezium.server.bigquery.shared.BigQueryGCP;
 import io.debezium.server.bigquery.shared.SourcePostgresqlDB;
 import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -31,12 +34,39 @@ import java.util.Map;
 @QuarkusTest
 @WithTestResource(value = SourcePostgresqlDB.class)
 @TestProfile(ChangeConsumerConverterTest.ChangeConsumerConverterProfile.class)
-@Disabled("manual run")
+@WithTestResource(value = BigQueryGCP.class)
+@DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
+@Disabled // enable and fix
 public class ChangeConsumerConverterTest extends BaseBigqueryTest {
+
+  @BeforeAll
+  public static void setup() {
+    bqClient = BigQueryGCP.bigQueryClient();
+  }
+
   @Test
   public void testVariousDataTypeConversion() throws Exception {
-    this.loadVariousDataTypeConversion();
+    //SourcePostgresqlDB.runSQL("DELETE FROM  inventory.test_data_types WHERE c_id>0;");
     String dest = "testc.inventory.test_data_types";
+    Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
+      try {
+        //getTableData(dest).iterateAll().forEach(System.out::println);
+        return getTableData(dest).getTotalRows() >= 3
+            // '2019-07-09 02:28:10.123456+01' --> hour is UTC in BQ
+            && getTableData(dest, "c_timestamptz = TIMESTAMP('2019-07-09T01:28:10.123456Z')").getTotalRows() == 1
+            // '2019-07-09 02:28:20.666666+01' --> hour is UTC in BQ
+            && getTableData(dest, "c_timestamptz = TIMESTAMP('2019-07-09T01:28:20.666666Z')").getTotalRows() == 1
+            && getTableData(dest, "DATE(c_timestamptz) = DATE('2019-07-09')").getTotalRows() >= 2
+            && getTableField(dest, "c_timestamptz").getType() == LegacySQLTypeName.TIMESTAMP
+            && getTableData(dest, "c_date = DATE('2017-09-15')").getTotalRows() == 1
+            && getTableData(dest, "c_date = DATE('2017-02-10')").getTotalRows() == 1
+            ;
+      } catch (Exception e) {
+        e.printStackTrace();
+        return false;
+      }
+    });
+
     TableResult result = BaseBigqueryTest.getTableData(dest);
     result.iterateAll().forEach(System.out::println);
     Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
@@ -50,6 +80,7 @@ public class ChangeConsumerConverterTest extends BaseBigqueryTest {
             && getTableField(dest, "c_timestamp6").getType() == LegacySQLTypeName.DATETIME
             ;
       } catch (Exception e) {
+        e.printStackTrace();
         return false;
       }
     });

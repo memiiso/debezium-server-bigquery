@@ -8,20 +8,15 @@
 
 package io.debezium.server.bigquery;
 
-import com.google.api.gax.retrying.RetrySettings;
-import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.*;
-import io.debezium.DebeziumException;
 import org.awaitility.Awaitility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Objects;
 
-import static io.debezium.server.bigquery.shared.BigQueryDB.*;
+import static io.debezium.server.bigquery.shared.BigQueryDB.BQ_DATASET;
 
 /**
  *
@@ -31,41 +26,6 @@ import static io.debezium.server.bigquery.shared.BigQueryDB.*;
 public class BaseBigqueryTest {
   public static final Logger LOGGER = LoggerFactory.getLogger(BaseBigqueryTest.class);
   public static BigQuery bqClient;
-
-  static {
-    GoogleCredentials credentials;
-    try {
-      if (BQ_CRED_FILE != null && !BQ_CRED_FILE.isEmpty()) {
-        credentials = GoogleCredentials.fromStream(new FileInputStream(BQ_CRED_FILE));
-      } else {
-        credentials = GoogleCredentials.getApplicationDefault();
-      }
-    } catch (IOException e) {
-      throw new DebeziumException("Failed to initialize google credentials", e);
-    }
-
-    bqClient = BigQueryOptions.newBuilder()
-        .setCredentials(credentials)
-        //.setProjectId(BQ_PROJECT) // use project from cred file!?
-        .setLocation(BQ_LOCATION)
-        .setRetrySettings(
-            RetrySettings.newBuilder()
-                // Set the max number of attempts
-                .setMaxAttempts(5)
-                // InitialRetryDelay controls the delay before the first retry. 
-                // Subsequent retries will use this value adjusted according to the RetryDelayMultiplier. 
-                .setInitialRetryDelay(org.threeten.bp.Duration.ofSeconds(5))
-                .setMaxRetryDelay(org.threeten.bp.Duration.ofSeconds(60))
-                // Set the backoff multiplier
-                .setRetryDelayMultiplier(2.0)
-                // Set the max duration of all attempts
-                .setTotalTimeout(org.threeten.bp.Duration.ofMinutes(5))
-                .build()
-        )
-        .build()
-        .getService();
-    LOGGER.warn("Using BQ project {}", bqClient.getOptions().getProjectId());
-  }
 
   public static Schema getTableSchema(String destination) throws InterruptedException {
     TableId tableId = getTableId(destination);
@@ -143,28 +103,6 @@ public class BaseBigqueryTest {
         TableResult result = BaseBigqueryTest.getTableData("testc.inventory.geom");
         result.iterateAll().forEach(System.out::println);
         return result.getTotalRows() >= 3;
-      } catch (Exception e) {
-        return false;
-      }
-    });
-  }
-
-  public void loadVariousDataTypeConversion() {
-    //SourcePostgresqlDB.runSQL("DELETE FROM  inventory.test_data_types WHERE c_id>0;");
-    String dest = "testc.inventory.test_data_types";
-    Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
-      try {
-        //getTableData(dest).iterateAll().forEach(System.out::println);
-        return getTableData(dest).getTotalRows() >= 3
-            // '2019-07-09 02:28:10.123456+01' --> hour is UTC in BQ
-            && getTableData(dest, "c_timestamptz = TIMESTAMP('2019-07-09T01:28:10.123456Z')").getTotalRows() == 1
-            // '2019-07-09 02:28:20.666666+01' --> hour is UTC in BQ
-            && getTableData(dest, "c_timestamptz = TIMESTAMP('2019-07-09T01:28:20.666666Z')").getTotalRows() == 1
-            && getTableData(dest, "DATE(c_timestamptz) = DATE('2019-07-09')").getTotalRows() >= 2
-            && getTableField(dest, "c_timestamptz").getType() == LegacySQLTypeName.TIMESTAMP
-            && getTableData(dest, "c_date = DATE('2017-09-15')").getTotalRows() == 1
-            && getTableData(dest, "c_date = DATE('2017-02-10')").getTotalRows() == 1
-            ;
       } catch (Exception e) {
         return false;
       }
