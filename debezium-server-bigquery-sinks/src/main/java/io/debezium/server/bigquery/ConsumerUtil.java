@@ -134,17 +134,11 @@ public class ConsumerUtil {
                 .build()
         );
 
-    if (hostUrl.orElse("").isEmpty()) {
-      return builder
-          .build()
-          .getService();
-    } else {
-      return builder
-          .setHost(hostUrl.get())
-          .setLocation(hostUrl.get())
-          .build()
-          .getService();
+    if (!hostUrl.orElse("").isEmpty()) {
+      builder
+          .setHost(hostUrl.get()).setLocation(hostUrl.get());
     }
+    return builder.build().getService();
   }
 
   public static TableResult executeQuery(BigQuery bqClient, String query, List<QueryParameterValue> parameters) throws SQLException {
@@ -163,26 +157,22 @@ public class ConsumerUtil {
   }
 
   public static BigQueryWriteSettings bigQueryWriteSettings(Boolean isBigqueryDevEmulator, BigQuery bqClient, Optional<String> bigQueryCustomGRPCHost) throws IOException {
+    BigQueryWriteSettings.Builder builder = BigQueryWriteSettings.newBuilder();
+
     if (isBigqueryDevEmulator) {
       // it is bigquery emulator
-      BigQueryWriteSettings.Builder builder = BigQueryWriteSettings.newBuilder()
-          .setCredentialsProvider(NoCredentialsProvider.create())
+      builder.setCredentialsProvider(NoCredentialsProvider.create())
           .setTransportChannelProvider(
               BigQueryWriteSettings.defaultGrpcTransportProviderBuilder()
                   .setChannelConfigurator(ManagedChannelBuilder::usePlaintext)
                   .build()
           );
-      if (bigQueryCustomGRPCHost.orElse("").isEmpty()) {
-        builder
-            .setEndpoint(bigQueryCustomGRPCHost.orElse(null));
-      }
-      return builder.build();
-
     } else {
-      return BigQueryWriteSettings
-          .newBuilder()
-          .setCredentialsProvider(FixedCredentialsProvider.create(bqClient.getOptions().getCredentials()))
-          .build();
+      builder.setCredentialsProvider(FixedCredentialsProvider.create(bqClient.getOptions().getCredentials()));
     }
+    if (!bigQueryCustomGRPCHost.orElse("").isEmpty()) {
+      builder.setEndpoint(bigQueryCustomGRPCHost.get());
+    }
+    return builder.build();
   }
 }
