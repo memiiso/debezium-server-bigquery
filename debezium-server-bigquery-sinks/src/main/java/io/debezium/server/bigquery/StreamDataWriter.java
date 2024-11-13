@@ -37,10 +37,10 @@ public class StreamDataWriter {
 
   public void initialize()
       throws DescriptorValidationException, IOException, InterruptedException {
-    streamWriter = createStreamWriter(this.parentTable.toString());
+    streamWriter = createStreamWriter();
   }
 
-  private JsonStreamWriter createStreamWriter(String parentTableName)
+  private JsonStreamWriter createStreamWriter()
       throws DescriptorValidationException, IOException, InterruptedException {
     // https://cloud.google.com/bigquery/docs/write-api-streaming
     // Configure in-stream automatic retry settings.
@@ -59,11 +59,11 @@ public class StreamDataWriter {
     // to the default stream.
     // For more information about JsonStreamWriter, see:
     // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/JsonStreamWriter.html
-    return JsonStreamWriter.newBuilder(parentTableName, client)
+    return JsonStreamWriter.newBuilder(parentTable.toString(), client)
         .setIgnoreUnknownFields(ignoreUnknownFields)
         .setExecutorProvider(FixedExecutorProvider.create(Executors.newScheduledThreadPool(100)))
         .setChannelProvider(instantiatingGrpcChannelProvider)
-        .setEnableConnectionPool(true)
+        //.setEnableConnectionPool(true)
         // If value is missing in json and there is a default value configured on bigquery
         // column, apply the default value to the missing value field.
         .setDefaultMissingValueInterpretation(AppendRowsRequest.MissingValueInterpretation.DEFAULT_VALUE)
@@ -76,7 +76,7 @@ public class StreamDataWriter {
     try {
       synchronized (this.lock) {
         if (!streamWriter.isUserClosed() && streamWriter.isClosed() && recreateCount.getAndIncrement() < MAX_RECREATE_COUNT) {
-          streamWriter = createStreamWriter(streamWriter.getStreamName());
+          streamWriter = createStreamWriter();
         }
       }
 

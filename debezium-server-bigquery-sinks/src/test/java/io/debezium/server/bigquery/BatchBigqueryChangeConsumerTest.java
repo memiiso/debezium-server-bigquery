@@ -75,6 +75,28 @@ public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
     });
   }
 
+  @Test
+  public void testVariousDataTypeConversion() throws Exception {
+    String dest = "testc.inventory.test_data_types";
+    Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
+      try {
+        return getTableData(dest).getTotalRows() >= 3
+            // '2019-07-09 02:28:10.123456+01' --> hour is UTC in BQ
+            && getTableData(dest, "c_timestamptz = TIMESTAMP('2019-07-09T01:28:10.123456Z')").getTotalRows() == 1
+            // '2019-07-09 02:28:20.666666+01' --> hour is UTC in BQ
+            && getTableData(dest, "c_timestamptz = TIMESTAMP('2019-07-09T01:28:20.666666Z')").getTotalRows() == 1
+            && getTableData(dest, "DATE(c_timestamptz) = DATE('2019-07-09')").getTotalRows() >= 2
+            && getTableField(dest, "c_timestamptz").getType() == LegacySQLTypeName.TIMESTAMP
+            && getTableData(dest, "c_date = DATE('2017-09-15')").getTotalRows() == 1
+            && getTableData(dest, "c_date = DATE('2017-02-10')").getTotalRows() == 1
+            ;
+      } catch (Exception e) {
+        LOGGER.error(e.getMessage());
+        return false;
+      }
+    });
+  }
+
   public static class TestProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
