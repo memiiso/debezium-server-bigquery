@@ -15,8 +15,7 @@ import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
 import io.debezium.serde.DebeziumSerdes;
-import io.debezium.server.BaseChangeConsumer;
-import io.debezium.server.bigquery.batchsizewait.InterfaceBatchSizeWait;
+import io.debezium.server.bigquery.batchsizewait.BatchSizeWait;
 import io.debezium.util.Clock;
 import io.debezium.util.Strings;
 import io.debezium.util.Threads;
@@ -43,7 +42,7 @@ import java.util.stream.Collectors;
  *
  * @author Ismail Simsek
  */
-public abstract class AbstractChangeConsumer extends BaseChangeConsumer implements DebeziumEngine.ChangeConsumer<ChangeEvent<Object, Object>> {
+public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeConsumer implements DebeziumEngine.ChangeConsumer<ChangeEvent<Object, Object>> {
 
   protected static final Duration LOG_INTERVAL = Duration.ofMinutes(15);
   protected static final ConcurrentHashMap<String, Object> uploadLock = new ConcurrentHashMap<>();
@@ -65,8 +64,8 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
   String batchSizeWaitName;
   @Inject
   @Any
-  Instance<InterfaceBatchSizeWait> batchSizeWaitInstances;
-  InterfaceBatchSizeWait batchSizeWait;
+  Instance<BatchSizeWait> batchSizeWaitInstances;
+  BatchSizeWait batchSizeWait;
 
   public void initizalize() throws InterruptedException {
     // configure and set 
@@ -95,34 +94,29 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
     LOGGER.trace("Received {} events", records.size());
 
     Instant start = Instant.now();
-    Map<String, List<RecordConverter>> events = records.stream()
+    Map<String, List<BaseRecordConverter>> events = records.stream()
         .map((ChangeEvent<Object, Object> e)
             -> {
           try {
-            return new RecordConverter(e.destination(),
-                valDeserializer.deserialize(e.destination(), getBytes(e.value())),
-                e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
-                mapper.readTree(getBytes(e.value())).get("schema"),
-                e.key() == null ? null : mapper.readTree(getBytes(e.key())).get("schema")
-            );
+            return this.eventAsRecordConverter(e);
           } catch (IOException ex) {
             throw new DebeziumException(ex);
           }
         })
-        .collect(Collectors.groupingBy(RecordConverter::destination));
+        .collect(Collectors.groupingBy(BaseRecordConverter::destination));
 
     long numUploadedEvents = 0;
-    for (Map.Entry<String, List<RecordConverter>> destinationEvents : events.entrySet()) {
+    for (Map.Entry<String, List<BaseRecordConverter>> destinationEvents : events.entrySet()) {
       // group list of events by their schema, if in the batch we have schema change events grouped by their schema
       // so with this uniform schema is guaranteed for each batch
-      Map<JsonNode, List<RecordConverter>> eventsGroupedBySchema =
+      Map<JsonNode, List<BaseRecordConverter>> eventsGroupedBySchema =
           destinationEvents.getValue().stream()
-              .collect(Collectors.groupingBy(RecordConverter::valueSchema));
+              .collect(Collectors.groupingBy(BaseRecordConverter::valueSchema));
       LOGGER.debug("Destination {} got {} records with {} different schema!!", destinationEvents.getKey(),
           destinationEvents.getValue().size(),
           eventsGroupedBySchema.keySet().size());
 
-      for (List<RecordConverter> schemaEvents : eventsGroupedBySchema.values()) {
+      for (List<BaseRecordConverter> schemaEvents : eventsGroupedBySchema.values()) {
         numUploadedEvents += this.uploadDestination(destinationEvents.getKey(), schemaEvents);
       }
     }
@@ -150,6 +144,7 @@ public abstract class AbstractChangeConsumer extends BaseChangeConsumer implemen
     }
   }
 
-  public abstract long uploadDestination(String destination, List<RecordConverter> data);
+  public abstract long uploadDestination(String destination, List<BaseRecordConverter> data);
 
+  public abstract BaseRecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException;
 }

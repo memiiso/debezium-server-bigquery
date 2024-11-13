@@ -17,6 +17,7 @@ import com.google.common.annotations.Beta;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import io.debezium.DebeziumException;
+import io.debezium.engine.ChangeEvent;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.Dependent;
@@ -41,7 +42,7 @@ import java.util.stream.Collectors;
 @Named("bigquerystream")
 @Dependent
 @Beta
-public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
+public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   protected static final ConcurrentHashMap<String, StreamDataWriter> jsonStreamWriters = new ConcurrentHashMap<>();
   static final ImmutableMap<String, Integer> cdcOperations = ImmutableMap.of("c", 1, "r", 2, "u", 3, "d", 4);
   public static BigQueryWriteClient bigQueryWriteClient;
@@ -134,7 +135,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   }
 
   @Override
-  public long uploadDestination(String destination, List<RecordConverter> data) {
+  public long uploadDestination(String destination, List<BaseRecordConverter> data) {
     long numRecords = data.size();
     Table table = getTable(destination, data.get(0));
     // get stream writer create if not yet exists!
@@ -160,9 +161,9 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
   }
 
 
-  protected List<RecordConverter> deduplicateBatch(List<RecordConverter> events) {
+  protected List<BaseRecordConverter> deduplicateBatch(List<BaseRecordConverter> events) {
 
-    ConcurrentHashMap<JsonNode, RecordConverter> deduplicatedEvents = new ConcurrentHashMap<>();
+    ConcurrentHashMap<JsonNode, BaseRecordConverter> deduplicatedEvents = new ConcurrentHashMap<>();
 
     events.forEach(e ->
         // deduplicate using key(PK)
@@ -234,7 +235,7 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     return table;
   }
 
-  private Table getTable(String destination, RecordConverter sampleBqEvent) {
+  private Table getTable(String destination, BaseRecordConverter sampleBqEvent) {
     TableId tableId = getTableId(destination);
     Table table = bqClient.getTable(tableId);
     // create table if missing
@@ -295,6 +296,16 @@ public class StreamBigqueryChangeConsumer extends AbstractChangeConsumer {
     return table;
   }
 
+
+  public BaseRecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
+    return new StreamRecordConverter(e.destination(),
+        valDeserializer.deserialize(e.destination(), getBytes(e.value())),
+        e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
+        mapper.readTree(getBytes(e.value())).get("schema"),
+        e.key() == null ? null : mapper.readTree(getBytes(e.key())).get("schema")
+    ) {
+    };
+  }
 
 }
 

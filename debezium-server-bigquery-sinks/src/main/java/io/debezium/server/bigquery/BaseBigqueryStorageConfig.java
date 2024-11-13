@@ -10,11 +10,11 @@ import java.util.Optional;
 import java.util.Properties;
 
 
-public abstract class AbstractBigqueryStorageConfig {
-  protected static final Logger LOG = LoggerFactory.getLogger(AbstractBigqueryStorageConfig.class);
+public abstract class BaseBigqueryStorageConfig {
+  protected static final Logger LOG = LoggerFactory.getLogger(BaseBigqueryStorageConfig.class);
   protected Properties configCombined = new Properties();
 
-  public AbstractBigqueryStorageConfig(Configuration config) {
+  public BaseBigqueryStorageConfig(Configuration config) {
     String sinkType = ConsumerUtil.sinkType(config);
     // debezium is doing config filtering before passing it down to this class! so we are taking unfiltered configs!
     Map<String, String> confIcebergSubset2 = ConsumerUtil.getConfigSubset("debezium.sink." + sinkType + ".");
