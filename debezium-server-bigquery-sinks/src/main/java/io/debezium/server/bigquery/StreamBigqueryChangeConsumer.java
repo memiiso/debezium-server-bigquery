@@ -91,7 +91,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
   @PostConstruct
   void connect() throws InterruptedException {
-    this.initizalize();
+    this.initialize();
   }
 
   @PreDestroy
@@ -106,8 +106,8 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     }
   }
 
-  public void initizalize() throws InterruptedException {
-    super.initizalize();
+  public void initialize() throws InterruptedException {
+    super.initialize();
 
     bqClient = ConsumerUtil.bigqueryClient(isBigqueryDevEmulator, gcpProject, bqDataset, credentialsFile, bqLocation, bigQueryCustomHost);
     timePartitioning =

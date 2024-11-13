@@ -67,7 +67,7 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
   Instance<BatchSizeWait> batchSizeWaitInstances;
   BatchSizeWait batchSizeWait;
 
-  public void initizalize() throws InterruptedException {
+  public void initialize() throws InterruptedException {
     // configure and set 
     valSerde.configure(Collections.emptyMap(), false);
     valDeserializer = valSerde.deserializer();
