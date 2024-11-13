@@ -8,14 +8,15 @@
 
 package io.debezium.server.bigquery.batchsizewait;
 
-import java.util.LinkedList;
-import java.util.LongSummaryStatistics;
-
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Named;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.LinkedList;
+import java.util.LongSummaryStatistics;
+
 import static io.debezium.config.CommonConnectorConfig.DEFAULT_MAX_BATCH_SIZE;
 
 /**
@@ -25,7 +26,7 @@ import static io.debezium.config.CommonConnectorConfig.DEFAULT_MAX_BATCH_SIZE;
  */
 @Dependent
 @Named("DynamicBatchSizeWait")
-public class DynamicBatchSizeWait implements InterfaceBatchSizeWait {
+public class DynamicBatchSizeWait implements BatchSizeWait {
   protected static final Logger LOGGER = LoggerFactory.getLogger(DynamicBatchSizeWait.class);
   final LinkedList<Long> batchSizeHistory = new LinkedList<>();
   final LinkedList<Long> sleepMsHistory = new LinkedList<>();

@@ -1,9 +1,9 @@
 package io.debezium.server.bigquery.offset;
 
 import io.debezium.config.Configuration;
-import io.debezium.server.bigquery.AbstractBigqueryStorageConfig;
+import io.debezium.server.bigquery.BaseBigqueryStorageConfig;
 
-public class BigqueryOffsetBackingStoreConfig extends AbstractBigqueryStorageConfig {
+public class BigqueryOffsetBackingStoreConfig extends BaseBigqueryStorageConfig {
 
   public BigqueryOffsetBackingStoreConfig(Configuration config, String configFieldPrefix) {
     super(config);

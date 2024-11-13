@@ -12,7 +12,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.debezium.server.bigquery.RecordConverter;
+import io.debezium.server.bigquery.BaseRecordConverter;
+import io.debezium.server.bigquery.BatchRecordConverter;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -98,14 +99,15 @@ public class RecordConverterBuilder {
     return this;
   }
 
-  public RecordConverter build() {
-    return new RecordConverter(
+  public BaseRecordConverter build() {
+    return new BatchRecordConverter(
         this.destination,
         payload,
         keyPayload,
         this.valueSchema(),
         this.keySchema()
-    );
+    ) {
+    };
   }
 
   private ObjectNode valueSchema() {

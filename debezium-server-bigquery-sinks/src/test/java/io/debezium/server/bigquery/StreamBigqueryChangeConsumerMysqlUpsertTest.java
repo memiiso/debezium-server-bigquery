@@ -130,14 +130,14 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
 
   @Test
   public void testDeduplicateBatch() throws Exception {
-    RecordConverter e1 = new RecordConverterBuilder()
+    BaseRecordConverter e1 = new RecordConverterBuilder()
         .destination("destination")
         .addKeyField("id", 1)
         .addKeyField("first_name", "row1")
         .addField("__op", "r")
         .addField("__source_ts_ms", 3L)
         .build();
-    RecordConverter e2 = new RecordConverterBuilder()
+    BaseRecordConverter e2 = new RecordConverterBuilder()
         .destination("destination")
         .addKeyField("id", 1)
         .addKeyField("first_name", "row1")
@@ -145,26 +145,26 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
         .addField("__source_ts_ms", 1L)
         .build();
 
-    List<RecordConverter> records = List.of(e1, e2);
-    List<RecordConverter> dedups = consumer.deduplicateBatch(records);
+    List<BaseRecordConverter> records = List.of(e1, e2);
+    List<BaseRecordConverter> dedups = consumer.deduplicateBatch(records);
     Assertions.assertEquals(1, dedups.size());
     Assertions.assertEquals(3L, dedups.get(0).value().get("__source_ts_ms").asLong(0L));
 
-    RecordConverter e21 = new RecordConverterBuilder()
+    BaseRecordConverter e21 = new RecordConverterBuilder()
         .destination("destination")
         .addKeyField("id", 1)
         .addField("__op", "r")
         .addField("__source_ts_ms", 1L)
         .build();
-    RecordConverter e22 = new RecordConverterBuilder()
+    BaseRecordConverter e22 = new RecordConverterBuilder()
         .destination("destination")
         .addKeyField("id", 1)
         .addField("__op", "u")
         .addField("__source_ts_ms", 1L)
         .build();
 
-    List<RecordConverter> records2 = List.of(e21, e22);
-    List<RecordConverter> dedups2 = consumer.deduplicateBatch(records2);
+    List<BaseRecordConverter> records2 = List.of(e21, e22);
+    List<BaseRecordConverter> dedups2 = consumer.deduplicateBatch(records2);
     Assertions.assertEquals(1, dedups2.size());
     Assertions.assertEquals("u", dedups2.get(0).value().get("__op").asText("x"));
   }

@@ -10,6 +10,7 @@ package io.debezium.server.bigquery;
 
 import com.google.cloud.bigquery.*;
 import io.debezium.DebeziumException;
+import io.debezium.engine.ChangeEvent;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
@@ -34,7 +35,7 @@ import java.util.Optional;
  */
 @Named("bigquerybatch")
 @Dependent
-public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
+public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
 
   @ConfigProperty(name = "debezium.sink.batch.destination-regexp", defaultValue = "")
   protected Optional<String> destinationRegexp;
@@ -95,14 +96,14 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
   }
 
   @Override
-  public long uploadDestination(String destination, List<RecordConverter> data) {
+  public long uploadDestination(String destination, List<BaseRecordConverter> data) {
 
     try {
       Instant start = Instant.now();
       final long numRecords;
       TableId tableId = getTableId(destination);
 
-      RecordConverter sampleEvent = data.get(0);
+      BaseRecordConverter sampleEvent = data.get(0);
       Schema schema = sampleEvent.tableSchema(false);
       if (schema == null) {
         schema = bqClient.getTable(tableId).getDefinition().getSchema();
@@ -126,7 +127,7 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
       try (TableDataWriteChannel writer = bqClient.writer(wCCBuilder.build())) {
         //Constructs a stream that writes bytes to the given channel.
         try (OutputStream stream = Channels.newOutputStream(writer)) {
-          for (RecordConverter e : data) {
+          for (BaseRecordConverter e : data) {
 
             final String val = e.valueAsJsonLine(schema);
 
@@ -183,6 +184,16 @@ public class BatchBigqueryChangeConsumer<T> extends AbstractChangeConsumer {
         .replaceAll(destinationRegexp.orElse(""), destinationRegexpReplace.orElse(""))
         .replace(".", "_");
     return TableId.of(gcpProject.get(), bqDataset.get(), tableName);
+  }
+
+  public BaseRecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
+    return new BatchRecordConverter(e.destination(),
+        valDeserializer.deserialize(e.destination(), getBytes(e.value())),
+        e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
+        mapper.readTree(getBytes(e.value())).get("schema"),
+        e.key() == null ? null : mapper.readTree(getBytes(e.key())).get("schema")
+    ) {
+    };
   }
 
 }

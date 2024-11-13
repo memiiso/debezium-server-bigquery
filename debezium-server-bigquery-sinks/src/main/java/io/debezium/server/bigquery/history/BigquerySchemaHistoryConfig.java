@@ -1,11 +1,11 @@
 package io.debezium.server.bigquery.history;
 
 import io.debezium.config.Configuration;
-import io.debezium.server.bigquery.AbstractBigqueryStorageConfig;
+import io.debezium.server.bigquery.BaseBigqueryStorageConfig;
 import io.debezium.server.bigquery.ConsumerUtil;
 
 
-public class BigquerySchemaHistoryConfig extends AbstractBigqueryStorageConfig {
+public class BigquerySchemaHistoryConfig extends BaseBigqueryStorageConfig {
 
   public BigquerySchemaHistoryConfig(Configuration config, String configFieldPrefix) {
     super(config);
