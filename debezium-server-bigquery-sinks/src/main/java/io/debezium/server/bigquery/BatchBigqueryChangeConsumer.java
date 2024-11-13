@@ -96,14 +96,14 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
   }
 
   @Override
-  public long uploadDestination(String destination, List<BaseRecordConverter> data) {
+  public long uploadDestination(String destination, List<RecordConverter<?>> data) {
 
     try {
       Instant start = Instant.now();
       final long numRecords;
       TableId tableId = getTableId(destination);
 
-      BaseRecordConverter sampleEvent = data.get(0);
+      RecordConverter<?> sampleEvent = data.get(0);
       Schema schema = sampleEvent.tableSchema(false);
       if (schema == null) {
         schema = bqClient.getTable(tableId).getDefinition().getSchema();
@@ -127,9 +127,9 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
       try (TableDataWriteChannel writer = bqClient.writer(wCCBuilder.build())) {
         //Constructs a stream that writes bytes to the given channel.
         try (OutputStream stream = Channels.newOutputStream(writer)) {
-          for (BaseRecordConverter e : data) {
+          for (RecordConverter<?> e : data) {
 
-            final String val = e.valueAsJsonLine(schema);
+            final String val = e.convert(schema);
 
             if (val == null) {
               LOGGER.warn("Null Value received skipping the entry! destination:{} key:{}", destination, getString(e.key()));
@@ -186,7 +186,7 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
     return TableId.of(gcpProject.get(), bqDataset.get(), tableName);
   }
 
-  public BaseRecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
+  public RecordConverter<?> eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
     return new BatchRecordConverter(e.destination(),
         valDeserializer.deserialize(e.destination(), getBytes(e.value())),
         e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),

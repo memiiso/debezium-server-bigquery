@@ -1,20 +1,21 @@
 package io.debezium.server.bigquery;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableConstraints;
-import org.json.JSONObject;
+import io.debezium.DebeziumException;
 
-public interface RecordConverter {
+public interface RecordConverter<T> {
   String destination();
 
   JsonNode value();
 
-  String valueAsJsonLine(Schema schema) throws JsonProcessingException;
+  default <T> T convert(Schema schema) throws DebeziumException {
+    return convert(schema, false, false);
+  }
 
-  JSONObject valueAsJsonObject(boolean upsert, boolean upsertKeepDeletes);
+  <T> T convert(Schema schema, boolean upsert, boolean upsertKeepDeletes) throws DebeziumException;
 
   JsonNode key();
 

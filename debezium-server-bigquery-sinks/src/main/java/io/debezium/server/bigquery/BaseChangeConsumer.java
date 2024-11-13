@@ -94,7 +94,7 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
     LOGGER.trace("Received {} events", records.size());
 
     Instant start = Instant.now();
-    Map<String, List<BaseRecordConverter>> events = records.stream()
+    Map<String, List<RecordConverter<?>>> events = records.stream()
         .map((ChangeEvent<Object, Object> e)
             -> {
           try {
@@ -103,20 +103,20 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
             throw new DebeziumException(ex);
           }
         })
-        .collect(Collectors.groupingBy(BaseRecordConverter::destination));
+        .collect(Collectors.groupingBy(RecordConverter::destination));
 
     long numUploadedEvents = 0;
-    for (Map.Entry<String, List<BaseRecordConverter>> destinationEvents : events.entrySet()) {
+    for (Map.Entry<String, List<RecordConverter<?>>> destinationEvents : events.entrySet()) {
       // group list of events by their schema, if in the batch we have schema change events grouped by their schema
       // so with this uniform schema is guaranteed for each batch
-      Map<JsonNode, List<BaseRecordConverter>> eventsGroupedBySchema =
+      Map<JsonNode, List<RecordConverter<?>>> eventsGroupedBySchema =
           destinationEvents.getValue().stream()
-              .collect(Collectors.groupingBy(BaseRecordConverter::valueSchema));
+              .collect(Collectors.groupingBy(RecordConverter::valueSchema));
       LOGGER.debug("Destination {} got {} records with {} different schema!!", destinationEvents.getKey(),
           destinationEvents.getValue().size(),
           eventsGroupedBySchema.keySet().size());
 
-      for (List<BaseRecordConverter> schemaEvents : eventsGroupedBySchema.values()) {
+      for (List<RecordConverter<?>> schemaEvents : eventsGroupedBySchema.values()) {
         numUploadedEvents += this.uploadDestination(destinationEvents.getKey(), schemaEvents);
       }
     }
@@ -144,7 +144,7 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
     }
   }
 
-  public abstract long uploadDestination(String destination, List<BaseRecordConverter> data);
+  public abstract long uploadDestination(String destination, List<RecordConverter<?>> data);
 
-  public abstract BaseRecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException;
+  public abstract RecordConverter<?> eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException;
 }
