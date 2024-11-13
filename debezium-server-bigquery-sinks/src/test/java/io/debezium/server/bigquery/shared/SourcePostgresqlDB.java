@@ -20,7 +20,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
@@ -28,7 +27,7 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
   public static final String POSTGRES_USER = "postgres";
   public static final String POSTGRES_PASSWORD = "postgres";
   public static final String POSTGRES_DBNAME = "postgres";
-  public static final String POSTGRES_IMAGE = "debezium/example-postgres:2.5";
+  public static final String POSTGRES_IMAGE = "debezium/example-postgres:2.7.3.Final";
   public static final String POSTGRES_HOST = "localhost";
   public static final Integer POSTGRES_PORT_DEFAULT = 5432;
   private static final Logger LOGGER = LoggerFactory.getLogger(SourcePostgresqlDB.class);
@@ -44,40 +43,8 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
       .withStartupTimeout(Duration.ofSeconds(30));
 
 
-  public static int PGLoadTestDataTable(int numRows, boolean addRandomDelay) {
-    int numInsert = 0;
-    do {
-
-      new Thread(() -> {
-        try {
-          if (addRandomDelay) {
-            Thread.sleep(TestUtil.randomInt(20000, 100000));
-          }
-          String sql = "INSERT INTO inventory.test_table (c_id, c_id2, c_text, c_varchar ) " +
-              "VALUES ";
-          StringBuilder values =
-              new StringBuilder("\n(" + TestUtil.randomInt(15, 3200) + ", '" + UUID.randomUUID() + "', '" + TestUtil.randomString(524) + "', '" + TestUtil.randomString(524) + "')");
-          for (int i = 0; i < 200; i++) {
-            values.append("\n,(").append(TestUtil.randomInt(15, 3200)).append(", '").append(UUID.randomUUID()).append(
-                "', " +
-                    "'").append(TestUtil.randomString(524)).append("', '").append(TestUtil.randomString(524)).append("')");
-          }
-          SourcePostgresqlDB.runSQL(sql + values);
-          SourcePostgresqlDB.runSQL("COMMIT;");
-        } catch (Exception e) {
-          e.printStackTrace();
-          Thread.currentThread().interrupt();
-        }
-      }).start();
-
-      numInsert += 200;
-    } while (numInsert <= numRows);
-    return numInsert;
-  }
-
   public static void runSQL(String query) throws SQLException, ClassNotFoundException {
     try {
-
       String url = "jdbc:postgresql://" + POSTGRES_HOST + ":" + container.getMappedPort(POSTGRES_PORT_DEFAULT) + "/" + POSTGRES_DBNAME;
       Class.forName("org.postgresql.Driver");
       Connection con = DriverManager.getConnection(url, POSTGRES_USER, POSTGRES_PASSWORD);
@@ -90,15 +57,59 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
     }
   }
 
-  @Override
-  public Map<String, String> start() {
-    container.start();
+  public void createObjectsForTesting() {
     try {
       SourcePostgresqlDB.runSQL("CREATE EXTENSION hstore;");
+      SourcePostgresqlDB.runSQL("""          
+          CREATE TABLE IF NOT EXISTS inventory.test_data_types
+              (
+                  c_id INTEGER             ,
+                  c_json JSON              ,
+                  c_jsonb JSONB            ,
+                  c_date DATE              ,
+                  c_timestamp0 TIMESTAMP(0),
+                  c_timestamp1 TIMESTAMP(1),
+                  c_timestamp2 TIMESTAMP(2),
+                  c_timestamp3 TIMESTAMP(3),
+                  c_timestamp4 TIMESTAMP(4),
+                  c_timestamp5 TIMESTAMP(5),
+                  c_timestamp6 TIMESTAMP(6),
+                  c_timestamptz TIMESTAMPTZ,
+                  c_time TIME WITH TIME ZONE,
+                  c_time_whtz TIME WITHOUT TIME ZONE,
+                  c_interval INTERVAL,
+                  PRIMARY KEY(c_id)
+              ) ;
+          -- ALTER TABLE inventory.test_data_types REPLICA IDENTITY FULL;
+          INSERT INTO
+             inventory.test_data_types\s
+          VALUES
+             (1 , NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL ),\s
+             (2 , '{"jfield": 111}'::json , '{"jfield": 211}'::jsonb , '2017-09-15'::DATE , '2019-07-09 02:28:57+01' , '2019-07-09 02:28:57.1+01' , '2019-07-09 02:28:57.12+01' , '2019-07-09 02:28:57.123+01' , '2019-07-09 02:28:57.1234+01' , '2019-07-09 02:28:57.12345+01' , '2019-07-09 02:28:57.123456+01', '2019-07-09 02:28:10.123456+01', '04:05:11 PST', '04:05:11.789', INTERVAL '1' YEAR ),\s
+             (3 , '{"jfield": 222}'::json , '{"jfield": 222}'::jsonb , '2017-02-10'::DATE , '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:20.666666+01', '04:10:22', '04:05:22.789', INTERVAL '10' DAY )
+          ;
+          
+          CREATE TABLE IF NOT EXISTS inventory.test_table
+              (
+                  c_id INTEGER           ,
+                  c_id2 VARCHAR(64)      ,
+                  c_data TEXT            ,
+                  c_text TEXT            ,
+                  c_varchar VARCHAR(1666),
+                  PRIMARY KEY(c_id, c_id2)
+              ) ;
+          -- ALTER TABLE inventory.test_table REPLICA IDENTITY FULL;
+          """
+      );
     } catch (SQLException | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
+  }
 
+  @Override
+  public Map<String, String> start() {
+    container.start();
+    this.createObjectsForTesting();
     Map<String, String> params = new ConcurrentHashMap<>();
     params.put("debezium.source.database.hostname", POSTGRES_HOST);
     params.put("debezium.source.database.port", container.getMappedPort(POSTGRES_PORT_DEFAULT).toString());

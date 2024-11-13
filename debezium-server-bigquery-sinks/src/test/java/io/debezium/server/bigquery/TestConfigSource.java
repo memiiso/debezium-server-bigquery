@@ -56,7 +56,10 @@ public class TestConfigSource implements ConfigSource {
     // logging levels
     config.put("quarkus.log.level", "WARN");
     config.put("quarkus.log.category.\"io.debezium.server.bigquery\".level", "INFO");
-    config.put("quarkus.log.category.\"com.google.cloud.bigquery\".level", "WARN");
+    config.put("quarkus.log.category.\"io.debezium.server.bigquery.StreamBigqueryChangeConsumer\".level", "DEBUG");
+    config.put("quarkus.log.category.\"io.debezium.server.bigquery.BatchBigqueryChangeConsumer\".level", "DEBUG");
+    config.put("quarkus.log.category.\"io.debezium.server.bigquery.StreamDataWriter\".level", "DEBUG");
+    config.put("quarkus.log.category.\"com.google.cloud.bigquery\".level", "INFO");
   }
 
 

@@ -18,7 +18,6 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
@@ -72,12 +71,11 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
     });
   }
 
-  public void loadVariousDataTypeConversion() {
-    //SourcePostgresqlDB.runSQL("DELETE FROM  inventory.test_data_types WHERE c_id>0;");
+  @Test
+  public void testVariousDataTypeConversion() {
     String dest = "testc.inventory.test_data_types";
     Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
       try {
-        //getTableData(dest).iterateAll().forEach(System.out::println);
         return getTableData(dest).getTotalRows() >= 3
             // '2019-07-09 02:28:10.123456+01' --> hour is UTC in BQ
             && getTableData(dest, "c_timestamptz = TIMESTAMP('2019-07-09T01:28:10.123456Z')").getTotalRows() == 1
@@ -89,16 +87,11 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
             && getTableData(dest, "c_date = DATE('2017-02-10')").getTotalRows() == 1
             ;
       } catch (Exception e) {
+        LOGGER.error(e.getMessage());
         return false;
       }
     });
-  }
 
-  @Test
-  @Disabled
-  public void testVariousDataTypeConversion() throws Exception {
-    this.loadVariousDataTypeConversion();
-    String dest = "testc.inventory.test_data_types";
     Awaitility.await().atMost(Duration.ofSeconds(320)).until(() -> {
       try {
         return getTableData(dest, "int64(c_json.jfield) = 111 AND int64(c_jsonb.jfield) = 211").getTotalRows() == 1
@@ -116,36 +109,7 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
   }
 
   @Test
-  @Disabled
-  public void testPerformance() throws Exception {
-    int maxBatchSize = 1500;
-    int iteration = 1;
-    for (int i = 0; i <= iteration; i++) {
-      new Thread(() -> {
-        try {
-          SourcePostgresqlDB.PGLoadTestDataTable(maxBatchSize, false);
-        } catch (Exception e) {
-          e.printStackTrace();
-          Thread.currentThread().interrupt();
-        }
-      }).start();
-    }
-
-    Awaitility.await().atMost(Duration.ofSeconds(1200)).until(() -> {
-      try {
-        TableResult result = getTableData("testc.inventory.test_table");
-        return result.getTotalRows() >= (long) iteration * maxBatchSize;
-      } catch (Exception e) {
-        return false;
-      }
-    });
-
-    TableResult result = getTableData("testc.inventory.test_table");
-    System.out.println("Row Count=" + result.getTotalRows());
-  }
-
-  @Test
-  @Disabled("WIP")
+//  @Disabled("WIP")
   public void testSchemaChanges() throws Exception {
     String dest = "testc.inventory.customers";
     Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {

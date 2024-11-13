@@ -183,6 +183,13 @@ public class RecordConverter {
     return value;
   }
 
+  /**
+   * Used by `bigquerybatch` {@link BatchBigqueryChangeConsumer} consumer.
+   *
+   * @param schema Bigquery table schema
+   * @return returns Debezium event as a single line json string
+   * @throws JsonProcessingException
+   */
   public String valueAsJsonLine(Schema schema) throws JsonProcessingException {
 
     if (value == null) {
@@ -220,14 +227,17 @@ public class RecordConverter {
   }
 
   /**
+   * Used by `bigquerystream` {@link StreamBigqueryChangeConsumer} consumer.
    * See https://cloud.google.com/bigquery/docs/write-api#data_type_conversions
    *
-   * @return
+   * @param upsert when set to true it adds change type column `_CHANGE_TYPE`. Otherwise, all events are considered as insert/append
+   * @param upsertKeepDeletes when set to true it retains last deleted data row
+   * @return returns Debezium events as {@link JSONObject}
    */
   public JSONObject valueAsJsonObject(boolean upsert, boolean upsertKeepDeletes) {
     Map<String, Object> jsonMap = mapper.convertValue(value, new TypeReference<>() {
     });
-    // SET UPSERT meta field `_CHANGE_TYPE`
+    // SET UPSERT meta field `_CHANGE_TYPE`! this additional field allows us to do deletes, updates in bigquery
     if (upsert) {
       // if its deleted row and upsertKeepDeletes = false, deleted records are deleted from target table
       if (!upsertKeepDeletes && jsonMap.get("__op").equals("d")) {
@@ -238,6 +248,7 @@ public class RecordConverter {
       }
     }
 
+    // fix the TS_MS fields.
     TS_MS_FIELDS.forEach(tsf -> {
       if (jsonMap.containsKey(tsf)) {
         // Convert millisecond to microseconds
@@ -245,6 +256,7 @@ public class RecordConverter {
       }
     });
 
+    // Fix boolean fields, create this fields as BOOLEAN instead of STRING in BigQuery
     BOOLEAN_FIELDS.forEach(bf -> {
       if (jsonMap.containsKey(bf)) {
         jsonMap.replace(bf, Boolean.valueOf((String) jsonMap.get(bf)));

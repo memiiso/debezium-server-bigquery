@@ -34,11 +34,7 @@ public class BigQueryGCP implements QuarkusTestResourceLifecycleManager {
 
   public static TableResult simpleQuery(String query) throws InterruptedException {
     QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
-    try {
-      return bqClient.query(queryConfig);
-    } catch (Exception e) {
-      return null;
-    }
+    return bqClient.query(queryConfig);
   }
 
   @Override
@@ -46,15 +42,32 @@ public class BigQueryGCP implements QuarkusTestResourceLifecycleManager {
     return;
   }
 
-  public void removeTables() {
+  public static void dropTables() {
     try {
       TableResult result = simpleQuery("select \n" +
           "concat(\"DROP TABLE \",table_schema,\".\",   table_name, \";\" ) AS DROP_TABLES_QUERY\n" +
           "from testdataset.INFORMATION_SCHEMA.TABLES\n" +
           "where table_schema = 'testdataset'\n");
       for (FieldValueList row : result.iterateAll()) {
-        String dropSql = row.get("DROP_TABLES_QUERY").getStringValue();
-        simpleQuery(dropSql);
+        String sql = row.get("DROP_TABLES_QUERY").getStringValue();
+        LOGGER.warn("Running: " + sql);
+        simpleQuery(sql);
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void truncateTables() {
+    try {
+      TableResult result = simpleQuery("select \n" +
+          "concat(\"DELETE FROM \",table_schema,\".\",   table_name, \" WHERE 1=1;\" ) AS TRUNCATE_TABLES_QUERY\n" +
+          "from testdataset.INFORMATION_SCHEMA.TABLES\n" +
+          "where table_schema = 'testdataset'\n");
+      for (FieldValueList row : result.iterateAll()) {
+        String sql = row.get("TRUNCATE_TABLES_QUERY").getStringValue();
+        LOGGER.warn("Running: " + sql);
+        simpleQuery(sql);
       }
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
@@ -64,8 +77,8 @@ public class BigQueryGCP implements QuarkusTestResourceLifecycleManager {
   @Override
   public Map<String, String> start() {
     bqClient = bigQueryClient();
-    removeTables();
-    LOGGER.error("BIGQUERY EMULATOR HOST: " + bqClient.getOptions().getHost());
+    truncateTables();
+//    dropTables();
     Map<String, String> config = new ConcurrentHashMap<>();
     // batch
     // src/test/resources/application.properties
