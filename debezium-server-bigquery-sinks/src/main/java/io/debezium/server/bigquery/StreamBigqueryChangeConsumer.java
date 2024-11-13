@@ -312,7 +312,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
 
-  public RecordConverter<?> eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
+  public RecordConverter<JSONObject> eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
     return new StreamRecordConverter(e.destination(),
         valDeserializer.deserialize(e.destination(), getBytes(e.value())),
         e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),

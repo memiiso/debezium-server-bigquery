@@ -186,7 +186,7 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
     return TableId.of(gcpProject.get(), bqDataset.get(), tableName);
   }
 
-  public RecordConverter<?> eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
+  public RecordConverter<String> eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
     return new BatchRecordConverter(e.destination(),
         valDeserializer.deserialize(e.destination(), getBytes(e.value())),
         e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
