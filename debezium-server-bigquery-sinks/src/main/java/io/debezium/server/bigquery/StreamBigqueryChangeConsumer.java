@@ -36,10 +36,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of the consumer that delivers the messages to Bigquery
- *
+ * Implementation of a Debezium change consumer that delivers events to BigQuery tables in a streaming manner.
+ * <p>This class extends the `BaseChangeConsumer` and provides functionality for streaming batches of
+ * Debezium change events to BigQuery tables using the BigQuery Write API. It offers features like
+ * upsert, deduplication, and table schema management.
+
  * @author Ismail Simsek
  */
+
 @Named("bigquerystream")
 @Dependent
 @Beta

@@ -14,7 +14,12 @@ import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Class responsible for writing data to BigQuery in a streaming manner using the BigQuery Write API.
+ * This class creates and manages a {@link JsonStreamWriter} writer for a specific BigQuery table. It offers functionality
+ * for adding data in JSON format and handling potential errors during the write process.
 
+ */
 public class StreamDataWriter {
   private static final int MAX_RECREATE_COUNT = 3;
   private final BigQueryWriteClient client;

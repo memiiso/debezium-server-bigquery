@@ -19,6 +19,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
+ * Abstract base class for Debezium event record conversion to BigQuery format.
+ * <p>This class provides the foundation for converting Debezium event records into a format
+ * suitable for writing to BigQuery tables. It handles common tasks like schema conversion,
+ * table constraint generation, and clustering configuration. Concrete implementations of this
+ * class can extend this functionality for specific use cases.
+
  * @author Ismail Simsek
  */
 public abstract class BaseRecordConverter implements RecordConverter {
