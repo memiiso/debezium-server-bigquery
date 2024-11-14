@@ -22,7 +22,7 @@ import java.time.LocalDate;
 /**
  * @author Ismail Simsek
  */
-public class BatchRecordConverter extends BaseRecordConverter<String> {
+public class BatchRecordConverter extends BaseRecordConverter {
 
   public BatchRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema) {
     super(destination, value, key, valueSchema, keySchema);

@@ -19,7 +19,7 @@ import java.util.Map;
 /**
  * @author Ismail Simsek
  */
-public class StreamRecordConverter extends BaseRecordConverter<JSONObject> {
+public class StreamRecordConverter extends BaseRecordConverter {
 
   public StreamRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema) {
     super(destination, value, key, valueSchema, keySchema);
