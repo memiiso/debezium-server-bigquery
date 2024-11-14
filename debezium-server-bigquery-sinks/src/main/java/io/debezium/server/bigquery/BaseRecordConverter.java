@@ -8,21 +8,14 @@
 
 package io.debezium.server.bigquery;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.cloud.bigquery.*;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -185,91 +178,6 @@ public abstract class BaseRecordConverter implements RecordConverter {
     return value;
   }
 
-  /**
-   * Used by `bigquerybatch` {@link BatchBigqueryChangeConsumer} consumer.
-   *
-   * @param schema Bigquery table schema
-   * @return returns Debezium event as a single line json string
-   * @throws JsonProcessingException
-   */
-  @Override
-  public String valueAsJsonLine(Schema schema) throws JsonProcessingException {
-
-    if (value == null) {
-      return null;
-    }
-
-    // process JSON fields
-    if (schema != null) {
-      for (Field f : schema.getFields()) {
-        if (f.getType() == LegacySQLTypeName.JSON && value.has(f.getName())) {
-          ((ObjectNode) value).replace(f.getName(), mapper.readTree(value.get(f.getName()).asText("{}")));
-        }
-        // process DATE values
-        if (f.getType() == LegacySQLTypeName.DATE && value.has(f.getName()) && !value.get(f.getName()).isNull()) {
-          ((ObjectNode) value).put(f.getName(), LocalDate.ofEpochDay(value.get(f.getName()).longValue()).toString());
-        }
-      }
-    }
-
-    // Process DEBEZIUM TS_MS values
-    TS_MS_FIELDS.forEach(tsf -> {
-      if (value.has(tsf)) {
-        ((ObjectNode) value).put(tsf, Instant.ofEpochMilli(value.get(tsf).longValue()).toString());
-      }
-    });
-
-    // Process DEBEZIUM BOOLEAN values
-    BOOLEAN_FIELDS.forEach(bf -> {
-      if (value.has(bf)) {
-        ((ObjectNode) value).put(bf, Boolean.valueOf(value.get(bf).asText()));
-      }
-    });
-
-    return mapper.writeValueAsString(value);
-  }
-
-  /**
-   * Used by `bigquerystream` {@link StreamBigqueryChangeConsumer} consumer.
-   * See https://cloud.google.com/bigquery/docs/write-api#data_type_conversions
-   *
-   * @param upsert when set to true it adds change type column `_CHANGE_TYPE`. Otherwise, all events are considered as insert/append
-   * @param upsertKeepDeletes when set to true it retains last deleted data row
-   * @return returns Debezium events as {@link JSONObject}
-   */
-  @Override
-  public JSONObject valueAsJsonObject(boolean upsert, boolean upsertKeepDeletes) {
-    Map<String, Object> jsonMap = mapper.convertValue(value, new TypeReference<>() {
-    });
-    // SET UPSERT meta field `_CHANGE_TYPE`! this additional field allows us to do deletes, updates in bigquery
-    if (upsert) {
-      // if its deleted row and upsertKeepDeletes = false, deleted records are deleted from target table
-      if (!upsertKeepDeletes && jsonMap.get("__op").equals("d")) {
-        jsonMap.put(CHANGE_TYPE_PSEUDO_COLUMN, "DELETE");
-      } else {
-        // if it's not deleted row or upsertKeepDeletes = true then add deleted record to target table
-        jsonMap.put(CHANGE_TYPE_PSEUDO_COLUMN, "UPSERT");
-      }
-    }
-
-    // fix the TS_MS fields.
-    TS_MS_FIELDS.forEach(tsf -> {
-      if (jsonMap.containsKey(tsf)) {
-        // Convert millisecond to microseconds
-        jsonMap.replace(tsf, ((Long) jsonMap.get(tsf) * 1000L));
-      }
-    });
-
-    // Fix boolean fields, create this fields as BOOLEAN instead of STRING in BigQuery
-    BOOLEAN_FIELDS.forEach(bf -> {
-      if (jsonMap.containsKey(bf)) {
-        jsonMap.replace(bf, Boolean.valueOf((String) jsonMap.get(bf)));
-      }
-    });
-
-    return new JSONObject(jsonMap);
-  }
-
   @Override
   public JsonNode key() {
     return key;
@@ -289,9 +197,9 @@ public abstract class BaseRecordConverter implements RecordConverter {
   @Override
   public TableConstraints tableConstraints() {
     return
-    TableConstraints.newBuilder()
-        .setPrimaryKey(PrimaryKey.newBuilder().setColumns(this.keyFields()).build())
-        .build();
+        TableConstraints.newBuilder()
+            .setPrimaryKey(PrimaryKey.newBuilder().setColumns(this.keyFields()).build())
+            .build();
   }
 
   @Override

@@ -25,6 +25,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -90,7 +91,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
   @PostConstruct
   void connect() throws InterruptedException {
-    this.initizalize();
+    this.initialize();
   }
 
   @PreDestroy
@@ -105,8 +106,8 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     }
   }
 
-  public void initizalize() throws InterruptedException {
-    super.initizalize();
+  public void initialize() throws InterruptedException {
+    super.initialize();
 
     bqClient = ConsumerUtil.bigqueryClient(isBigqueryDevEmulator, gcpProject, bqDataset, credentialsFile, bqLocation, bigQueryCustomHost);
     timePartitioning =
@@ -134,8 +135,17 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     }
   }
 
+  boolean doTableHasPrimaryKey(Table table) {
+    if (table.getTableConstraints() == null) {
+      return false;
+    }
+
+    return table.getTableConstraints().getPrimaryKey() != null;
+
+  }
+
   @Override
-  public long uploadDestination(String destination, List<BaseRecordConverter> data) {
+  public long uploadDestination(String destination, List<RecordConverter> data) {
     long numRecords = data.size();
     Table table = getTable(destination, data.get(0));
     // get stream writer create if not yet exists!
@@ -145,13 +155,18 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       // for the tables without primary key run append mode
       // Otherwise it throws Exception
       // INVALID_ARGUMENT:Create UPSERT stream is not supported for primary key disabled table: xyz
-      final boolean tableHasPrimaryKey = table.getTableConstraints().getPrimaryKey() != null;
-      if (upsert && tableHasPrimaryKey) {
+      final boolean tableHasPrimaryKey = doTableHasPrimaryKey(table);
+      final boolean doUpsert = upsert && tableHasPrimaryKey;
+
+      if (doUpsert) {
         data = deduplicateBatch(data);
       }
       // add data to JSONArray
       JSONArray jsonArr = new JSONArray();
-      data.forEach(e -> jsonArr.put(e.valueAsJsonObject(upsert && tableHasPrimaryKey, upsertKeepDeletes)));
+      data.forEach(e -> {
+        JSONObject val = e.convert(table.getDefinition().getSchema(), doUpsert, upsertKeepDeletes);
+        jsonArr.put(val);
+      });
       writer.appendSync(jsonArr);
     } catch (DescriptorValidationException | IOException e) {
       throw new DebeziumException("Failed to append data to stream " + writer.streamWriter.getStreamName(), e);
@@ -161,9 +176,9 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
 
-  protected List<BaseRecordConverter> deduplicateBatch(List<BaseRecordConverter> events) {
+  protected List<RecordConverter> deduplicateBatch(List<RecordConverter> events) {
 
-    ConcurrentHashMap<JsonNode, BaseRecordConverter> deduplicatedEvents = new ConcurrentHashMap<>();
+    ConcurrentHashMap<JsonNode, RecordConverter> deduplicatedEvents = new ConcurrentHashMap<>();
 
     events.forEach(e ->
         // deduplicate using key(PK)
@@ -235,7 +250,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     return table;
   }
 
-  private Table getTable(String destination, BaseRecordConverter sampleBqEvent) {
+  private Table getTable(String destination, RecordConverter sampleBqEvent) {
     TableId tableId = getTableId(destination);
     Table table = bqClient.getTable(tableId);
     // create table if missing
@@ -297,7 +312,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
 
-  public BaseRecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
+  public RecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
     return new StreamRecordConverter(e.destination(),
         valDeserializer.deserialize(e.destination(), getBytes(e.value())),
         e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
