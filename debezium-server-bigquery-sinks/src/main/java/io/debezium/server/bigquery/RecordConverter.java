@@ -6,7 +6,7 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableConstraints;
 import io.debezium.DebeziumException;
 
-public interface RecordConverter<T> {
+public interface RecordConverter {
   String destination();
 
   JsonNode value();

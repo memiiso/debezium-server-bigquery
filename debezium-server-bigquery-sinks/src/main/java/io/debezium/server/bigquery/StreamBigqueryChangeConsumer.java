@@ -145,7 +145,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
   @Override
-  public long uploadDestination(String destination, List<RecordConverter<?>> data) {
+  public long uploadDestination(String destination, List<RecordConverter> data) {
     long numRecords = data.size();
     Table table = getTable(destination, data.get(0));
     // get stream writer create if not yet exists!
@@ -176,9 +176,9 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
 
-  protected List<RecordConverter<?>> deduplicateBatch(List<RecordConverter<?>> events) {
+  protected List<RecordConverter> deduplicateBatch(List<RecordConverter> events) {
 
-    ConcurrentHashMap<JsonNode, RecordConverter<?>> deduplicatedEvents = new ConcurrentHashMap<>();
+    ConcurrentHashMap<JsonNode, RecordConverter> deduplicatedEvents = new ConcurrentHashMap<>();
 
     events.forEach(e ->
         // deduplicate using key(PK)
@@ -250,7 +250,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     return table;
   }
 
-  private Table getTable(String destination, RecordConverter<?> sampleBqEvent) {
+  private Table getTable(String destination, RecordConverter sampleBqEvent) {
     TableId tableId = getTableId(destination);
     Table table = bqClient.getTable(tableId);
     // create table if missing
@@ -312,7 +312,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
 
-  public RecordConverter<JSONObject> eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
+  public RecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
     return new StreamRecordConverter(e.destination(),
         valDeserializer.deserialize(e.destination(), getBytes(e.value())),
         e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),

@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 /**
  * @author Ismail Simsek
  */
-public abstract class BaseRecordConverter<T> implements RecordConverter<T> {
+public abstract class BaseRecordConverter<T> implements RecordConverter {
   protected static final Logger LOGGER = LoggerFactory.getLogger(BaseRecordConverter.class);
   protected static final List<String> TS_MS_FIELDS = List.of("__ts_ms", "__source_ts_ms");
   protected static final List<String> BOOLEAN_FIELDS = List.of("__deleted");
