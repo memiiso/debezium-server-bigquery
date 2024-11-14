@@ -9,7 +9,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
-
+/**
+ * Abstract base class for BigQuery storage configuration.
+ * <p>
+ * Provides common methods for accessing Debezium configuration properties
+ */
 public abstract class BaseBigqueryStorageConfig {
   protected static final Logger LOG = LoggerFactory.getLogger(BaseBigqueryStorageConfig.class);
   protected Properties configCombined = new Properties();

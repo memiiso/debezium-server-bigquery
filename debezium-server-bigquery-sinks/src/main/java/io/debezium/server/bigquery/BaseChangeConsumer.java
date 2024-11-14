@@ -38,7 +38,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of the consumer that delivers the messages into Amazon S3 destination.
+ * Abstract base class for Debezium change consumers that deliver messages to a BigQuery destination.
+ * <p>This class provides a foundation for building Debezium change consumers that handle
+ * incoming change events and deliver them to a BigQuery destination. It implements the
+ * `DebeziumEngine.ChangeConsumer` interface, defining the `handleBatch` method for processing
+ * batches of change events. Concrete implementations of this class need to provide specific logic
+ * for uploading or persisting the converted data to the BigQuery destination.
  *
  * @author Ismail Simsek
  */

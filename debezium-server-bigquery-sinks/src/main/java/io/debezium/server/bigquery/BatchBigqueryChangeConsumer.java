@@ -29,10 +29,14 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Implementation of the consumer that delivers the messages into Amazon S3 destination.
+ * Implementation of a Debezium change consumer that delivers batches of events to BigQuery tables.
+ * <p>This class extends the `BaseChangeConsumer` and provides functionality for uploading batches of
+ * Debezium change events to BigQuery tables. It leverages the BigQuery Java client library
+ * to perform data loading and table management tasks.
  *
  * @author Ismail Simsek
  */
+
 @Named("bigquerybatch")
 @Dependent
 public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
