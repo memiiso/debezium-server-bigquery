@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * suitable for writing to BigQuery tables. It handles common tasks like schema conversion,
  * table constraint generation, and clustering configuration. Concrete implementations of this
  * class can extend this functionality for specific use cases.
-
+ *
  * @author Ismail Simsek
  */
 public abstract class BaseRecordConverter implements RecordConverter {

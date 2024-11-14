@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
  * <p>This class extends the `BaseChangeConsumer` and provides functionality for streaming batches of
  * Debezium change events to BigQuery tables using the BigQuery Write API. It offers features like
  * upsert, deduplication, and table schema management.
-
+ *
  * @author Ismail Simsek
  */
 

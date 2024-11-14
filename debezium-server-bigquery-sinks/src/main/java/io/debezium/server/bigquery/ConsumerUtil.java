@@ -39,6 +39,7 @@ import java.util.Optional;
 
 /**
  * Utility class for common BigQuery operations in Debezium Server.
+ *
  * @author Ismail Simsek
  */
 public class ConsumerUtil {

@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
  * `DebeziumEngine.ChangeConsumer` interface, defining the `handleBatch` method for processing
  * batches of change events. Concrete implementations of this class need to provide specific logic
  * for uploading or persisting the converted data to the BigQuery destination.
-
+ *
  * @author Ismail Simsek
  */
 public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeConsumer implements DebeziumEngine.ChangeConsumer<ChangeEvent<Object, Object>> {

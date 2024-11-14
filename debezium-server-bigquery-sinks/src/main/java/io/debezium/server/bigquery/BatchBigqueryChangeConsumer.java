@@ -33,7 +33,7 @@ import java.util.Optional;
  * <p>This class extends the `BaseChangeConsumer` and provides functionality for uploading batches of
  * Debezium change events to BigQuery tables. It leverages the BigQuery Java client library
  * to perform data loading and table management tasks.
-
+ *
  * @author Ismail Simsek
  */
 
