@@ -68,6 +68,10 @@ the [Storage Write API](https://cloud.google.com/bigquery/docs/write-api-streami
 | `debezium.sink.bigquerystream.upsert-dedup-column`   | `__source_ts_ms`  | With upsert mode used to deduplicate data. row with highest `__source_ts_ms` is kept.                                                  |
 | `debezium.sink.bigquerystream.upsert-op-column`      | `__op`            | Used with upsert mode to deduplicate data when `__source_ts_ms` of rows are same.                                                      |
 
+## Data type mapping
+
+For detailed information on data type mapping between Debezium and BigQuery, refer to the [documentation](docs/DOCS.md)
+
 ### Upsert
 
 By default, Bigquery Streaming consumer is running with append mode `debezium.sink.iceberg.upsert=false`.

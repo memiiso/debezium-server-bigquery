@@ -23,10 +23,6 @@ Data type mapping listed below.
 |                                 | array               | ARRAY          | ARRAY           |       |
 |                                 | map                 | STRUCT         | STRUCT          |       |
 |                                 | struct              | STRUCT         | STRUCT          |       |
-|                                 |                     |                |                 |       |
-|                                 |                     |                |                 |       |
-|                                 |                     |                |                 |       |
-|                                 |                     |                |                 |       |
 
 Handling of special fields:
 
