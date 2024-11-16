@@ -78,9 +78,7 @@ public interface RecordConverter {
    * compatible BigQuery schema. It considers factors like field types and
    * the `binaryAsString` flag to accurately map the schema.
    *
-   * @param binaryAsString Indicates whether binary fields should be represented as strings
-   *                       or binary types in the resulting BigQuery schema.
    * @return The generated BigQuery {@link Schema}.
    */
-  Schema tableSchema(Boolean binaryAsString);
+  Schema tableSchema();
 }
