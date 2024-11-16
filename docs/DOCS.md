@@ -28,5 +28,9 @@ Data type mapping listed below.
 |                                 |                     |                |                 |       |
 |                                 |                     |                |                 |       |
 
+Handling of special fields:
 
-
+| Field Name                  | Debezium Semantic Type | Debezium Field Type | Bigquery Batch | Bigquery Stream | Notes |
+|-----------------------------|------------------------|---------------------|----------------|-----------------|-------|
+| `__ts_ms`, `__source_ts_ms` |                        | int64               | TIMESTAMP      | TIMESTAMP       |       |
+| `__deleted`                 |                        | string              | BOOL           | BOOL            |       |
