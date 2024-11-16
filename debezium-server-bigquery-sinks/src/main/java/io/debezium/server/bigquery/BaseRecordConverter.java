@@ -50,7 +50,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
     this.keySchema = keySchema;
   }
 
-  private static ArrayList<Field> schemaFields(JsonNode schemaNode, Boolean binaryAsString) {
+  protected ArrayList<Field> schemaFields(JsonNode schemaNode) {
 
     ArrayList<Field> fields = new ArrayList<>();
 
@@ -77,12 +77,12 @@ public abstract class BaseRecordConverter implements RecordConverter {
       switch (fieldType) {
         case "struct":
           // recursive call for nested fields
-          ArrayList<Field> subFields = schemaFields(jsonSchemaFieldNode, binaryAsString);
+          ArrayList<Field> subFields = schemaFields(jsonSchemaFieldNode);
           fields.add(Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(subFields)).build());
           break;
         default:
           // default to String type
-          fields.add(schemaPrimitiveField(fieldType, fieldName, fieldSemanticType, binaryAsString));
+          fields.add(schemaPrimitiveField(fieldType, fieldName, fieldSemanticType));
           break;
       }
     }
@@ -90,7 +90,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
     return fields;
   }
 
-  private static Field schemaPrimitiveField(String fieldType, String fieldName, String fieldSemanticType, boolean binaryAsString) {
+  protected Field schemaPrimitiveField(String fieldType, String fieldName, String fieldSemanticType) {
     switch (fieldType) {
       case "int8":
       case "int16":
@@ -148,11 +148,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
             return Field.of(fieldName, StandardSQLTypeName.STRING);
         }
       case "bytes":
-        if (binaryAsString) {
-          return Field.of(fieldName, StandardSQLTypeName.STRING);
-        } else {
-          return Field.of(fieldName, StandardSQLTypeName.BYTES);
-        }
+        return Field.of(fieldName, StandardSQLTypeName.BYTES);
       case "array":
         return Field.of(fieldName, StandardSQLTypeName.ARRAY);
       case "map":
@@ -164,7 +160,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
 
   }
 
-  private ArrayList<String> keyFields() {
+  protected ArrayList<String> keyFields() {
 
     ArrayList<String> keyFields = new ArrayList<>();
     for (JsonNode jsonSchemaFieldNode : this.keySchema().get("fields")) {
@@ -227,8 +223,8 @@ public abstract class BaseRecordConverter implements RecordConverter {
   }
 
   @Override
-  public Schema tableSchema(Boolean binaryAsString) {
-    ArrayList<Field> fields = schemaFields(this.valueSchema(), binaryAsString);
+  public Schema tableSchema() {
+    ArrayList<Field> fields = schemaFields(this.valueSchema());
 
     if (fields.isEmpty()) {
       return null;

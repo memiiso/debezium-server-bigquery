@@ -10,7 +10,9 @@ package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardSQLTypeName;
 import io.debezium.DebeziumException;
 import org.json.JSONObject;
 
@@ -64,5 +66,15 @@ public class StreamRecordConverter extends BaseRecordConverter {
     });
 
     return new JSONObject(jsonMap);
+  }
+
+  @Override
+  protected Field schemaPrimitiveField(String fieldType, String fieldName, String fieldSemanticType) {
+    switch (fieldType) {
+      case "bytes":
+        return Field.of(fieldName, StandardSQLTypeName.STRING);
+      default:
+        return super.schemaPrimitiveField(fieldType, fieldName, fieldSemanticType);
+    }
   }
 }
