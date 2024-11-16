@@ -75,8 +75,7 @@ public interface RecordConverter {
    * Transforms a Debezium event's value schema into a corresponding BigQuery schema.
    *
    * <p>This method analyzes the provided Debezium event's value schema and generates a
-   * compatible BigQuery schema. It considers factors like field types and
-   * the `binaryAsString` flag to accurately map the schema.
+   * compatible BigQuery schema.
    *
    * @return The generated BigQuery {@link Schema}.
    */

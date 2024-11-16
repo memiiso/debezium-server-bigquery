@@ -223,7 +223,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
   }
 
   @Override
-  public Schema tableSchema(Boolean binaryAsString) {
+  public Schema tableSchema() {
     ArrayList<Field> fields = schemaFields(this.valueSchema());
 
     if (fields.isEmpty()) {
