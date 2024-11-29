@@ -133,6 +133,7 @@ public class BigqueryOffsetBackingStoreTest {
       config.put("debezium.source.offset.storage", "io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore");
       config.put("debezium.source.offset.storage.bigquery.table-name", "__debezium_offset_storage_test_table");
       config.put("debezium.source.offset.storage.bigquery.migrate-offset-file", "src/test/resources/offsets.dat");
+      config.put("debezium.source.connector.class", "io.debezium.connector.postgresql.PostgresConnector");
       return config;
     }
   }
