@@ -19,6 +19,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+          cache: 'maven'
 
       - name: Set env for master(latest) release
         if: github.ref_name == 'master'
