@@ -1,11 +1,11 @@
-FROM eclipse-temurin:17-jdk as builder
+FROM eclipse-temurin:21-jdk as builder
 RUN apt-get -qq update && apt-get -qq install maven unzip
 COPY . /app
 WORKDIR /app
 RUN mvn clean package -Passembly -Dmaven.test.skip --quiet
 RUN unzip /app/debezium-server-bigquery-dist/target/debezium-server-bigquery-dist*.zip -d appdist
 
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:21-jre
 COPY --from=builder /app/appdist/debezium-server-bigquery/ /app/
 
 WORKDIR /app
