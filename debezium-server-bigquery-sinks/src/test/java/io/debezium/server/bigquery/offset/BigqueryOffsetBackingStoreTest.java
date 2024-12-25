@@ -9,7 +9,7 @@
 package io.debezium.server.bigquery.offset;
 
 import io.debezium.server.bigquery.shared.BigQueryDB;
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 @TestProfile(BigqueryOffsetBackingStoreTest.TestProfile.class)
-@WithTestResource(value = BigQueryDB.class)
+@QuarkusTestResource(value = BigQueryDB.class, restrictToAnnotatedClass = true)
 public class BigqueryOffsetBackingStoreTest {
 
   private static final Map<ByteBuffer, ByteBuffer> firstSet = new HashMap<>();

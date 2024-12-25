@@ -9,35 +9,34 @@
 
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>io.debezium</groupId>
+        <artifactId>debezium-build-parent</artifactId>
+        <version>3.0.5.Final</version>
+    </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>io.debezium</groupId>
     <artifactId>debezium-server-bigquery</artifactId>
-    <name>Debezium Server Parent</name>
+    <name>Debezium Server Bigquery</name>
     <version>${revision}</version>
     <packaging>pom</packaging>
 
     <properties>
-        <revision>0.3.0-SNAPSHOT</revision>
+        <!-- NOTE: this is override by release process using CLI argument -->
+        <revision>0.0.1-SNAPSHOT</revision>
+        <!-- Debezium Version! NOTE: keep same as parent.version above! -->
+        <version.debezium>3.0.5.Final</version.debezium>
 
         <!-- Instruct the build to use only UTF-8 encoding for source code -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <maven.compiler.release>17</maven.compiler.release>
+
         <skipITs>true</skipITs>
-
-        <version.groovy>3.0.22</version.groovy>
-        <version.assembly.plugin>3.7.1</version.assembly.plugin>
-        <version.jackson>2.13.3</version.jackson>
         <version.gcp.librariesbom>26.49.0</version.gcp.librariesbom>
-        <version.log4j>2.23.1</version.log4j>
-        <!-- Debezium -->
-        <version.debezium>2.7.3.Final</version.debezium>
-        <version.mysql.driver>8.0.32</version.mysql.driver>
-        <!-- Quarkus -->
-        <version.quarkus>3.15.2</version.quarkus>
-
+        <version.gcp.bigquerybom>2.45.0</version.gcp.bigquerybom>
         <!-- Plugin versions -->
+        <version.assembly.plugin>3.7.1</version.assembly.plugin>
         <version.maven-enforcer-plugin>3.5.0</version.maven-enforcer-plugin>
         <version.maven-failsafe-plugin>3.5.0</version.maven-failsafe-plugin>
         <version.maven-surefire-plugin>3.5.0</version.maven-surefire-plugin>
@@ -47,57 +46,32 @@
             <!-- Google -->
             <dependency>
                 <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud-bigquery-bom</artifactId>
+                <version>${version.gcp.bigquerybom}</version>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
                 <artifactId>libraries-bom</artifactId>
                 <version>${version.gcp.librariesbom}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <!-- END Google -->
-            <!-- quarkus -->
+            <!-- debezium server -->
             <dependency>
-                <groupId>io.quarkus</groupId>
-                <artifactId>quarkus-bom</artifactId>
-                <version>${version.quarkus}</version>
+                <groupId>io.debezium</groupId>
+                <artifactId>debezium-server-bom</artifactId>
+                <version>${version.debezium}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- debezium server -->
             <dependency>
                 <groupId>io.debezium</groupId>
                 <artifactId>debezium-bom</artifactId>
                 <version>${version.debezium}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.debezium</groupId>
-                <artifactId>debezium-server</artifactId>
-                <version>${version.debezium}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <!-- Debezium Scripting -->
-            <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy-bom</artifactId>
-                <version>${version.groovy}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpcore</artifactId>
-                <version>4.4.16</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-core</artifactId>
-                <version>${version.log4j}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.postgresql</groupId>
-                <artifactId>postgresql</artifactId>
-                <version>[42.4.2,)</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -121,6 +95,13 @@
                         <goals>
                             <goal>enforce</goal>
                         </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>[3.6.3,)</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>enforce-dependencyConvergence</id>

@@ -13,7 +13,7 @@ import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.BaseBigqueryTest;
 import io.debezium.server.bigquery.shared.BigQueryGCP;
 import io.debezium.server.bigquery.shared.SourcePostgresqlDB;
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
@@ -32,9 +32,9 @@ import java.util.Map;
  * @author Ismail Simsek
  */
 @QuarkusTest
-@WithTestResource(value = SourcePostgresqlDB.class)
+@QuarkusTestResource(value = SourcePostgresqlDB.class, restrictToAnnotatedClass = true)
 @TestProfile(ChangeConsumerConverterTest.ChangeConsumerConverterProfile.class)
-@WithTestResource(value = BigQueryGCP.class)
+@QuarkusTestResource(value = BigQueryGCP.class, restrictToAnnotatedClass = true)
 @DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
 @Disabled // enable and fix
 public class ChangeConsumerConverterTest extends BaseBigqueryTest {

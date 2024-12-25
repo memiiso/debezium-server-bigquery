@@ -14,7 +14,7 @@ import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.shared.BigQueryGCP;
 import io.debezium.server.bigquery.shared.RecordConverterBuilder;
 import io.debezium.server.bigquery.shared.SourceMysqlDB;
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
@@ -34,7 +34,7 @@ import java.util.Map;
  * @author Ismail Simsek
  */
 @QuarkusTest
-@WithTestResource(value = SourceMysqlDB.class)
+@QuarkusTestResource(value = SourceMysqlDB.class, restrictToAnnotatedClass = true)
 @TestProfile(StreamBigqueryChangeConsumerMysqlUpsertTest.TestProfile.class)
 @DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
 public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTest {

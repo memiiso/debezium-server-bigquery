@@ -12,7 +12,7 @@ import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.shared.BigQueryGCP;
 import io.debezium.server.bigquery.shared.SourcePostgresqlDB;
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
@@ -31,8 +31,8 @@ import java.util.Map;
  * @author Ismail Simsek
  */
 @QuarkusTest
-@WithTestResource(value = SourcePostgresqlDB.class)
-@WithTestResource(value = BigQueryGCP.class)
+@QuarkusTestResource(value = SourcePostgresqlDB.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = BigQueryGCP.class, restrictToAnnotatedClass = true)
 @TestProfile(BatchBigqueryChangeConsumerTest.TestProfile.class)
 @DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
 public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
