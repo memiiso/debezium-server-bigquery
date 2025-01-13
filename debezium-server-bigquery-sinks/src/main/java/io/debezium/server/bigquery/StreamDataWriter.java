@@ -59,11 +59,24 @@ public class StreamDataWriter {
             .setMaxAttempts(5)
             .setMaxRetryDelay(Duration.ofMinutes(1))
             .build();
+
+    // Initialize a write stream for the specified table.
+    // For more information on WriteStream.Type, see:
+    // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/WriteStream.Type.html
+    WriteStream stream = WriteStream.newBuilder().setType(WriteStream.Type.COMMITTED).build();
+
+    CreateWriteStreamRequest createWriteStreamRequest =
+        CreateWriteStreamRequest.newBuilder()
+            .setParent(parentTable.toString())
+            .setWriteStream(stream)
+            .build();
+
+    WriteStream writeStream = client.createWriteStream(createWriteStreamRequest);
     // Use the JSON stream writer to send records in JSON format. Specify the table name to write
     // to the default stream.
     // For more information about JsonStreamWriter, see:
     // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/JsonStreamWriter.html
-    return JsonStreamWriter.newBuilder(parentTable.toString(), client)
+    return JsonStreamWriter.newBuilder(writeStream.getName(), writeStream.getTableSchema())
         .setIgnoreUnknownFields(ignoreUnknownFields)
         .setExecutorProvider(FixedExecutorProvider.create(Executors.newScheduledThreadPool(100)))
         .setChannelProvider(instantiatingGrpcChannelProvider)
