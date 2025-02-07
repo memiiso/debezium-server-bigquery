@@ -62,12 +62,6 @@
         <!-- END Google dependencies-->
         <!-- Testing -->
         <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-server-converters</artifactId>
-            <version>${revision}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5</artifactId>
             <scope>test</scope>

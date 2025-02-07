@@ -10,7 +10,13 @@ package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.Clustering;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.PrimaryKey;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardSQLTypeName;
+import com.google.cloud.bigquery.TableConstraints;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,11 +137,11 @@ public abstract class BaseRecordConverter implements RecordConverter {
           return Field.of(fieldName, StandardSQLTypeName.BOOL);
         }
         switch (fieldSemanticType) {
-          case "io.debezium.time.ISODate":
+          case "io.debezium.time.IsoDate":
             return Field.of(fieldName, StandardSQLTypeName.DATE);
-          case "io.debezium.time.ISODateTime":
-            return Field.of(fieldName, StandardSQLTypeName.DATETIME);
-          case "io.debezium.time.ISOTime":
+          case "io.debezium.time.IsoTimestamp":
+            return Field.of(fieldName, StandardSQLTypeName.TIMESTAMP);
+          case "io.debezium.time.IsoTime":
             return Field.of(fieldName, StandardSQLTypeName.TIME);
           case "io.debezium.data.Json":
             return Field.of(fieldName, StandardSQLTypeName.JSON);

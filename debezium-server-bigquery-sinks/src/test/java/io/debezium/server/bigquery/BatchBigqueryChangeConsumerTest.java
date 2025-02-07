@@ -102,6 +102,7 @@ public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
     public Map<String, String> getConfigOverrides() {
       Map<String, String> config = new HashMap<>();
       config.put("debezium.sink.type", "bigquerybatch");
+      config.put("debezium.source.time.precision.mode", "isostring");
       return config;
     }
   }
