@@ -4,13 +4,18 @@ import com.google.api.core.ApiFuture;
 import com.google.api.gax.core.FixedExecutorProvider;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.api.gax.retrying.RetrySettings;
-import com.google.cloud.bigquery.storage.v1.*;
+import com.google.cloud.bigquery.storage.v1.AppendRowsRequest;
+import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
+import com.google.cloud.bigquery.storage.v1.JsonStreamWriter;
+import com.google.cloud.bigquery.storage.v1.TableName;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import io.debezium.DebeziumException;
 import org.json.JSONArray;
 import org.threeten.bp.Duration;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -87,9 +92,11 @@ public class StreamDataWriter {
       ApiFuture<AppendRowsResponse> future = streamWriter.append(data);
       AppendRowsResponse response = future.get();
       if (response.hasError()) {
-        throw new DebeziumException("Failed to append data to stream. Error Code:" + response.getError().getCode() + " Error Message:" + response.getError().getMessage());
+        throw new DebeziumException("Failed to append data to stream. \n" +
+            "Error Code:" + response.getError().getCode() + " \n" +
+            "Error Message:" + response.getError().getMessage());
       }
-    } catch (Exception throwable) {
+    } catch (ExecutionException | InterruptedException throwable) {
       throw new DebeziumException("Failed to append data to stream " + streamWriter.getStreamName() + "\n" + throwable.getMessage(),
           throwable);
     }

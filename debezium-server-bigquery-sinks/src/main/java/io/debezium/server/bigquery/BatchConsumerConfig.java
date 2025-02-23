@@ -18,7 +18,6 @@ public interface BatchConsumerConfig {
   DebeziumConfig debezium();
 
   @WithName("debezium.sink.bigquerybatch.dataset")
-//  @WithDefault("")
   Optional<String> bqDataset();
 
   @WithName("debezium.sink.bigquerybatch.location")
@@ -26,7 +25,6 @@ public interface BatchConsumerConfig {
   String bqLocation();
 
   @WithName("debezium.sink.bigquerybatch.project")
-//  @WithDefault("")
   Optional<String> gcpProject();
 
   @WithName("debezium.sink.bigquerybatch.create-disposition")
@@ -58,11 +56,9 @@ public interface BatchConsumerConfig {
   Boolean allowFieldRelaxation();
 
   @WithName("debezium.sink.bigquerybatch.credentials-file")
-  @WithDefault("")
   Optional<String> credentialsFile();
 
   @WithName("debezium.sink.bigquerybatch.bigquery-custom-host")
-  @WithDefault("")
   Optional<String> bigQueryCustomHost();
 
   @WithName("debezium.sink.bigquerybatch.bigquery-dev-emulator")

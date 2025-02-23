@@ -11,13 +11,13 @@ package io.debezium.server.bigquery;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardSQLTypeName;
 import io.debezium.DebeziumException;
 
 import java.time.Instant;
-import java.time.LocalDate;
 
 /**
  * @author Ismail Simsek
@@ -26,6 +26,43 @@ public class BatchRecordConverter extends BaseRecordConverter {
 
   public BatchRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema, DebeziumConfig debeziumConfig) {
     super(destination, value, key, valueSchema, keySchema, debeziumConfig);
+  }
+
+  public static String removeTrailingZ(String input) {
+    if (input != null && input.endsWith("Z")) {
+      return input.substring(0, input.length() - 1);
+    }
+    return input;
+  }
+
+  public static void convertFieldValue(ObjectNode parentNode, String fieldName, StandardSQLTypeName fieldType, JsonNode value) throws JsonProcessingException {
+
+    if (value.isNull()) {
+      return;
+    }
+
+    // Process DEBEZIUM TS_MS values
+    if (TS_MS_FIELDS.contains(fieldName)) {
+      parentNode.replace(fieldName, TextNode.valueOf(Instant.ofEpochMilli(value.longValue()).toString()));
+      return;
+    }
+
+    switch (fieldType) {
+      case JSON:
+        parentNode.replace(fieldName, mapper.readTree(value.textValue()));
+        break;
+      case DATE:
+      case DATETIME:
+      case TIME:
+        if (value.isTextual()) {
+          parentNode.replace(fieldName, TextNode.valueOf(removeTrailingZ(value.textValue())));
+        }
+        break;
+      default:
+        // Handle other cases or do nothing
+        break;
+    }
+
   }
 
   /**
@@ -46,29 +83,12 @@ public class BatchRecordConverter extends BaseRecordConverter {
       // process JSON fields
       if (schema != null) {
         for (Field f : schema.getFields()) {
-          if (f.getType() == LegacySQLTypeName.JSON && value.has(f.getName())) {
-            ((ObjectNode) value).replace(f.getName(), mapper.readTree(value.get(f.getName()).asText("{}")));
+          if (!value.has(f.getName())) {
+            continue;
           }
-          // process DATE values
-          if (f.getType() == LegacySQLTypeName.DATE && value.has(f.getName()) && !value.get(f.getName()).isNull()) {
-            ((ObjectNode) value).put(f.getName(), LocalDate.ofEpochDay(value.get(f.getName()).longValue()).toString());
-          }
+          convertFieldValue((ObjectNode) value, f.getName(), f.getType().getStandardType(), value.get(f.getName()));
         }
       }
-
-      // Process DEBEZIUM TS_MS values
-      TS_MS_FIELDS.forEach(tsf -> {
-        if (value.has(tsf)) {
-          ((ObjectNode) value).put(tsf, Instant.ofEpochMilli(value.get(tsf).longValue()).toString());
-        }
-      });
-
-      // Process DEBEZIUM BOOLEAN values
-      BOOLEAN_FIELDS.forEach(bf -> {
-        if (value.has(bf)) {
-          ((ObjectNode) value).put(bf, Boolean.valueOf(value.get(bf).asText()));
-        }
-      });
 
       return mapper.writeValueAsString(value);
     } catch (JsonProcessingException e) {
