@@ -8,7 +8,11 @@
 
 package io.debezium.server.bigquery.shared;
 
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.TableResult;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,8 +81,8 @@ public class BigQueryGCP implements QuarkusTestResourceLifecycleManager {
   @Override
   public Map<String, String> start() {
     bqClient = bigQueryClient();
-    truncateTables();
-//    dropTables();
+//    truncateTables();
+    dropTables();
     Map<String, String> config = new ConcurrentHashMap<>();
     // batch
     // src/test/resources/application.properties

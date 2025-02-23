@@ -23,8 +23,8 @@ import java.util.Map;
  */
 public class StreamRecordConverter extends BaseRecordConverter {
 
-  public StreamRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema) {
-    super(destination, value, key, valueSchema, keySchema);
+  public StreamRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema, DebeziumConfig debeziumConfig) {
+    super(destination, value, key, valueSchema, keySchema, debeziumConfig);
   }
 
   /**
