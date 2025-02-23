@@ -7,14 +7,17 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.storage.v1.AppendRowsRequest;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
+import com.google.cloud.bigquery.storage.v1.Exceptions;
 import com.google.cloud.bigquery.storage.v1.JsonStreamWriter;
-import com.google.cloud.bigquery.storage.v1.TableName;
+import com.google.cloud.bigquery.storage.v1.RowError;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
+import com.google.rpc.Status;
 import io.debezium.DebeziumException;
 import org.json.JSONArray;
 import org.threeten.bp.Duration;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,19 +32,19 @@ public class StreamDataWriter {
   private final BigQueryWriteClient client;
   private final Boolean ignoreUnknownFields;
   private final InstantiatingGrpcChannelProvider instantiatingGrpcChannelProvider;
-  private final TableName parentTable;
+  private final String streamOrTableName;
   private final Object lock = new Object();
   JsonStreamWriter streamWriter;
   private AtomicInteger recreateCount = new AtomicInteger(0);
 
 
-  public StreamDataWriter(TableName parentTable, BigQueryWriteClient client,
+  public StreamDataWriter(String streamOrTableName, BigQueryWriteClient client,
                           Boolean ignoreUnknownFields, InstantiatingGrpcChannelProvider instantiatingGrpcChannelProvider)
       throws DescriptorValidationException, IOException, InterruptedException {
     this.client = client;
     this.ignoreUnknownFields = ignoreUnknownFields;
     this.instantiatingGrpcChannelProvider = instantiatingGrpcChannelProvider;
-    this.parentTable = parentTable;
+    this.streamOrTableName = streamOrTableName;
   }
 
   public void initialize()
@@ -68,7 +71,8 @@ public class StreamDataWriter {
     // to the default stream.
     // For more information about JsonStreamWriter, see:
     // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/JsonStreamWriter.html
-    return JsonStreamWriter.newBuilder(parentTable.toString(), client)
+
+    return JsonStreamWriter.newBuilder(this.streamOrTableName, client)
         .setIgnoreUnknownFields(ignoreUnknownFields)
         .setExecutorProvider(FixedExecutorProvider.create(Executors.newScheduledThreadPool(100)))
         .setChannelProvider(instantiatingGrpcChannelProvider)
@@ -92,14 +96,49 @@ public class StreamDataWriter {
       ApiFuture<AppendRowsResponse> future = streamWriter.append(data);
       AppendRowsResponse response = future.get();
       if (response.hasError()) {
-        throw new DebeziumException("Failed to append data to stream. \n" +
-            "Error Code:" + response.getError().getCode() + " \n" +
-            "Error Message:" + response.getError().getMessage());
+        throw createDebeziumExceptionFromResponseError(response);
       }
-    } catch (ExecutionException | InterruptedException throwable) {
-      throw new DebeziumException("Failed to append data to stream " + streamWriter.getStreamName() + "\n" + throwable.getMessage(),
-          throwable);
+    } catch (InterruptedException | ExecutionException | Exceptions.AppendSerializationError e) {
+      throw createDebeziumExceptionFromException(e);
     }
+  }
+
+  private DebeziumException createDebeziumExceptionFromResponseError(AppendRowsResponse response) {
+    StringBuilder errorMessageBuilder = new StringBuilder("Failed to append data to stream.\n");
+
+    Status error = response.getError();
+    errorMessageBuilder.append("Error Code: ").append(error.getCode()).append("\n");
+    errorMessageBuilder.append("Error Message: ").append(error.getMessage()).append("\n");
+
+    List<RowError> rowErrors = response.getRowErrorsList();
+    errorMessageBuilder.append("Row Errors:\n");
+    for (RowError rowError : rowErrors) {
+      errorMessageBuilder
+          .append("  Row: " + rowError.getIndex())
+          .append(", Code: " + rowError.getCode())
+          .append(", Message: " + rowError.getMessage())
+          .append("\n");
+    }
+    return new DebeziumException(errorMessageBuilder.toString());
+  }
+
+  private DebeziumException createDebeziumExceptionFromException(Exception e) {
+    StringBuilder exceptionMessage = new StringBuilder("Failed to append data to stream due to an exception.\n");
+    exceptionMessage.append("Exception: ").append(e.getClass().getName()).append("\n");
+    exceptionMessage.append("Message: ").append(e.getMessage()).append("\n");
+
+    if (e instanceof ExecutionException && e.getCause() instanceof Exceptions.AppendSerializationError) {
+      Exceptions.AppendSerializationError cause = (Exceptions.AppendSerializationError) ((ExecutionException) e).getCause();
+      cause.getRowIndexToErrorMessage().entrySet().forEach(se -> {
+        exceptionMessage.append("Row:" + se.getKey() + ": " + se.getValue() + "\n");
+      });
+    } else if (e instanceof Exceptions.AppendSerializationError) {
+      ((Exceptions.AppendSerializationError) e).getRowIndexToErrorMessage().entrySet().forEach(se -> {
+        exceptionMessage.append("Row:" + se.getKey() + ": " + se.getValue() + "\n");
+      });
+    }
+
+    return new DebeziumException(exceptionMessage.toString(), e);
   }
 
   public void close(BigQueryWriteClient client) {
