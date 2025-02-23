@@ -9,7 +9,16 @@
 package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.Clustering;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableConstraints;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.TableName;
@@ -23,7 +32,6 @@ import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -31,7 +39,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -51,47 +58,11 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   protected static final ConcurrentHashMap<String, StreamDataWriter> jsonStreamWriters = new ConcurrentHashMap<>();
   static final ImmutableMap<String, Integer> cdcOperations = ImmutableMap.of("c", 1, "r", 2, "u", 3, "d", 4);
   public static BigQueryWriteClient bigQueryWriteClient;
-  @ConfigProperty(name = "debezium.sink.batch.destination-regexp", defaultValue = "")
-  protected Optional<String> destinationRegexp;
-  @ConfigProperty(name = "debezium.sink.batch.destination-regexp-replace", defaultValue = "")
-  protected Optional<String> destinationRegexpReplace;
-  @Inject
-  @ConfigProperty(name = "debezium.sink.bigquerystream.dataset", defaultValue = "")
-  Optional<String> bqDataset;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.project", defaultValue = "")
-  Optional<String> gcpProject;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.location", defaultValue = "US")
-  String bqLocation;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.ignore-unknown-fields", defaultValue = "true")
-  Boolean ignoreUnknownFields;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.create-if-needed", defaultValue = "true")
-  Boolean createIfNeeded;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.partition-field", defaultValue = "__ts_ms")
-  String partitionField;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.clustering-field", defaultValue = "__source_ts_ms")
-  String clusteringField;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.upsert-dedup-column", defaultValue = "__source_ts_ms")
-  String sourceTsMsColumn;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.upsert-op-column", defaultValue = "__op")
-  String opColumn;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.partition-type", defaultValue = "MONTH")
-  String partitionType;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.allow-field-addition", defaultValue = "false")
-  Boolean allowFieldAddition;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.credentials-file", defaultValue = "")
-  Optional<String> credentialsFile;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.bigquery-custom-host", defaultValue = "")
-  Optional<String> bigQueryCustomHost;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.bigquery-custom-grpc-host", defaultValue = "")
-  Optional<String> bigQueryCustomGRPCHost;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.bigquery-dev-emulator", defaultValue = "false")
-  Boolean isBigqueryDevEmulator;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.upsert", defaultValue = "false")
-  boolean upsert;
-  @ConfigProperty(name = "debezium.sink.bigquerystream.upsert-keep-deletes", defaultValue = "true")
-  boolean upsertKeepDeletes;
   TimePartitioning timePartitioning;
   BigQuery bqClient;
+
+  @Inject
+  StreamConsumerConfig config;
 
   @PostConstruct
   void connect() throws InterruptedException {
@@ -113,11 +84,11 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   public void initialize() throws InterruptedException {
     super.initialize();
 
-    bqClient = ConsumerUtil.bigqueryClient(isBigqueryDevEmulator, gcpProject, bqDataset, credentialsFile, bqLocation, bigQueryCustomHost);
+    bqClient = ConsumerUtil.bigqueryClient(config.isBigqueryDevEmulator(), config.gcpProject(), config.bqDataset(), config.credentialsFile(), config.bqLocation(), config.bigQueryCustomHost());
     timePartitioning =
-        TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(partitionType)).setField(partitionField).build();
+        TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(config.partitionType())).setField(config.partitionField()).build();
     try {
-      BigQueryWriteSettings bigQueryWriteSettings = ConsumerUtil.bigQueryWriteSettings(isBigqueryDevEmulator, bqClient, bigQueryCustomGRPCHost);
+      BigQueryWriteSettings bigQueryWriteSettings = ConsumerUtil.bigQueryWriteSettings(config.isBigqueryDevEmulator(), bqClient, config.bigQueryCustomGRPCHost());
       bigQueryWriteClient = BigQueryWriteClient.create(bigQueryWriteSettings);
     } catch (IOException e) {
       throw new DebeziumException("Failed to create BigQuery Write Client", e);
@@ -129,8 +100,8 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       StreamDataWriter writer = new StreamDataWriter(
           TableName.of(table.getTableId().getProject(), table.getTableId().getDataset(), table.getTableId().getTable()),
           bigQueryWriteClient,
-          ignoreUnknownFields,
-          ConsumerUtil.bigQueryTransportChannelProvider(isBigqueryDevEmulator, bigQueryCustomGRPCHost)
+          config.ignoreUnknownFields(),
+          ConsumerUtil.bigQueryTransportChannelProvider(config.isBigqueryDevEmulator(), config.bigQueryCustomGRPCHost())
       );
       writer.initialize();
       return writer;
@@ -160,7 +131,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       // Otherwise it throws Exception
       // INVALID_ARGUMENT:Create UPSERT stream is not supported for primary key disabled table: xyz
       final boolean tableHasPrimaryKey = doTableHasPrimaryKey(table);
-      final boolean doUpsert = upsert && tableHasPrimaryKey;
+      final boolean doUpsert = config.upsert() && tableHasPrimaryKey;
 
       if (doUpsert) {
         data = deduplicateBatch(data);
@@ -168,7 +139,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       // add data to JSONArray
       JSONArray jsonArr = new JSONArray();
       data.forEach(e -> {
-        JSONObject val = e.convert(table.getDefinition().getSchema(), doUpsert, upsertKeepDeletes);
+        JSONObject val = e.convert(table.getDefinition().getSchema(), doUpsert, config.upsertKeepDeletes());
         jsonArr.put(val);
       });
       writer.appendSync(jsonArr);
@@ -213,13 +184,13 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
    */
   private int compareByTsThenOp(JsonNode lhs, JsonNode rhs) {
 
-    int result = Long.compare(lhs.get(sourceTsMsColumn).asLong(0), rhs.get(sourceTsMsColumn).asLong(0));
+    int result = Long.compare(lhs.get(config.sourceTsMsColumn()).asLong(0), rhs.get(config.sourceTsMsColumn()).asLong(0));
 
     if (result == 0) {
       // return (x < y) ? -1 : ((x == y) ? 0 : 1);
-      result = cdcOperations.getOrDefault(lhs.get(opColumn).asText("c"), -1)
+      result = cdcOperations.getOrDefault(lhs.get(config.opColumn()).asText("c"), -1)
           .compareTo(
-              cdcOperations.getOrDefault(rhs.get(opColumn).asText("c"), -1)
+              cdcOperations.getOrDefault(rhs.get(config.opColumn()).asText("c"), -1)
           );
     }
 
@@ -228,9 +199,9 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
   public TableId getTableId(String destination) {
     final String tableName = destination
-        .replaceAll(destinationRegexp.orElse(""), destinationRegexpReplace.orElse(""))
+        .replaceAll(config.common().destinationRegexp().orElse(""), config.common().destinationRegexpReplace().orElse(""))
         .replace(".", "_");
-    return TableId.of(gcpProject.get(), bqDataset.get(), tableName);
+    return TableId.of(config.gcpProject().get(), config.bqDataset().get(), tableName);
   }
 
 
@@ -258,16 +229,16 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     TableId tableId = getTableId(destination);
     Table table = bqClient.getTable(tableId);
     // create table if missing
-    if (createIfNeeded && table == null) {
+    if (config.createIfNeeded() && table == null) {
       table = this.createTable(tableId,
           sampleBqEvent.tableSchema(),
-          sampleBqEvent.tableClustering(clusteringField),
+          sampleBqEvent.tableClustering(config.clusteringField()),
           sampleBqEvent.tableConstraints()
       );
     }
 
     // alter table schema add new fields
-    if (allowFieldAddition && table != null) {
+    if (config.allowFieldAddition() && table != null) {
       table = this.updateTableSchema(table, sampleBqEvent.tableSchema(), destination);
     }
     return table;
@@ -321,7 +292,8 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
         valDeserializer.deserialize(e.destination(), getBytes(e.value())),
         e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
         mapper.readTree(getBytes(e.value())).get("schema"),
-        e.key() == null ? null : mapper.readTree(getBytes(e.key())).get("schema")
+        e.key() == null ? null : mapper.readTree(getBytes(e.key())).get("schema"),
+        debeziumConfig
     ) {
     };
   }

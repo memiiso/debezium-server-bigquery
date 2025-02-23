@@ -24,8 +24,8 @@ import java.time.LocalDate;
  */
 public class BatchRecordConverter extends BaseRecordConverter {
 
-  public BatchRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema) {
-    super(destination, value, key, valueSchema, keySchema);
+  public BatchRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema, DebeziumConfig debeziumConfig) {
+    super(destination, value, key, valueSchema, keySchema, debeziumConfig);
   }
 
   /**

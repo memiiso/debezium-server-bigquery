@@ -9,15 +9,13 @@
 package io.debezium.server.bigquery.batchsizewait;
 
 import jakarta.enterprise.context.Dependent;
+import jakarta.inject.Inject;
 import jakarta.inject.Named;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.LongSummaryStatistics;
-
-import static io.debezium.config.CommonConnectorConfig.DEFAULT_MAX_BATCH_SIZE;
 
 /**
  * Optimizes batch size around 85%-90% of max,batch.size using dynamically calculated sleep(ms)
@@ -30,10 +28,9 @@ public class DynamicBatchSizeWait implements BatchSizeWait {
   protected static final Logger LOGGER = LoggerFactory.getLogger(DynamicBatchSizeWait.class);
   final LinkedList<Long> batchSizeHistory = new LinkedList<>();
   final LinkedList<Long> sleepMsHistory = new LinkedList<>();
-  @ConfigProperty(name = "debezium.source.max.batch.size", defaultValue = DEFAULT_MAX_BATCH_SIZE + "")
-  Integer maxBatchSize;
-  @ConfigProperty(name = "debezium.sink.batch.batch-size-wait.max-wait-ms", defaultValue = "300000")
-  Integer maxWaitMs;
+
+  @Inject
+  BatchSizeWaitConfig config;
 
   public DynamicBatchSizeWait() {
     batchSizeHistory.add(1L);
@@ -57,25 +54,25 @@ public class DynamicBatchSizeWait implements BatchSizeWait {
     long sleepMs = 1;
 
     // if batchsize > XX% decrease wait
-    if ((getAverage(batchSizeHistory) / maxBatchSize) >= 0.97) {
+    if ((getAverage(batchSizeHistory) / config.maxBatchSize()) >= 0.97) {
       sleepMs = (long) (sleepMsHistory.getLast() * 0.50);
     }
     // if batchsize > XX% decrease wait
-    else if ((getAverage(batchSizeHistory) / maxBatchSize) >= 0.95) {
+    else if ((getAverage(batchSizeHistory) / config.maxBatchSize()) >= 0.95) {
       sleepMs = (long) (sleepMsHistory.getLast() * 0.65);
     }
     // if batchsize > XX% decrease wait
-    else if ((getAverage(batchSizeHistory) / maxBatchSize) >= 0.90) {
+    else if ((getAverage(batchSizeHistory) / config.maxBatchSize()) >= 0.90) {
       sleepMs = (long) (sleepMsHistory.getLast() * 0.80);
-    } else if ((getAverage(batchSizeHistory) / maxBatchSize) >= 0.85) {
+    } else if ((getAverage(batchSizeHistory) / config.maxBatchSize()) >= 0.85) {
       return sleepMsHistory.getLast();
     }
     // else increase
     else {
-      sleepMs = (sleepMsHistory.getLast() * maxBatchSize) / numRecords;
+      sleepMs = (sleepMsHistory.getLast() * config.maxBatchSize()) / numRecords;
     }
 
-    sleepMsHistory.add(Math.min(Math.max(sleepMs, 100), maxWaitMs));
+    sleepMsHistory.add(Math.min(Math.max(sleepMs, 100), config.maxWaitMs()));
     sleepMsHistory.removeFirst();
 
     return sleepMsHistory.getLast();

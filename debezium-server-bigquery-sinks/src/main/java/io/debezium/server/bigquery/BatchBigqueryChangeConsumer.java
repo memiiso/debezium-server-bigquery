@@ -8,14 +8,25 @@
 
 package io.debezium.server.bigquery;
 
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.Clustering;
+import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.JobStatistics;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableDataWriteChannel;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.WriteChannelConfiguration;
 import io.debezium.DebeziumException;
 import io.debezium.engine.ChangeEvent;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -26,7 +37,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Implementation of a Debezium change consumer that delivers batches of events to BigQuery tables.
@@ -41,43 +51,12 @@ import java.util.Optional;
 @Dependent
 public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
 
-  @ConfigProperty(name = "debezium.sink.batch.destination-regexp", defaultValue = "")
-  protected Optional<String> destinationRegexp;
-  @ConfigProperty(name = "debezium.sink.batch.destination-regexp-replace", defaultValue = "")
-  protected Optional<String> destinationRegexpReplace;
-  @Inject
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.dataset", defaultValue = "")
-  Optional<String> bqDataset;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.location", defaultValue = "US")
-  String bqLocation;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.project", defaultValue = "")
-  Optional<String> gcpProject;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.create-disposition", defaultValue = "CREATE_IF_NEEDED")
-  String createDisposition;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.writeDisposition", defaultValue = "WRITE_APPEND")
-  String writeDisposition;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.partition-field", defaultValue = "__ts_ms")
-  String partitionField;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.clustering-field", defaultValue = "__source_ts_ms")
-  String clusteringField;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.partition-type", defaultValue = "MONTH")
-  String partitionType;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.allow-field-addition", defaultValue = "true")
-  Boolean allowFieldAddition;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.allow-field-relaxation", defaultValue = "true")
-  Boolean allowFieldRelaxation;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.credentials-file", defaultValue = "")
-  Optional<String> credentialsFile;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.bigquery-custom-host", defaultValue = "")
-  Optional<String> bigQueryCustomHost;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.bigquery-dev-emulator", defaultValue = "false")
-  Boolean isBigqueryDevEmulator;
-  @ConfigProperty(name = "debezium.sink.bigquerybatch.cast-deleted-field", defaultValue = "false")
-  Boolean castDeletedField;
-
   BigQuery bqClient;
   TimePartitioning timePartitioning;
   final List<JobInfo.SchemaUpdateOption> schemaUpdateOptions = new ArrayList<>();
+
+  @Inject
+  BatchConsumerConfig config;
 
   @PostConstruct
   void connect() throws InterruptedException {
@@ -86,14 +65,14 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
 
   public void initialize() throws InterruptedException {
     super.initialize();
-    bqClient = ConsumerUtil.bigqueryClient(isBigqueryDevEmulator, gcpProject, bqDataset, credentialsFile, bqLocation, bigQueryCustomHost);
+    bqClient = ConsumerUtil.bigqueryClient(config.isBigqueryDevEmulator(), config.gcpProject(), config.bqDataset(), config.credentialsFile(), config.bqLocation(), config.bigQueryCustomHost());
     timePartitioning =
-        TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(partitionType)).setField(partitionField).build();
+        TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(config.partitionType())).setField(config.partitionField()).build();
 
-    if (allowFieldAddition) {
+    if (config.allowFieldAddition()) {
       schemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_ADDITION);
     }
-    if (allowFieldRelaxation) {
+    if (config.allowFieldRelaxation()) {
       schemaUpdateOptions.add(JobInfo.SchemaUpdateOption.ALLOW_FIELD_RELAXATION);
     }
 
@@ -113,18 +92,18 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
         schema = bqClient.getTable(tableId).getDefinition().getSchema();
       }
 
-      Clustering clustering = sampleEvent.tableClustering(clusteringField);
+      Clustering clustering = sampleEvent.tableClustering(config.clusteringField());
 
       // Google BigQuery Configuration for a load operation. A load configuration can be used to load data
       // into a table with a {@link com.google.cloud.WriteChannel}
       WriteChannelConfiguration.Builder wCCBuilder = WriteChannelConfiguration
           .newBuilder(tableId, FormatOptions.json())
-          .setWriteDisposition(JobInfo.WriteDisposition.valueOf(writeDisposition))
+          .setWriteDisposition(JobInfo.WriteDisposition.valueOf(config.writeDisposition()))
           .setClustering(clustering)
           .setSchema(schema)
           .setTimePartitioning(timePartitioning)
           .setSchemaUpdateOptions(schemaUpdateOptions)
-          .setCreateDisposition(JobInfo.CreateDisposition.valueOf(createDisposition))
+          .setCreateDisposition(JobInfo.CreateDisposition.valueOf(config.createDisposition()))
           .setMaxBadRecords(0);
 
       //WriteChannel implementation to stream data into a BigQuery table. 
@@ -185,9 +164,9 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
 
   TableId getTableId(String destination) {
     final String tableName = destination
-        .replaceAll(destinationRegexp.orElse(""), destinationRegexpReplace.orElse(""))
+        .replaceAll(this.config.common().destinationRegexp().orElse(""), this.config.common().destinationRegexpReplace().orElse(""))
         .replace(".", "_");
-    return TableId.of(gcpProject.get(), bqDataset.get(), tableName);
+    return TableId.of(config.gcpProject().get(), config.bqDataset().get(), tableName);
   }
 
   public RecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
@@ -195,7 +174,8 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
         valDeserializer.deserialize(e.destination(), getBytes(e.value())),
         e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
         mapper.readTree(getBytes(e.value())).get("schema"),
-        e.key() == null ? null : mapper.readTree(getBytes(e.key())).get("schema")
+        e.key() == null ? null : mapper.readTree(getBytes(e.key())).get("schema"),
+        debeziumConfig
     ) {
     };
   }

@@ -9,12 +9,10 @@
 package io.debezium.server.bigquery.batchsizewait;
 
 import io.debezium.DebeziumException;
-import io.debezium.config.CommonConnectorConfig;
 import io.debezium.server.DebeziumMetrics;
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,18 +25,14 @@ import org.slf4j.LoggerFactory;
 @Named("MaxBatchSizeWait")
 public class MaxBatchSizeWait implements BatchSizeWait {
   protected static final Logger LOGGER = LoggerFactory.getLogger(MaxBatchSizeWait.class);
-  @ConfigProperty(name = "debezium.source.max.batch.size", defaultValue = CommonConnectorConfig.DEFAULT_MAX_BATCH_SIZE + "")
-  int maxBatchSize;
-  @ConfigProperty(name = "debezium.sink.batch.batch-size-wait.max-wait-ms", defaultValue = "300000")
-  int maxWaitMs;
-  @ConfigProperty(name = "debezium.sink.batch.batch-size-wait.wait-interval-ms", defaultValue = "10000")
-  int waitIntervalMs;
   @Inject
   DebeziumMetrics debeziumMetrics;
+  @Inject
+  BatchSizeWaitConfig config;
 
   @Override
   public void initizalize() throws DebeziumException {
-    assert waitIntervalMs < maxWaitMs : "`wait-interval-ms` cannot be bigger than `max-wait-ms`";
+    assert config.waitIntervalMs() < config.maxWaitMs() : "`wait-interval-ms` cannot be bigger than `max-wait-ms`";
   }
 
   @Override
@@ -63,16 +57,16 @@ public class MaxBatchSizeWait implements BatchSizeWait {
     );
 
     int totalWaitMs = 0;
-    while (totalWaitMs < maxWaitMs && debeziumMetrics.streamingQueueCurrentSize() < maxBatchSize) {
-      totalWaitMs += waitIntervalMs;
+    while (totalWaitMs < config.maxWaitMs() && debeziumMetrics.streamingQueueCurrentSize() < config.maxBatchSize()) {
+      totalWaitMs += config.waitIntervalMs();
       LOGGER.trace("Sleeping {} Milliseconds, QueueCurrentSize:{} < maxBatchSize:{}, Total wait {}",
-          waitIntervalMs, debeziumMetrics.streamingQueueCurrentSize(), maxBatchSize, totalWaitMs);
+          config.waitIntervalMs(), debeziumMetrics.streamingQueueCurrentSize(), config.maxBatchSize(), totalWaitMs);
 
-      Thread.sleep(waitIntervalMs);
+      Thread.sleep(config.waitIntervalMs());
     }
 
     LOGGER.debug("Total wait {} Milliseconds, QueueCurrentSize:{}, maxBatchSize:{}",
-        totalWaitMs, debeziumMetrics.streamingQueueCurrentSize(), maxBatchSize);
+        totalWaitMs, debeziumMetrics.streamingQueueCurrentSize(), config.maxBatchSize());
 
   }
 

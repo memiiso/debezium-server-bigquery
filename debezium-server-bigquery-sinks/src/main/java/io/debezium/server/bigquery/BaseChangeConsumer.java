@@ -24,7 +24,6 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,16 +60,14 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
   protected long consumerStart = clock.currentTimeInMillis();
   protected long numConsumedEvents = 0;
   protected Threads.Timer logTimer = Threads.timer(clock, LOG_INTERVAL);
-  @ConfigProperty(name = "debezium.format.value", defaultValue = "json")
-  String valueFormat;
-  @ConfigProperty(name = "debezium.format.key", defaultValue = "json")
-  String keyFormat;
-  @ConfigProperty(name = "debezium.sink.batch.batch-size-wait", defaultValue = "NoBatchSizeWait")
-  String batchSizeWaitName;
   @Inject
   @Any
   Instance<BatchSizeWait> batchSizeWaitInstances;
   BatchSizeWait batchSizeWait;
+  @Inject
+  CommonConfig commonConfig;
+  @Inject
+  DebeziumConfig debeziumConfig;
 
   public void initialize() throws InterruptedException {
     // configure and set 
@@ -80,15 +77,15 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
     keySerde.configure(Collections.emptyMap(), true);
     keyDeserializer = keySerde.deserializer();
 
-    if (!valueFormat.equalsIgnoreCase(Json.class.getSimpleName().toLowerCase())) {
-      throw new InterruptedException("debezium.format.value={" + valueFormat + "} not supported! Supported (debezium.format.value=*) formats are {json,}!");
+    if (!debeziumConfig.valueFormat().equalsIgnoreCase(Json.class.getSimpleName().toLowerCase())) {
+      throw new InterruptedException("debezium.format.value={" + debeziumConfig.valueFormat() + "} not supported! Supported (debezium.format.value=*) formats are {json,}!");
     }
 
-    if (!keyFormat.equalsIgnoreCase(Json.class.getSimpleName().toLowerCase())) {
-      throw new InterruptedException("debezium.format.key={" + valueFormat + "} not supported! Supported (debezium.format.key=*) formats are {json,}!");
+    if (!debeziumConfig.keyFormat().equalsIgnoreCase(Json.class.getSimpleName().toLowerCase())) {
+      throw new InterruptedException("debezium.format.key={" + debeziumConfig.valueFormat() + "} not supported! Supported (debezium.format.key=*) formats are {json,}!");
     }
 
-    batchSizeWait = ConsumerUtil.selectInstance(batchSizeWaitInstances, batchSizeWaitName);
+    batchSizeWait = ConsumerUtil.selectInstance(batchSizeWaitInstances, commonConfig.batchSizeWaitName());
     LOGGER.info("Using {} to optimize batch size", batchSizeWait.getClass().getSimpleName());
     batchSizeWait.initizalize();
   }

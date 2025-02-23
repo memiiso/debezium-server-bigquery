@@ -10,7 +10,13 @@ package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.Clustering;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.PrimaryKey;
+import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardSQLTypeName;
+import com.google.cloud.bigquery.TableConstraints;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +45,9 @@ public abstract class BaseRecordConverter implements RecordConverter {
   protected final JsonNode key;
   protected final JsonNode valueSchema;
   protected final JsonNode keySchema;
+  protected final DebeziumConfig debeziumConfig;
 
-  public BaseRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema) {
+  public BaseRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema, DebeziumConfig debeziumConfig) {
     this.destination = destination;
     // @TODO process values. ts_ms values etc...
     // TODO add field if exists backward compatible!
@@ -48,6 +55,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
     this.key = key;
     this.valueSchema = valueSchema;
     this.keySchema = keySchema;
+    this.debeziumConfig = debeziumConfig;
   }
 
   protected ArrayList<Field> schemaFields(JsonNode schemaNode) {
