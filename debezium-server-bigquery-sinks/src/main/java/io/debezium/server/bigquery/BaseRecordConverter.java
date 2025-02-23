@@ -84,9 +84,21 @@ public abstract class BaseRecordConverter implements RecordConverter {
       // for all the debezium data types please see org.apache.kafka.connect.data.Schema;
       switch (fieldType) {
         case "struct":
-          // recursive call for nested fields
-          ArrayList<Field> subFields = schemaFields(jsonSchemaFieldNode);
-          fields.add(Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(subFields)).build());
+          switch (fieldTypeName) {
+//            case "io.debezium.data.geometry.Geometry":
+//              //  io.debezium.data.geometry.Geometry
+//              //  Contains a structure with two fields:
+//              //  srid (INT32: spatial reference system ID that defines the type of geometry object stored in the structure
+//              //  wkb (BYTES): binary representation of the geometry object encoded in the Well-Known-Binary (wkb) format. See the Open Geospatial Consortium for more details.
+//              List<Field> geometryFields = List.of(Field.of("srid", StandardSQLTypeName.INT64), Field.of("wkb", StandardSQLTypeName.GEOGRAPHY));
+//              fields.add(Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(geometryFields)).build());
+//              break;
+            default:
+              // recursive call for nested fields
+              ArrayList<Field> subFields = schemaFields(jsonSchemaFieldNode);
+              fields.add(Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(subFields)).build());
+              break;
+          }
           break;
         default:
           // default to String type

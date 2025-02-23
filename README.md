@@ -74,7 +74,8 @@ For detailed information on data type mapping between Debezium and BigQuery, ref
 
 ### Upsert
 
-By default, Bigquery Streaming consumer is running with append mode `debezium.sink.iceberg.upsert=false`.
+By default, Bigquery Streaming consumer is running with append mode
+`debezium.sink.bigquerystream.upsert=false`.
 Upsert mode uses source Primary Key and does upsert on target table(delete followed by insert). For the tables without
 Primary Key consumer falls back to append mode.
 

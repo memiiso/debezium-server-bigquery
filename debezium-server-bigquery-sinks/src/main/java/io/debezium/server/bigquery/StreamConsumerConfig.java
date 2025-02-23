@@ -43,14 +43,6 @@ public interface StreamConsumerConfig {
   @WithDefault("__source_ts_ms")
   String clusteringField();
 
-  @WithName("debezium.sink.bigquerystream.upsert-dedup-column")
-  @WithDefault("__source_ts_ms")
-  String sourceTsMsColumn();
-
-  @WithName("debezium.sink.bigquerystream.upsert-op-column")
-  @WithDefault("__op")
-  String opColumn();
-
   @WithName("debezium.sink.bigquerystream.partition-type")
   @WithDefault("MONTH")
   String partitionType();
@@ -60,15 +52,12 @@ public interface StreamConsumerConfig {
   Boolean allowFieldAddition();
 
   @WithName("debezium.sink.bigquerystream.credentials-file")
-  @WithDefault("")
   Optional<String> credentialsFile();
 
   @WithName("debezium.sink.bigquerystream.bigquery-custom-host")
-  @WithDefault("")
   Optional<String> bigQueryCustomHost();
 
   @WithName("debezium.sink.bigquerystream.bigquery-custom-grpc-host")
-  @WithDefault("")
   Optional<String> bigQueryCustomGRPCHost();
 
   @WithName("debezium.sink.bigquerystream.bigquery-dev-emulator")
@@ -82,5 +71,13 @@ public interface StreamConsumerConfig {
   @WithName("debezium.sink.bigquerystream.upsert-keep-deletes")
   @WithDefault("true")
   boolean upsertKeepDeletes();
+
+  @WithName("debezium.sink.bigquerystream.upsert-dedup-column")
+  @WithDefault("__source_ts_ms")
+  String sourceTsMsColumn();
+
+  @WithName("debezium.sink.bigquerystream.upsert-op-column")
+  @WithDefault("__op")
+  String opColumn();
 
 }
