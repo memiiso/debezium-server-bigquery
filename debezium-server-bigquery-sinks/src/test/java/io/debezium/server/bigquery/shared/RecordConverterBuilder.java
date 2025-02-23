@@ -14,6 +14,9 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.debezium.server.bigquery.BaseRecordConverter;
 import io.debezium.server.bigquery.BatchRecordConverter;
+import io.debezium.server.bigquery.DebeziumConfig;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -23,13 +26,22 @@ import java.util.Map;
  *
  * @author Ismail Simsek
  */
+@ApplicationScoped
 public class RecordConverterBuilder {
 
   ObjectNode payload = JsonNodeFactory.instance.objectNode();
   ObjectNode keyPayload = JsonNodeFactory.instance.objectNode();
   String destination = "test";
+  @Inject
+  DebeziumConfig debeziumConfig;
 
-  public RecordConverterBuilder() {
+  private RecordConverterBuilder() {
+  }
+
+  private void reset() {
+    payload = JsonNodeFactory.instance.objectNode();
+    keyPayload = JsonNodeFactory.instance.objectNode();
+    destination = "test";
   }
 
   public RecordConverterBuilder destination(String destination) {
@@ -100,14 +112,16 @@ public class RecordConverterBuilder {
   }
 
   public BaseRecordConverter build() {
-    return new BatchRecordConverter(
+    BatchRecordConverter result = new BatchRecordConverter(
         this.destination,
         payload,
         keyPayload,
         this.valueSchema(),
-        this.keySchema()
-    ) {
-    };
+        this.keySchema(),
+        debeziumConfig
+    );
+    reset();
+    return result;
   }
 
   private ObjectNode valueSchema() {
