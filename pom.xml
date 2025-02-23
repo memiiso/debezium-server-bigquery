@@ -79,7 +79,6 @@
     <modules>
         <module>debezium-server-bigquery-sinks</module>
         <module>debezium-server-bigquery-dist</module>
-        <module>debezium-server-converters</module>
     </modules>
 
 
