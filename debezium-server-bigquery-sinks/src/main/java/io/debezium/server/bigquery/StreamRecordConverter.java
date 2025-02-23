@@ -50,12 +50,11 @@ public class StreamRecordConverter extends BaseRecordConverter {
         }
 
         switch (f.getType().getStandardType()) {
-          case DATE:
-          case DATETIME:
-          case TIME:
-            handleFieldValue((ObjectNode) value, f.getName(), f.getType().getStandardType(), value.get(f.getName()));
+          case JSON:
+            // Nothing todo stream consumer handles JSON type correctly
             break;
           default:
+            handleFieldValue((ObjectNode) value, f.getName(), f.getType().getStandardType(), value.get(f.getName()));
             break;
         }
       }
@@ -73,21 +72,6 @@ public class StreamRecordConverter extends BaseRecordConverter {
         jsonMap.put(CHANGE_TYPE_PSEUDO_COLUMN, "UPSERT");
       }
     }
-
-    // fix the TS_MS fields.
-    TS_MS_FIELDS.forEach(tsf -> {
-      if (jsonMap.containsKey(tsf)) {
-        // Convert millisecond to microseconds
-        jsonMap.replace(tsf, ((Long) jsonMap.get(tsf) * 1000L));
-      }
-    });
-
-    // Fix boolean fields, create this fields as BOOLEAN instead of STRING in BigQuery
-    BOOLEAN_FIELDS.forEach(bf -> {
-      if (jsonMap.containsKey(bf)) {
-        jsonMap.replace(bf, Boolean.valueOf((String) jsonMap.get(bf)));
-      }
-    });
 
     return new JSONObject(jsonMap);
   }

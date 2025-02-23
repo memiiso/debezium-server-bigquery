@@ -10,9 +10,6 @@ package io.debezium.server.bigquery.shared;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
-import com.google.cloud.bigquery.FieldValueList;
-import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.TableResult;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,53 +33,14 @@ public class BigQueryGCP implements QuarkusTestResourceLifecycleManager {
     return options.getService();
   }
 
-  public static TableResult simpleQuery(String query) throws InterruptedException {
-    QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
-    return bqClient.query(queryConfig);
-  }
-
   @Override
   public void stop() {
     return;
   }
 
-  public static void dropTables() {
-    try {
-      TableResult result = simpleQuery("select \n" +
-          "concat(\"DROP TABLE \",table_schema,\".\",   table_name, \";\" ) AS DROP_TABLES_QUERY\n" +
-          "from testdataset.INFORMATION_SCHEMA.TABLES\n" +
-          "where table_schema = 'testdataset'\n");
-      for (FieldValueList row : result.iterateAll()) {
-        String sql = row.get("DROP_TABLES_QUERY").getStringValue();
-        LOGGER.warn("Running: " + sql);
-        simpleQuery(sql);
-      }
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static void truncateTables() {
-    try {
-      TableResult result = simpleQuery("select \n" +
-          "concat(\"DELETE FROM \",table_schema,\".\",   table_name, \" WHERE 1=1;\" ) AS TRUNCATE_TABLES_QUERY\n" +
-          "from testdataset.INFORMATION_SCHEMA.TABLES\n" +
-          "where table_schema = 'testdataset'\n");
-      for (FieldValueList row : result.iterateAll()) {
-        String sql = row.get("TRUNCATE_TABLES_QUERY").getStringValue();
-        LOGGER.warn("Running: " + sql);
-        simpleQuery(sql);
-      }
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   @Override
   public Map<String, String> start() {
     bqClient = bigQueryClient();
-//    truncateTables();
-    dropTables();
     Map<String, String> config = new ConcurrentHashMap<>();
     // batch
     // src/test/resources/application.properties

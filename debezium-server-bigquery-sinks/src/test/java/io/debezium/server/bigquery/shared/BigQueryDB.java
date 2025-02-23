@@ -11,7 +11,6 @@ package io.debezium.server.bigquery.shared;
 import com.google.cloud.NoCredentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
-import com.google.cloud.bigquery.TableId;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,13 +50,6 @@ public class BigQueryDB implements QuarkusTestResourceLifecycleManager {
     return options.getService();
   }
 
-  public static TableId getTableId(String destination) {
-    final String tableName = destination
-        .replaceAll("", "")
-        .replace(".", "_");
-    return TableId.of(bqClient.getOptions().getProjectId(), BQ_DATASET, tableName);
-  }
-
   @Override
   public void stop() {
     container.stop();
@@ -67,7 +59,7 @@ public class BigQueryDB implements QuarkusTestResourceLifecycleManager {
   public Map<String, String> start() {
     container.start();
     bqClient = bigQueryClient();
-    LOGGER.error("BIGQUERY EMULATOR HOST: " + bqClient.getOptions().getHost());
+    LOGGER.warn("BIGQUERY EMULATOR HOST: " + bqClient.getOptions().getHost());
     Map<String, String> config = new ConcurrentHashMap<>();
     // batch
     // src/test/resources/application.properties
