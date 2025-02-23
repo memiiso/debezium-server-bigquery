@@ -69,12 +69,12 @@ public class StreamRecordConverter extends BaseRecordConverter {
   }
 
   @Override
-  protected Field schemaPrimitiveField(String fieldType, String fieldName, String fieldSemanticType) {
+  protected Field schemaPrimitiveField(String fieldType, String fieldName, String fieldTypeName) {
     switch (fieldType) {
       case "bytes":
         return Field.of(fieldName, StandardSQLTypeName.STRING);
       default:
-        return super.schemaPrimitiveField(fieldType, fieldName, fieldSemanticType);
+        return super.schemaPrimitiveField(fieldType, fieldName, fieldTypeName);
     }
   }
 }
