@@ -252,12 +252,6 @@ public abstract class BaseRecordConverter implements RecordConverter {
       return;
     }
 
-    // Process DEBEZIUM TS_MS values
-    if (TS_MS_FIELDS.contains(fieldName)) {
-      parentNode.replace(fieldName, TextNode.valueOf(Instant.ofEpochMilli(value.longValue()).toString()));
-      return;
-    }
-
     switch (fieldType) {
       case JSON:
         try {
@@ -273,11 +267,20 @@ public abstract class BaseRecordConverter implements RecordConverter {
           parentNode.replace(fieldName, TextNode.valueOf(removeTrailingZ(value.textValue())));
         }
         break;
+      case TIMESTAMP:
+        if (value.isNumber()) {
+          if (TS_MS_FIELDS.contains(fieldName)) {
+            // Process DEBEZIUM TS_MS values
+            parentNode.replace(fieldName, TextNode.valueOf(Instant.ofEpochMilli(value.longValue()).toString()));
+            break;
+          }
+          break;
+        }
+        break;
       default:
         // Handle other cases or do nothing
         break;
     }
-
   }
 
   public static String removeTrailingZ(String input) {

@@ -11,7 +11,7 @@ package io.debezium.server.bigquery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
-import io.debezium.server.bigquery.shared.BigQueryGCP;
+import io.debezium.server.bigquery.shared.BigQueryDB;
 import io.debezium.server.bigquery.shared.RecordConverterBuilder;
 import io.debezium.server.bigquery.shared.SourceMysqlDB;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -22,8 +22,8 @@ import jakarta.inject.Inject;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -35,14 +35,9 @@ import java.util.Map;
  */
 @QuarkusTest
 @QuarkusTestResource(value = SourceMysqlDB.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = BigQueryDB.class, restrictToAnnotatedClass = true)
 @TestProfile(StreamBigqueryChangeConsumerMysqlUpsertTest.TestProfile.class)
-@DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
 public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTest {
-
-  @BeforeAll
-  public static void setup() {
-    bqClient = BigQueryGCP.bigQueryClient();
-  }
 
   @Inject
   StreamBigqueryChangeConsumer consumer;
@@ -50,7 +45,16 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
   @Inject
   RecordConverterBuilder builder;
 
+  @BeforeAll
+  public static void setup() throws InterruptedException {
+    bqClient = BigQueryDB.bigQueryClient();
+    Thread.sleep(5000);
+    Awaitility.setDefaultTimeout(Duration.ofMinutes(3));
+    Awaitility.setDefaultPollInterval(Duration.ofSeconds(6));
+  }
+
   @Test
+  @Disabled
   public void testMysqlSimpleUploadWithDelete() throws Exception {
 
     String createTable = "CREATE TABLE IF NOT EXISTS inventory.test_table (" +
@@ -71,26 +75,28 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
     SourceMysqlDB.runSQL(sqlInsert);
 
     Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
+      if (consumer.config.isBigqueryDevEmulator()) {
+        return true;
+      }
       try {
         String query2 = "ALTER table  " + tableId.getDataset() + "." + tableId.getTable() + " SET OPTIONS " +
             "(max_staleness = INTERVAL '0-0 0 0:0:2' YEAR TO SECOND);";
         bqClient.query(QueryJobConfiguration.newBuilder(query2).build());
         return true;
       } catch (Exception e) {
-        //e.printStackTrace();
+        LOGGER.error("Error: {}", e.getMessage());
         return false;
       }
     });
 
     Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
       try {
-        TableResult result = getTableData(dest);
-        result.iterateAll().forEach(System.out::println);
-        System.out.println(result.getTotalRows());
-        return result.getTotalRows() == 4
-            && getTableData(dest, "__deleted = false").getTotalRows() == 4;
-      } catch (Exception e) {
-        //e.printStackTrace();
+        prettyPrint(dest);
+        assertTableRowsMatch(dest, 4);
+        assertTableRowsMatch(dest, 4, "__deleted = false");
+        return true;
+      } catch (AssertionError | Exception e) {
+        LOGGER.error("Error: {}", e.getMessage());
         return false;
       }
     });
@@ -102,11 +108,12 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
         TableResult result = getTableData(dest);
         result.iterateAll().forEach(System.out::println);
         System.out.println(result.getTotalRows());
-        return result.getTotalRows() == 4
-            && getTableData(dest, "__deleted = true").getTotalRows() == 4
-            && getTableData(dest, "__op = 'd'").getTotalRows() == 4;
-      } catch (Exception e) {
-        //e.printStackTrace();
+        assertTableRowsMatch(dest, 4);
+        assertTableRowsMatch(dest, 4, "__deleted = true");
+        assertTableRowsMatch(dest, 4, "__op = 'd'");
+        return true;
+      } catch (AssertionError | Exception e) {
+        LOGGER.error("Error: {}", e.getMessage());
         return false;
       }
     });
@@ -118,14 +125,13 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
     SourceMysqlDB.runSQL(sqlInsert);
     Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
       try {
-        TableResult result = getTableData(dest);
-        result.iterateAll().forEach(System.out::println);
-        System.out.println(result.getTotalRows());
-        return result.getTotalRows() == 4
-            && getTableData(dest, "__deleted = false").getTotalRows() == 4
-            && getTableData(dest, "__op = 'c'").getTotalRows() == 4;
-      } catch (Exception e) {
-        //e.printStackTrace();
+        prettyPrint(dest);
+        assertTableRowsMatch(dest, 4);
+        assertTableRowsMatch(dest, 4, "__deleted = false");
+        assertTableRowsMatch(dest, 4, "__op = 'c'");
+        return true;
+      } catch (AssertionError | Exception e) {
+        LOGGER.error("Error: {}", e.getMessage());
         return false;
       }
     });

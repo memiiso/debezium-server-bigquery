@@ -8,8 +8,7 @@
 
 package io.debezium.server.bigquery;
 
-import com.google.cloud.bigquery.TableResult;
-import io.debezium.server.bigquery.shared.BigQueryGCP;
+import io.debezium.server.bigquery.shared.BigQueryDB;
 import io.debezium.server.bigquery.shared.SourceMysqlDB;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -18,7 +17,6 @@ import io.quarkus.test.junit.TestProfile;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -30,14 +28,16 @@ import java.util.Map;
  */
 @QuarkusTest
 @QuarkusTestResource(value = SourceMysqlDB.class, restrictToAnnotatedClass = true)
-@QuarkusTestResource(value = BigQueryGCP.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = BigQueryDB.class, restrictToAnnotatedClass = true)
 @TestProfile(StreamBigqueryChangeConsumerMysqlTest.TestProfile.class)
-@DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
 public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
 
   @BeforeAll
-  public static void setup() {
-    bqClient = BigQueryGCP.bigQueryClient();
+  public static void setup() throws InterruptedException {
+    bqClient = BigQueryDB.bigQueryClient();
+    Thread.sleep(5000);
+    Awaitility.setDefaultTimeout(Duration.ofMinutes(3));
+    Awaitility.setDefaultPollInterval(Duration.ofSeconds(6));
   }
 
   @Test
@@ -63,17 +63,15 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
     SourceMysqlDB.runSQL(sqlDelete);
     SourceMysqlDB.runSQL(sqlInsert);
     String dest = "testc.inventory.test_table";
-//    BaseBigqueryTest.truncateTable(dest);
     Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
       try {
-        TableResult result = getTableData(dest);
-        result.iterateAll().forEach(System.out::println);
-//        System.out.println(result.getTotalRows());
-        return result.getTotalRows() >= 4
-            && getTableData(dest, "__deleted = true").getTotalRows() >= 2
-            && getTableData(dest, "__op = 'd'").getTotalRows() >= 2;
-      } catch (Exception e) {
-        //e.printStackTrace();
+        prettyPrint(dest);
+        assertTableRowsAboveEqual(dest, 4);
+        assertTableRowsAboveEqual(dest, 2, "__deleted = true");
+        assertTableRowsAboveEqual(dest, 2, "__op = 'd'");
+        return true;
+      } catch (AssertionError | Exception e) {
+        LOGGER.error("Error: {}", e.getMessage());
         return false;
       }
     });

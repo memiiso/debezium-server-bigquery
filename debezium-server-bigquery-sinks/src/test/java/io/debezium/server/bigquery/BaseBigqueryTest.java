@@ -10,16 +10,16 @@ package io.debezium.server.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
-import org.awaitility.Awaitility;
+import io.debezium.server.bigquery.shared.BigQueryTableResultPrinter;
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.util.Objects;
 
 import static io.debezium.server.bigquery.shared.BigQueryDB.BQ_DATASET;
@@ -39,7 +39,6 @@ public class BaseBigqueryTest {
   }
 
   public static TableResult simpleQuery(String query) throws InterruptedException {
-    //System.out.println(query);
     QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
     try {
       return bqClient.query(queryConfig);
@@ -67,6 +66,41 @@ public class BaseBigqueryTest {
     }
   }
 
+  public static void truncateTables() {
+    try {
+      TableResult result = simpleQuery("select \n" +
+          "concat(\"DELETE FROM \",table_schema,\".\",   table_name, \" WHERE 1=1;\" ) AS TRUNCATE_TABLES_QUERY\n" +
+          "from testdataset.INFORMATION_SCHEMA.TABLES\n" +
+          "where table_schema = 'testdataset'\n");
+      for (FieldValueList row : result.iterateAll()) {
+        String sql = row.get("TRUNCATE_TABLES_QUERY").getStringValue();
+        LOGGER.warn("Running: " + sql);
+        simpleQuery(sql);
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void dropTables() {
+    try {
+      TableResult result = simpleQuery("select \n" +
+          "concat(\"DROP TABLE \",table_schema,\".\",   table_name, \";\" ) AS DROP_TABLES_QUERY\n" +
+          "from testdataset.INFORMATION_SCHEMA.TABLES\n" +
+          "where table_schema = 'testdataset'\n");
+      if (result == null) {
+        return;
+      }
+      for (FieldValueList row : result.iterateAll()) {
+        String sql = row.get("DROP_TABLES_QUERY").getStringValue();
+        LOGGER.warn("Running: " + sql);
+        simpleQuery(sql);
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public static TableResult getTableData(String destination, String where) throws InterruptedException {
     TableId tableId = getTableId(destination);
     return simpleQuery("SELECT * FROM " + tableId.getProject() + "." + tableId.getDataset() + "." + tableId.getTable()
@@ -86,35 +120,6 @@ public class BaseBigqueryTest {
     return field;
   }
 
-  public void testSimpleUpload() {
-    Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
-      String dest = "testc.inventory.customers";
-      try {
-        TableResult result = BaseBigqueryTest.getTableData(dest);
-        result.iterateAll().forEach(System.out::println);
-        return getTableData(dest).getTotalRows() >= 4
-            && getTableData(dest, "DATE(__source_ts_ms) = CURRENT_DATE").getTotalRows() >= 4
-            && getTableData(dest, "DATE(__ts_ms) = CURRENT_DATE").getTotalRows() >= 4
-            && getTableField(dest, "__source_ts_ms").getType() == LegacySQLTypeName.TIMESTAMP
-            && getTableField(dest, "__ts_ms").getType() == LegacySQLTypeName.TIMESTAMP
-            && getTableField(dest, "__deleted").getType() == LegacySQLTypeName.BOOLEAN
-            ;
-      } catch (Exception e) {
-        return false;
-      }
-    });
-
-    Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
-      try {
-        TableResult result = BaseBigqueryTest.getTableData("testc.inventory.geom");
-        result.iterateAll().forEach(System.out::println);
-        return result.getTotalRows() >= 3;
-      } catch (Exception e) {
-        return false;
-      }
-    });
-  }
-
   public static TableResult getTableData(String destination) throws InterruptedException {
     return getTableData(destination, "1=1");
   }
@@ -124,6 +129,33 @@ public class BaseBigqueryTest {
         .replaceAll("", "")
         .replace(".", "_");
     return TableId.of(bqClient.getOptions().getProjectId(), BQ_DATASET, tableName);
+  }
+
+  public static void assertTableRowsMatch(String dest, long expectedRows) throws InterruptedException {
+    assertTableRowsMatch(dest, expectedRows, "1=1");
+  }
+
+  public static void assertTableRowsMatch(String dest, long expectedRows, String filter) throws InterruptedException {
+    TableResult tableResult = getTableData(dest, filter);
+    Assert.assertEquals("Total rows didn't match! filter:" + filter, expectedRows, tableResult.getTotalRows());
+  }
+
+  public static void assertTableRowsAboveEqual(String dest, long expectedRows) throws InterruptedException {
+    assertTableRowsAboveEqual(dest, expectedRows, "1=1");
+  }
+
+  public static void assertTableRowsAboveEqual(String dest, long expectedRows, String filter) throws InterruptedException {
+    TableResult tableResult = getTableData(dest, filter);
+    Assert.assertTrue("Total rows didn't match! filter:" + filter, tableResult.getTotalRows() >= expectedRows);
+  }
+
+
+  public static void prettyPrint(String destination) throws InterruptedException {
+    prettyPrint(getTableData(destination));
+  }
+
+  public static void prettyPrint(TableResult tableResult) {
+    BigQueryTableResultPrinter.prettyPrintTable(tableResult);
   }
 
 }
