@@ -38,9 +38,7 @@ table [using BigQuery Write API](https://cloud.google.com/bigquery/docs/batch-lo
 | `debezium.sink.bigquerybatch.allow-field-relaxation` | `true`             | Allow field relaxation                                                                                     |
 | `debezium.sink.bigquerybatch.credentials-file`       |                    | GCP service account credentialsFile                                                                        |
 | `debezium.sink.bigquerybatch.cast-deleted-field`     | `false`            | Cast deleted field to boolean type(by default it is string type)                                           |
-| `debezium.sink.batch.destination-regexp`             | ``                 | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
-| `debezium.sink.batch.destination-regexp-replace`     | ``                 | Regexp Replace part to modify destination                                                                  |
-| `debezium.sink.batch.batch-size-wait`                | `NoBatchSizeWait`  | Batch size wait strategy to optimize data files and upload interval. explained below.                      |
+
 
 ## `bigquerystream` Consumer
 
@@ -72,9 +70,9 @@ the [Storage Write API](https://cloud.google.com/bigquery/docs/write-api-streami
 | `debezium.sink.batch.destination-regexp`                      | ``                                                              | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
 | `debezium.sink.batch.destination-regexp-replace`              | ``                                                              | Regexp Replace part to modify destination                                                                  |
 | `debezium.sink.batch.batch-size-wait`                         | `NoBatchSizeWait`                                               | Batch size wait strategy to optimize data files and upload interval. explained below.                      |
-| `debezium.source.max.batch.size`                              | `2048`                                                          |                                                                                                            |
 | `debezium.sink.batch.batch-size-wait.max-wait-ms`             | `300000`                                                        |                                                                                                            |
 | `debezium.sink.batch.batch-size-wait.wait-interval-ms`        | `10000`                                                         |                                                                                                            |
+| `debezium.source.max.batch.size`                              | `2048`                                                          |                                                                                                            |
 | `debezium.format.value`                                       | `json`                                                          |                                                                                                            |
 | `debezium.format.key`                                         | `json`                                                          |                                                                                                            |
 | `debezium.source.time.precision.mode`                         | `isostring`                                                     |                                                                                                            |
