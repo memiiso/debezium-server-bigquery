@@ -15,7 +15,12 @@ import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.NoCredentials;
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.QueryParameterValue;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
@@ -139,9 +144,16 @@ public class ConsumerUtil {
 
     if (!hostUrl.orElse("").isEmpty()) {
       builder
-          .setHost(hostUrl.get()).setLocation(hostUrl.get());
+          .setHost(hostUrl.get())
+          .setLocation(hostUrl.get());
     }
-    return builder.build().getService();
+    BigQueryOptions options = builder.build();
+
+    if (isBigqueryDevEmulator) {
+      LOGGER.warn("Using Bigquery Emulator, host:{} location:{}", options.getHost(), options.getLocation());
+    }
+
+    return options.getService();
   }
 
   public static TableResult executeQuery(BigQuery bqClient, String query, List<QueryParameterValue> parameters) throws SQLException {

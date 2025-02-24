@@ -8,8 +8,11 @@
 
 package io.debezium.server.bigquery;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
@@ -17,9 +20,11 @@ import com.google.cloud.bigquery.PrimaryKey;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.TableConstraints;
+import io.debezium.DebeziumException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -239,6 +244,47 @@ public abstract class BaseRecordConverter implements RecordConverter {
     }
 
     return Schema.of(fields);
+  }
+
+  protected static void handleFieldValue(ObjectNode parentNode, String fieldName, StandardSQLTypeName fieldType, JsonNode value) {
+
+    if (value.isNull()) {
+      return;
+    }
+
+    // Process DEBEZIUM TS_MS values
+    if (TS_MS_FIELDS.contains(fieldName)) {
+      parentNode.replace(fieldName, TextNode.valueOf(Instant.ofEpochMilli(value.longValue()).toString()));
+      return;
+    }
+
+    switch (fieldType) {
+      case JSON:
+        try {
+          parentNode.replace(fieldName, mapper.readTree(value.textValue()));
+        } catch (JsonProcessingException e) {
+          throw new DebeziumException("Failed to process JSON field: " + fieldName + " value: " + value.textValue(), e);
+        }
+        break;
+      case DATE:
+      case DATETIME:
+      case TIME:
+        if (value.isTextual()) {
+          parentNode.replace(fieldName, TextNode.valueOf(removeTrailingZ(value.textValue())));
+        }
+        break;
+      default:
+        // Handle other cases or do nothing
+        break;
+    }
+
+  }
+
+  public static String removeTrailingZ(String input) {
+    if (input != null && input.endsWith("Z")) {
+      return input.substring(0, input.length() - 1);
+    }
+    return input;
   }
 
 }

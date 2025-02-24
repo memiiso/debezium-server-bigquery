@@ -10,6 +10,7 @@ package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
@@ -37,6 +38,29 @@ public class StreamRecordConverter extends BaseRecordConverter {
    */
   @Override
   public JSONObject convert(Schema schema, boolean upsert, boolean upsertKeepDeletes) throws DebeziumException {
+    if (value == null) {
+      return null;
+    }
+
+    // process JSON fields
+    if (schema != null) {
+      for (Field f : schema.getFields()) {
+        if (!value.has(f.getName())) {
+          continue;
+        }
+
+        switch (f.getType().getStandardType()) {
+          case DATE:
+          case DATETIME:
+          case TIME:
+            handleFieldValue((ObjectNode) value, f.getName(), f.getType().getStandardType(), value.get(f.getName()));
+            break;
+          default:
+            break;
+        }
+      }
+    }
+
     Map<String, Object> jsonMap = mapper.convertValue(value, new TypeReference<>() {
     });
     // SET UPSERT meta field `_CHANGE_TYPE`! this additional field allows us to do deletes, updates in bigquery

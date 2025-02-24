@@ -37,11 +37,12 @@ import java.util.Map;
 @DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
 public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
+  public static final Logger LOGGER = LoggerFactory.getLogger(BaseBigqueryTest.class);
+
   @BeforeAll
   public static void setup() {
     bqClient = BigQueryGCP.bigQueryClient();
   }
-  public static final Logger LOGGER = LoggerFactory.getLogger(BaseBigqueryTest.class);
 
   @Test
   public void testSimpleUpload() {

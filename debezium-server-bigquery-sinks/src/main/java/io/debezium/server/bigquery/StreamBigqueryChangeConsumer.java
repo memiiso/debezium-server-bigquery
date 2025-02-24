@@ -9,6 +9,7 @@
 package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
@@ -60,6 +61,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   public static BigQueryWriteClient bigQueryWriteClient;
   TimePartitioning timePartitioning;
   BigQuery bqClient;
+  public static BigQueryWriteSettings bigQueryWriteSettings;
 
   @Inject
   StreamConsumerConfig config;
@@ -88,7 +90,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     timePartitioning =
         TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(config.partitionType())).setField(config.partitionField()).build();
     try {
-      BigQueryWriteSettings bigQueryWriteSettings = ConsumerUtil.bigQueryWriteSettings(config.isBigqueryDevEmulator(), bqClient, config.bigQueryCustomGRPCHost());
+      bigQueryWriteSettings = ConsumerUtil.bigQueryWriteSettings(config.isBigqueryDevEmulator(), bqClient, config.bigQueryCustomGRPCHost());
       bigQueryWriteClient = BigQueryWriteClient.create(bigQueryWriteSettings);
     } catch (IOException e) {
       throw new DebeziumException("Failed to create BigQuery Write Client", e);
@@ -97,11 +99,22 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
   private StreamDataWriter getDataWriter(Table table) {
     try {
+      final String streamOrTableName;
+      if (config.isBigqueryDevEmulator()) {
+        // Workaround!! for emulator https://github.com/goccy/bigquery-emulator/issues/342#issuecomment-2581118253
+        streamOrTableName = String.format("projects/%s/datasets/%s/tables/%s/streams/_default",
+            table.getTableId().getProject(), table.getTableId().getDataset(), table.getTableId().getTable()
+        );
+      } else {
+        TableName tableName = TableName.of(table.getTableId().getProject(), table.getTableId().getDataset(), table.getTableId().getTable());
+        streamOrTableName = tableName.toString();
+      }
+
       StreamDataWriter writer = new StreamDataWriter(
-          TableName.of(table.getTableId().getProject(), table.getTableId().getDataset(), table.getTableId().getTable()),
+          streamOrTableName,
           bigQueryWriteClient,
           config.ignoreUnknownFields(),
-          ConsumerUtil.bigQueryTransportChannelProvider(config.isBigqueryDevEmulator(), config.bigQueryCustomGRPCHost())
+          (InstantiatingGrpcChannelProvider) bigQueryWriteSettings.getTransportChannelProvider()
       );
       writer.initialize();
       return writer;
