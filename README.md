@@ -67,11 +67,29 @@ the [Storage Write API](https://cloud.google.com/bigquery/docs/write-api-streami
 
 ## Shared and Debezium Configs
 
-| Config                                           | Default           | Description                                                                                                |
-|--------------------------------------------------|-------------------|------------------------------------------------------------------------------------------------------------|
-| `debezium.sink.batch.destination-regexp`         | ``                | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
-| `debezium.sink.batch.destination-regexp-replace` | ``                | Regexp Replace part to modify destination                                                                  |
-| `debezium.sink.batch.batch-size-wait`            | `NoBatchSizeWait` | Batch size wait strategy to optimize data files and upload interval. explained below.                      |
+| Config                                                        | Default                                                         | Description                                                                                                |
+|---------------------------------------------------------------|-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| `debezium.sink.batch.destination-regexp`                      | ``                                                              | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
+| `debezium.sink.batch.destination-regexp-replace`              | ``                                                              | Regexp Replace part to modify destination                                                                  |
+| `debezium.sink.batch.batch-size-wait`                         | `NoBatchSizeWait`                                               | Batch size wait strategy to optimize data files and upload interval. explained below.                      |
+| `debezium.source.max.batch.size`                              | `2048`                                                          |                                                                                                            |
+| `debezium.sink.batch.batch-size-wait.max-wait-ms`             | `300000`                                                        |                                                                                                            |
+| `debezium.sink.batch.batch-size-wait.wait-interval-ms`        | `10000`                                                         |                                                                                                            |
+| `debezium.format.value`                                       | `json`                                                          |                                                                                                            |
+| `debezium.format.key`                                         | `json`                                                          |                                                                                                            |
+| `debezium.source.time.precision.mode`                         | `isostring`                                                     |                                                                                                            |
+| `debezium.source.decimal.handling.mode`                       | `double`                                                        |                                                                                                            |
+| `debezium.format.value.schemas.enable`                        | `true`                                                          |                                                                                                            |
+| `debezium.format.key.schemas.enable`                          | `true`                                                          |                                                                                                            |
+| `debezium.source.offset.storage`                              | `io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore` |                                                                                                            |
+| `debezium.source.offset.storage.bigquery.table-name`          | `_debezium_offset_storage`                                      |                                                                                                            |
+| `debezium.source.schema.history.internal`                     | `io.debezium.server.bigquery.history.BigquerySchemaHistory`     |                                                                                                            |
+| `debezium.source.schema.history.internal.bigquery.table-name` | `_debezium_database_history_storage`                            |                                                                                                            |
+| `debezium.transforms`                                         | `unwrap`                                                        |                                                                                                            |
+| `debezium.transforms.unwrap.type`                             | `io.debezium.transforms.ExtractNewRecordState`                  |                                                                                                            |
+| `debezium.transforms.unwrap.add.fields`                       | `op,table,source.ts_ms,db,ts_ms`                                |                                                                                                            |
+| `debezium.transforms.unwrap.delete.handling.mode`             | `rewrite`                                                       |                                                                                                            |
+| `debezium.transforms.unwrap.drop.tombstones`                  | `true`                                                          |                                                                                                            |
 
 ## Data type mapping
 
