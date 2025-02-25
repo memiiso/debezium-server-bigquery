@@ -226,7 +226,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     return TableId.of(config.gcpProject().get(), config.bqDataset().get(), tableName);
   }
 
-
+  // create table if not exists
   private Table createTable(TableId tableId, Schema schema, Clustering clustering, TableConstraints tableConstraints) {
 
     StandardTableDefinition tableDefinition =
@@ -247,6 +247,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     return table;
   }
 
+  // get table, create if not exists, update schema if needed
   private Table getTable(String destination, RecordConverter sampleBqEvent) {
     TableId tableId = getTableId(destination);
     Table table = bqClient.getTable(tableId);
@@ -267,12 +268,12 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
   /**
-   * add new fields to table, using event schema.
+   * Updates the table schema by adding new fields from the updated schema.
    *
-   * @param table
-   * @param updatedSchema
-   * @param destination
-   * @return Table
+   * @param table       The existing BigQuery table.
+   * @param updatedSchema The schema containing potential new fields.
+   * @param destination The destination table name.
+   * @return The updated BigQuery table.
    */
   private Table updateTableSchema(Table table, Schema updatedSchema, String destination) {
 
@@ -298,11 +299,10 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
               .build()
       ).build();
       table = updatedTable.update();
-      LOGGER.info("New columns {} successfully added to {}, refreshing stream writer...", newFields, table.getTableId());
+      LOGGER.info("New fields {} successfully added to {}, refreshing stream writer...", newFields, table.getTableId());
       closeStreamWriter(jsonStreamWriters.get(destination), destination);
       jsonStreamWriters.replace(destination, getDataWriter(table));
-
-      LOGGER.info("New columns {} added to {}", newFields, table.getTableId());
+      LOGGER.info("New fields {} added to {}", newFields, table.getTableId());
     }
 
     return table;
