@@ -40,6 +40,7 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
   @BeforeAll
   public static void setup() throws InterruptedException {
     bqClient = BigQueryDB.bigQueryClient();
+    Thread.sleep(5000);
   }
 
   @Test
