@@ -16,6 +16,7 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableConstraints;
+import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
@@ -72,12 +73,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   @PreDestroy
   void closeStreams() {
     for (Map.Entry<String, StreamDataWriter> sw : jsonStreamWriters.entrySet()) {
-      try {
-        sw.getValue().close(bigQueryWriteClient);
-      } catch (Exception e) {
-        e.printStackTrace();
-        LOGGER.warn("Exception while closing bigquery stream, destination:" + sw.getKey(), e);
-      }
+      closeStreamWriter(sw.getValue(), sw.getKey());
     }
     if (bigQueryWriteClient != null) {
       try {
@@ -100,6 +96,15 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       bigQueryWriteClient = BigQueryWriteClient.create(bigQueryWriteSettings);
     } catch (IOException e) {
       throw new DebeziumException("Failed to create BigQuery Write Client", e);
+    }
+  }
+
+  private void closeStreamWriter(StreamDataWriter writer, String destination) {
+    try {
+      writer.close(bigQueryWriteClient);
+    } catch (Exception e) {
+      e.printStackTrace();
+      LOGGER.warn("Exception while closing bigquery stream, destination:" + destination, e);
     }
   }
 
@@ -222,7 +227,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     return TableId.of(config.gcpProject().get(), config.bqDataset().get(), tableName);
   }
 
-
+  // create table if not exists
   private Table createTable(TableId tableId, Schema schema, Clustering clustering, TableConstraints tableConstraints) {
 
     StandardTableDefinition tableDefinition =
@@ -243,6 +248,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     return table;
   }
 
+  // get table, create if not exists, update schema if needed
   private Table getTable(String destination, RecordConverter sampleBqEvent) {
     TableId tableId = getTableId(destination);
     Table table = bqClient.getTable(tableId);
@@ -263,42 +269,36 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
   /**
-   * add new fields to table, using event schema.
+   * Updates the table schema by adding new fields from the updated schema.
    *
-   * @param table
-   * @param updatedSchema
-   * @param destination
-   * @return Table
+   * @param table       The existing BigQuery table.
+   * @param updatedSchema The schema containing potential new fields.
+   * @param destination The destination table name.
+   * @return The updated BigQuery table.
    */
   private Table updateTableSchema(Table table, Schema updatedSchema, String destination) {
+    Schema currentSchema = table.getDefinition().getSchema();
+    List<Field> tableFields = currentSchema.getFields();
+    List<String> currentFieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());
+    List<Field> newFields = new ArrayList<>();
 
-    List<Field> tableFields = new ArrayList<>(table.getDefinition().getSchema().getFields());
-    List<String> tableFieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());
-
-    boolean newFieldFound = false;
-    StringBuilder newFields = new StringBuilder();
     for (Field field : updatedSchema.getFields()) {
-      if (!tableFieldNames.contains(field.getName())) {
+      if (!currentFieldNames.contains(field.getName())) {
         tableFields.add(field);
-        newFields.append(field);
-        newFieldFound = true;
+        newFields.add(field);
       }
     }
 
-    if (newFieldFound) {
-      LOGGER.warn("Updating table {} with the new fields", table.getTableId());
+    if (!newFields.isEmpty()) {
+      LOGGER.warn("Updating table {} with new fields: {}", table.getTableId(), newFields);
       Schema newSchema = Schema.of(tableFields);
-      final Table updatedTable = table.toBuilder().setDefinition(
-          StandardTableDefinition.newBuilder()
-              .setSchema(newSchema)
-              .build()
-      ).build();
+      TableDefinition newDefinition = table.getDefinition().toBuilder().setSchema(newSchema).build();
+      Table updatedTable = table.toBuilder().setDefinition(newDefinition).build();
       table = updatedTable.update();
-      LOGGER.info("New columns {} successfully added to {}, refreshing stream writer...", newFields, table.getTableId());
-      jsonStreamWriters.get(destination).close(bigQueryWriteClient);
+      LOGGER.info("New fields {} successfully added to {}, refreshing stream writer...", newFields, table.getTableId());
+      closeStreamWriter(jsonStreamWriters.get(destination), destination);
       jsonStreamWriters.replace(destination, getDataWriter(table));
-
-      LOGGER.info("New columns {} added to {}", newFields, table.getTableId());
+      LOGGER.info("New fields {} added to {}", newFields, table.getTableId());
     }
 
     return table;
