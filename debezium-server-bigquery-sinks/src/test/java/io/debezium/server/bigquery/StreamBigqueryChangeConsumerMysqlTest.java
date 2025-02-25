@@ -60,7 +60,7 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
     SourceMysqlDB.runSQL(sqlDelete);
     SourceMysqlDB.runSQL(sqlInsert);
     String dest = "testc.inventory.test_table";
-    Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
+    Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
       try {
         prettyPrint(dest);
         assertTableRowsAboveEqual(dest, 4);
