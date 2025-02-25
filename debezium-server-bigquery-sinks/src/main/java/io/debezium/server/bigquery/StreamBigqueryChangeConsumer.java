@@ -16,6 +16,7 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableConstraints;
+import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
@@ -276,28 +277,23 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
    * @return The updated BigQuery table.
    */
   private Table updateTableSchema(Table table, Schema updatedSchema, String destination) {
+    Schema currentSchema = table.getDefinition().getSchema();
+    List<Field> tableFields = currentSchema.getFields();
+    List<String> currentFieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());
+    List<Field> newFields = new ArrayList<>();
 
-    List<Field> tableFields = new ArrayList<>(table.getDefinition().getSchema().getFields());
-    List<String> tableFieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());
-
-    boolean newFieldFound = false;
-    StringBuilder newFields = new StringBuilder();
     for (Field field : updatedSchema.getFields()) {
-      if (!tableFieldNames.contains(field.getName())) {
+      if (!currentFieldNames.contains(field.getName())) {
         tableFields.add(field);
-        newFields.append(field);
-        newFieldFound = true;
+        newFields.add(field);
       }
     }
 
-    if (newFieldFound) {
-      LOGGER.warn("Updating table {} with the new fields", table.getTableId());
+    if (!newFields.isEmpty()) {
+      LOGGER.warn("Updating table {} with new fields: {}", table.getTableId(), newFields);
       Schema newSchema = Schema.of(tableFields);
-      final Table updatedTable = table.toBuilder().setDefinition(
-          StandardTableDefinition.newBuilder()
-              .setSchema(newSchema)
-              .build()
-      ).build();
+      TableDefinition newDefinition = table.getDefinition().toBuilder().setSchema(newSchema).build();
+      Table updatedTable = table.toBuilder().setDefinition(newDefinition).build();
       table = updatedTable.update();
       LOGGER.info("New fields {} successfully added to {}, refreshing stream writer...", newFields, table.getTableId());
       closeStreamWriter(jsonStreamWriters.get(destination), destination);
