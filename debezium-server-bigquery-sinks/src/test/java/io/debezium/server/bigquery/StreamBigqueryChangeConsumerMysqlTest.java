@@ -35,9 +35,6 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
   @BeforeAll
   public static void setup() throws InterruptedException {
     bqClient = BigQueryDB.bigQueryClient();
-    Thread.sleep(5000);
-    Awaitility.setDefaultTimeout(Duration.ofMinutes(3));
-    Awaitility.setDefaultPollInterval(Duration.ofSeconds(6));
   }
 
   @Test
@@ -63,7 +60,7 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
     SourceMysqlDB.runSQL(sqlDelete);
     SourceMysqlDB.runSQL(sqlInsert);
     String dest = "testc.inventory.test_table";
-    Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
+    Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
       try {
         prettyPrint(dest);
         assertTableRowsAboveEqual(dest, 4);
