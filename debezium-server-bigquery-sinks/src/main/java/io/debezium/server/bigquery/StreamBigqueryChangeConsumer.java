@@ -72,12 +72,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   @PreDestroy
   void closeStreams() {
     for (Map.Entry<String, StreamDataWriter> sw : jsonStreamWriters.entrySet()) {
-      try {
-        sw.getValue().close(bigQueryWriteClient);
-      } catch (Exception e) {
-        e.printStackTrace();
-        LOGGER.warn("Exception while closing bigquery stream, destination:" + sw.getKey(), e);
-      }
+      closeStreamWriter(sw.getValue(), sw.getKey());
     }
     if (bigQueryWriteClient != null) {
       try {
@@ -100,6 +95,15 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       bigQueryWriteClient = BigQueryWriteClient.create(bigQueryWriteSettings);
     } catch (IOException e) {
       throw new DebeziumException("Failed to create BigQuery Write Client", e);
+    }
+  }
+
+  private void closeStreamWriter(StreamDataWriter writer, String destination) {
+    try {
+      writer.close(bigQueryWriteClient);
+    } catch (Exception e) {
+      e.printStackTrace();
+      LOGGER.warn("Exception while closing bigquery stream, destination:" + destination, e);
     }
   }
 
@@ -295,7 +299,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       ).build();
       table = updatedTable.update();
       LOGGER.info("New columns {} successfully added to {}, refreshing stream writer...", newFields, table.getTableId());
-      jsonStreamWriters.get(destination).close(bigQueryWriteClient);
+      closeStreamWriter(jsonStreamWriters.get(destination), destination);
       jsonStreamWriters.replace(destination, getDataWriter(table));
 
       LOGGER.info("New columns {} added to {}", newFields, table.getTableId());
