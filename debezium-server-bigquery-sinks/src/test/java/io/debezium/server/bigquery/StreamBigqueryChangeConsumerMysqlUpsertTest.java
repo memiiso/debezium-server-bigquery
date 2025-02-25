@@ -12,13 +12,11 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.shared.BigQueryDB;
-import io.debezium.server.bigquery.shared.RecordConverterBuilder;
 import io.debezium.server.bigquery.shared.SourceMysqlDB;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
-import jakarta.inject.Inject;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,11 +36,6 @@ import java.util.Map;
 @QuarkusTestResource(value = BigQueryDB.class, restrictToAnnotatedClass = true)
 @TestProfile(StreamBigqueryChangeConsumerMysqlUpsertTest.TestProfile.class)
 public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTest {
-
-  @Inject
-  public RecordConverterBuilder builder;
-  @Inject
-  StreamBigqueryChangeConsumer consumer;
 
   @BeforeAll
   public static void setup() throws InterruptedException {
