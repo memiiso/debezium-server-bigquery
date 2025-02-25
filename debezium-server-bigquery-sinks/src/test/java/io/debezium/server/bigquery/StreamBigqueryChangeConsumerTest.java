@@ -38,9 +38,6 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
   @BeforeAll
   public static void setup() throws InterruptedException {
     bqClient = BigQueryDB.bigQueryClient();
-    Thread.sleep(5000);
-    Awaitility.setDefaultTimeout(Duration.ofMinutes(3));
-    Awaitility.setDefaultPollInterval(Duration.ofSeconds(6));
   }
 
   @Test

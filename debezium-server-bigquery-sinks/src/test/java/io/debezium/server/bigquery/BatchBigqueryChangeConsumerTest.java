@@ -20,8 +20,6 @@ import org.junit.Assert;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -37,15 +35,10 @@ import java.util.Map;
 @DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
 public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
-  public static final Logger LOGGER = LoggerFactory.getLogger(BatchBigqueryChangeConsumerTest.class);
-
   @BeforeAll
   public static void setup() throws InterruptedException {
     bqClient = BigQueryGCP.bigQueryClient();
     dropTables();
-    Thread.sleep(5000);
-    Awaitility.setDefaultTimeout(Duration.ofMinutes(3));
-    Awaitility.setDefaultPollInterval(Duration.ofSeconds(6));
   }
 
   @Test

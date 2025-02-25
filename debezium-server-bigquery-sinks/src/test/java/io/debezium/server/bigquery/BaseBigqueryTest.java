@@ -16,6 +16,8 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.shared.BigQueryTableResultPrinter;
+import io.debezium.server.bigquery.shared.RecordConverterBuilder;
+import jakarta.inject.Inject;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,12 @@ import static io.debezium.server.bigquery.shared.BigQueryDB.BQ_DATASET;
 public class BaseBigqueryTest {
   public static final Logger LOGGER = LoggerFactory.getLogger(BaseBigqueryTest.class);
   public static BigQuery bqClient;
+
+  @Inject
+  public StreamBigqueryChangeConsumer consumer;
+
+  @Inject
+  public RecordConverterBuilder builder;
 
   public static Schema getTableSchema(String destination) throws InterruptedException {
     TableId tableId = getTableId(destination);
