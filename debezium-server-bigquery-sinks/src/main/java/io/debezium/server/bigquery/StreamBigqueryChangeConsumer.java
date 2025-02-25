@@ -9,7 +9,6 @@
 package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
@@ -61,7 +60,6 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   public static BigQueryWriteClient bigQueryWriteClient;
   TimePartitioning timePartitioning;
   BigQuery bqClient;
-  public static BigQueryWriteSettings bigQueryWriteSettings;
 
   @Inject
   StreamConsumerConfig config;
@@ -81,6 +79,14 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
         LOGGER.warn("Exception while closing bigquery stream, destination:" + sw.getKey(), e);
       }
     }
+    if (bigQueryWriteClient != null) {
+      try {
+        bigQueryWriteClient.close();
+      } catch (Exception e) {
+        e.printStackTrace();
+        LOGGER.warn("Exception while closing BigQueryWriteClient", e);
+      }
+    }
   }
 
   public void initialize() throws InterruptedException {
@@ -90,7 +96,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     timePartitioning =
         TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(config.partitionType())).setField(config.partitionField()).build();
     try {
-      bigQueryWriteSettings = ConsumerUtil.bigQueryWriteSettings(config.isBigqueryDevEmulator(), bqClient, config.bigQueryCustomGRPCHost());
+      BigQueryWriteSettings bigQueryWriteSettings = ConsumerUtil.bigQueryWriteSettings(config.isBigqueryDevEmulator(), bqClient, config.bigQueryCustomGRPCHost());
       bigQueryWriteClient = BigQueryWriteClient.create(bigQueryWriteSettings);
     } catch (IOException e) {
       throw new DebeziumException("Failed to create BigQuery Write Client", e);
@@ -113,8 +119,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       StreamDataWriter writer = new StreamDataWriter(
           streamOrTableName,
           bigQueryWriteClient,
-          config.ignoreUnknownFields(),
-          (InstantiatingGrpcChannelProvider) bigQueryWriteSettings.getTransportChannelProvider()
+          config.ignoreUnknownFields()
       );
       writer.initialize();
       return writer;

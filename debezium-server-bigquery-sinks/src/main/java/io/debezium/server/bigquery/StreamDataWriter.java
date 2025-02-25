@@ -2,7 +2,6 @@ package io.debezium.server.bigquery;
 
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.core.FixedExecutorProvider;
-import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.storage.v1.AppendRowsRequest;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
@@ -31,19 +30,16 @@ public class StreamDataWriter {
   private static final int MAX_RECREATE_COUNT = 3;
   private final BigQueryWriteClient client;
   private final Boolean ignoreUnknownFields;
-  private final InstantiatingGrpcChannelProvider instantiatingGrpcChannelProvider;
   private final String streamOrTableName;
   private final Object lock = new Object();
   JsonStreamWriter streamWriter;
   private AtomicInteger recreateCount = new AtomicInteger(0);
 
 
-  public StreamDataWriter(String streamOrTableName, BigQueryWriteClient client,
-                          Boolean ignoreUnknownFields, InstantiatingGrpcChannelProvider instantiatingGrpcChannelProvider)
+  public StreamDataWriter(String streamOrTableName, BigQueryWriteClient client, Boolean ignoreUnknownFields)
       throws DescriptorValidationException, IOException, InterruptedException {
     this.client = client;
     this.ignoreUnknownFields = ignoreUnknownFields;
-    this.instantiatingGrpcChannelProvider = instantiatingGrpcChannelProvider;
     this.streamOrTableName = streamOrTableName;
   }
 
@@ -75,12 +71,15 @@ public class StreamDataWriter {
     return JsonStreamWriter.newBuilder(this.streamOrTableName, client)
         .setIgnoreUnknownFields(ignoreUnknownFields)
         .setExecutorProvider(FixedExecutorProvider.create(Executors.newScheduledThreadPool(100)))
-        .setChannelProvider(instantiatingGrpcChannelProvider)
         //.setEnableConnectionPool(true)
         // If value is missing in json and there is a default value configured on bigquery
         // column, apply the default value to the missing value field.
         .setDefaultMissingValueInterpretation(AppendRowsRequest.MissingValueInterpretation.DEFAULT_VALUE)
         .setRetrySettings(retrySettings)
+        //
+        .setEndpoint(client.getSettings().getEndpoint())
+        .setCredentialsProvider(client.getSettings().getCredentialsProvider())
+        .setChannelProvider(client.getSettings().getTransportChannelProvider())
         .build();
   }
 
