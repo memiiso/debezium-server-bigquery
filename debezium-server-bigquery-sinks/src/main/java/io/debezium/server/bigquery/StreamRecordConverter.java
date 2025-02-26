@@ -54,7 +54,7 @@ public class StreamRecordConverter extends BaseRecordConverter {
             // Nothing todo stream consumer handles JSON type correctly
             break;
           default:
-            handleFieldValue((ObjectNode) value, f.getName(), f.getType().getStandardType(), value.get(f.getName()));
+            handleFieldValue((ObjectNode) value, f, value.get(f.getName()));
             break;
         }
       }

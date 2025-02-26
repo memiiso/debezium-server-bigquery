@@ -65,7 +65,7 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
     SourceMysqlDB.runSQL(sqlInsert);
 
     Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
-      if (consumer.config.isBigqueryDevEmulator()) {
+      if (streamConsumer.config.isBigqueryDevEmulator()) {
         return true;
       }
       try {
@@ -146,7 +146,7 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
         .build();
 
     List<RecordConverter> records = List.of(e1, e2);
-    List<RecordConverter> dedups = consumer.deduplicateBatch(records);
+    List<RecordConverter> dedups = streamConsumer.deduplicateBatch(records);
     Assertions.assertEquals(1, dedups.size());
     Assertions.assertEquals(3L, dedups.get(0).value().get("__source_ts_ms").asLong(0L));
 
@@ -164,7 +164,7 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
         .build();
 
     List<RecordConverter> records2 = List.of(e21, e22);
-    List<RecordConverter> dedups2 = consumer.deduplicateBatch(records2);
+    List<RecordConverter> dedups2 = streamConsumer.deduplicateBatch(records2);
     Assertions.assertEquals(1, dedups2.size());
     Assertions.assertEquals("u", dedups2.get(0).value().get("__op").asText("x"));
   }

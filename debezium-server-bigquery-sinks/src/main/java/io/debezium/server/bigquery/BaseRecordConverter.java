@@ -246,13 +246,23 @@ public abstract class BaseRecordConverter implements RecordConverter {
     return Schema.of(fields);
   }
 
-  protected static void handleFieldValue(ObjectNode parentNode, String fieldName, StandardSQLTypeName fieldType, JsonNode value) {
+  protected static void handleFieldValue(ObjectNode parentNode, Field field, JsonNode value) {
 
     if (value.isNull()) {
       return;
     }
 
-    switch (fieldType) {
+    final String fieldName = field.getName();
+
+    switch (field.getType().getStandardType()) {
+      case STRUCT:
+        for (Field f : field.getSubFields()) {
+          if (!value.has(f.getName())) {
+            continue;
+          }
+          handleFieldValue((ObjectNode) value, f, value.get(f.getName()));
+        }
+        break;
       case JSON:
         try {
           parentNode.replace(fieldName, mapper.readTree(value.textValue()));
