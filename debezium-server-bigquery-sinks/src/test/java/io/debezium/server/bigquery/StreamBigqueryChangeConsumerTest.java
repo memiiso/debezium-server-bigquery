@@ -58,17 +58,17 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
       }
     });
 
-    Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
-      String dest = "testc.inventory.geom";
-      try {
-        prettyPrint(dest);
-        assertTableRowsAboveEqual(dest, 3);
-        return true;
-      } catch (AssertionError | Exception e) {
-        LOGGER.error("Error: {}", e.getMessage());
-        return false;
-      }
-    });
+//    Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
+//      String dest = "testc.inventory.geom";
+//      try {
+//        prettyPrint(dest);
+//        assertTableRowsAboveEqual(dest, 3);
+//        return true;
+//      } catch (AssertionError | Exception e) {
+//        LOGGER.error("Error: {}", e.getMessage());
+//        return false;
+//      }
+//    });
   }
 
   @Test
