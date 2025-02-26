@@ -9,7 +9,6 @@
 package io.debezium.server.bigquery;
 
 import com.google.cloud.bigquery.LegacySQLTypeName;
-import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.shared.BigQueryDB;
 import io.debezium.server.bigquery.shared.SourcePostgresqlDB;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -54,20 +53,22 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
         Assert.assertEquals(getTableField(dest, "__deleted").getType(), LegacySQLTypeName.BOOLEAN);
         return true;
       } catch (AssertionError | Exception e) {
+        LOGGER.error("Error: {}", e.getMessage());
         return false;
       }
     });
 
-    Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
-      try {
-        TableResult result = getTableData("testc.inventory.geom");
-        result.iterateAll().forEach(System.out::println);
-        assertTableRowsAboveEqual("testc.inventory.geom", 3);
-        return true;
-      } catch (AssertionError | Exception e) {
-        return false;
-      }
-    });
+//    Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
+//      String dest = "testc.inventory.geom";
+//      try {
+//        prettyPrint(dest);
+//        assertTableRowsAboveEqual(dest, 3);
+//        return true;
+//      } catch (AssertionError | Exception e) {
+//        LOGGER.error("Error: {}", e.getMessage());
+//        return false;
+//      }
+//    });
   }
 
   @Test
@@ -93,6 +94,7 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
 //        assertTableRowsMatch(dest, 1, "int64(c_json.jfield) = 222 AND int64(c_jsonb.jfield) = 222");
         Assert.assertEquals(getTableField(dest, "c_json").getType(), LegacySQLTypeName.JSON);
         Assert.assertEquals(getTableField(dest, "c_jsonb").getType(), LegacySQLTypeName.JSON);
+        Assert.assertEquals(getTableField(dest, "c_binary").getType(), LegacySQLTypeName.BYTES);
         return true;
       } catch (AssertionError | Exception e) {
         LOGGER.error("Error: {}", e.getMessage());

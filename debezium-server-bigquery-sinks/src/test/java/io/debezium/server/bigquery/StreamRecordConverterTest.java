@@ -14,6 +14,8 @@ import io.debezium.server.bigquery.shared.BigQueryDB;
 import io.debezium.server.bigquery.shared.SourcePostgresqlDB;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import org.json.JSONObject;
+import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -33,7 +35,7 @@ class StreamRecordConverterTest extends BaseBigqueryTest {
   }
 
   @Test
-  public void testValuePayloadWithSchemaAsJsonNode() throws JsonProcessingException {
+  public void testGeographyValue() throws JsonProcessingException {
 
     StreamRecordConverter event = new StreamRecordConverter("test",
         streamConsumer.valDeserializer.deserialize("test", unwrapWithGeomSchema.getBytes()),
@@ -45,6 +47,10 @@ class StreamRecordConverterTest extends BaseBigqueryTest {
     Schema schema = event.tableSchema();
     LOGGER.error("{}", event.tableSchema().toString());
     LOGGER.error("{}", event.convert(schema).toString());
+    JSONObject converted = event.convert(schema);
+    JSONObject convertedG = (JSONObject) converted.get("g");
+    Assert.assertEquals(convertedG.get("srid"), 123);
+    Assert.assertEquals("d35d35d34d34d34d34d34d34d34d34d347f4ddfd34d34d34d34d34d347f4dd", convertedG.get("wkb"));
   }
 
 }
