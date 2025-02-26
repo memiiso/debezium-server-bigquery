@@ -262,6 +262,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
           }
           handleFieldValue((ObjectNode) value, f, value.get(f.getName()));
         }
+        break;
       case JSON:
         try {
           parentNode.replace(fieldName, mapper.readTree(value.textValue()));
