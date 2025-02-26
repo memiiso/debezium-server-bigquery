@@ -46,7 +46,7 @@ public class BatchRecordConverter extends BaseRecordConverter {
             continue;
           }
           // handle special values
-          handleFieldValue((ObjectNode) value, f.getName(), f.getType().getStandardType(), value.get(f.getName()));
+          handleFieldValue((ObjectNode) value, f, value.get(f.getName()));
         }
       }
 

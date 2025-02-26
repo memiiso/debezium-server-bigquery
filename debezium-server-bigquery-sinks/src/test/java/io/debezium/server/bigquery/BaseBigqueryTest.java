@@ -39,7 +39,7 @@ public class BaseBigqueryTest {
   public static BigQuery bqClient;
 
   @Inject
-  public StreamBigqueryChangeConsumer consumer;
+  public StreamBigqueryChangeConsumer streamConsumer;
 
   @Inject
   public RecordConverterBuilder builder;

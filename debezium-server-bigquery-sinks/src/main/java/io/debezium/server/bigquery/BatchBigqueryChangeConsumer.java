@@ -176,8 +176,7 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
         mapper.readTree(getBytes(e.value())).get("schema"),
         e.key() == null ? null : mapper.readTree(getBytes(e.key())).get("schema"),
         debeziumConfig
-    ) {
-    };
+    );
   }
 
 }
