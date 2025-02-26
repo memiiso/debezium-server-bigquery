@@ -255,8 +255,6 @@ public abstract class BaseRecordConverter implements RecordConverter {
     final String fieldName = field.getName();
 
     switch (field.getType().getStandardType()) {
-      case GEOGRAPHY:
-        LOGGER.error("GEOGRAPHY field: {} {} {}", parentNode, fieldName, value);
       case STRUCT:
         for (Field f : field.getSubFields()) {
           if (!value.has(f.getName())) {
