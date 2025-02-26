@@ -11,6 +11,7 @@ package io.debezium.server.bigquery;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.BinaryNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.cloud.bigquery.Clustering;
@@ -21,11 +22,14 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.TableConstraints;
 import io.debezium.DebeziumException;
+import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -90,14 +94,14 @@ public abstract class BaseRecordConverter implements RecordConverter {
       switch (fieldType) {
         case "struct":
           switch (fieldTypeName) {
-//            case "io.debezium.data.geometry.Geometry":
-//              //  io.debezium.data.geometry.Geometry
-//              //  Contains a structure with two fields:
-//              //  srid (INT32: spatial reference system ID that defines the type of geometry object stored in the structure
-//              //  wkb (BYTES): binary representation of the geometry object encoded in the Well-Known-Binary (wkb) format. See the Open Geospatial Consortium for more details.
-//              List<Field> geometryFields = List.of(Field.of("srid", StandardSQLTypeName.INT64), Field.of("wkb", StandardSQLTypeName.GEOGRAPHY));
-//              fields.add(Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(geometryFields)).build());
-//              break;
+            case "io.debezium.data.geometry.Geometry":
+              //  io.debezium.data.geometry.Geometry
+              //  Contains a structure with two fields:
+              //  srid (INT32: spatial reference system ID that defines the type of geometry object stored in the structure
+              //  wkb (BYTES): binary representation of the geometry object encoded in the Well-Known-Binary (wkb) format. See the Open Geospatial Consortium for more details.
+              List<Field> geometryFields = List.of(Field.of("srid", StandardSQLTypeName.INT64), Field.of("wkb", StandardSQLTypeName.GEOGRAPHY));
+              fields.add(Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(geometryFields)).build());
+              break;
             default:
               // recursive call for nested fields
               ArrayList<Field> subFields = schemaFields(jsonSchemaFieldNode);
@@ -255,9 +259,37 @@ public abstract class BaseRecordConverter implements RecordConverter {
     final String fieldName = field.getName();
 
     switch (field.getType().getStandardType()) {
+      case BYTES:
+        if (value.isTextual()) {
+          try {
+            parentNode.replace(fieldName, BinaryNode.valueOf(value.binaryValue()));
+          } catch (IOException e) {
+            throw new DebeziumException("Failed to process BYTES field: " + fieldName + " value: " + value.textValue(), e);
+          }
+        }
+        break;
+      case GEOGRAPHY:
+        if (value.isBinary()) {
+          try {
+            String hexString = Hex.encodeHexString(value.binaryValue());
+            parentNode.replace(fieldName, TextNode.valueOf(hexString));
+            break;
+          } catch (IOException e) {
+            throw new DebeziumException("Failed to process GEOGRAPHY field: " + fieldName + " value: " + value.textValue(), e);
+          }
+        }
+        if (value.isTextual()) {
+          String hexString = Hex.encodeHexString(Base64.getDecoder().decode(value.textValue()));
+          parentNode.replace(fieldName, TextNode.valueOf(hexString));
+          break;
+        }
+        break;
       case STRUCT:
         for (Field f : field.getSubFields()) {
           if (!value.has(f.getName())) {
+            continue;
+          }
+          if (value.get(f.getName()) == null || value.get(f.getName()).isNull()) {
             continue;
           }
           handleFieldValue((ObjectNode) value, f, value.get(f.getName()));

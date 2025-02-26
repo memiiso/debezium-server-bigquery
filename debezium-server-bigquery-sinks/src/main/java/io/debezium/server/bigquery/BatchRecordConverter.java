@@ -34,7 +34,7 @@ public class BatchRecordConverter extends BaseRecordConverter {
   @Override
   public String convert(Schema schema, boolean upsert, boolean upsertKeepDeletes) throws DebeziumException {
 
-    if (value == null) {
+    if (value == null || value.isNull()) {
       return null;
     }
 

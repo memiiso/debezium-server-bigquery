@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.StandardSQLTypeName;
 import io.debezium.DebeziumException;
 import org.json.JSONObject;
 
@@ -38,7 +37,7 @@ public class StreamRecordConverter extends BaseRecordConverter {
    */
   @Override
   public JSONObject convert(Schema schema, boolean upsert, boolean upsertKeepDeletes) throws DebeziumException {
-    if (value == null) {
+    if (value == null || value.isNull()) {
       return null;
     }
 
@@ -76,13 +75,4 @@ public class StreamRecordConverter extends BaseRecordConverter {
     return new JSONObject(jsonMap);
   }
 
-  @Override
-  protected Field schemaPrimitiveField(String fieldType, String fieldName, String fieldTypeName) {
-    switch (fieldType) {
-      case "bytes":
-        return Field.of(fieldName, StandardSQLTypeName.STRING);
-      default:
-        return super.schemaPrimitiveField(fieldType, fieldName, fieldTypeName);
-    }
-  }
 }
