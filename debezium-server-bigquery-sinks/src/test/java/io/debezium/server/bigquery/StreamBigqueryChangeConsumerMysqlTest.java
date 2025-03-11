@@ -47,8 +47,7 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
         " c_id2 INTEGER ," +
         " c_data TEXT," +
         " c_text TEXT," +
-        " c_varchar VARCHAR(1666) ," +
-        " PRIMARY KEY (c_id, c_id2)" +
+        " c_varchar VARCHAR(1666) " +
         " );";
     SourceMysqlDB.runSQL(createTable);
     String sqlInsert =
@@ -80,6 +79,7 @@ public class StreamBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
     public Map<String, String> getConfigOverrides() {
       Map<String, String> config = new HashMap<>();
       config.put("debezium.sink.type", "bigquerystream");
+      config.put("debezium.sink.bigquerystream.upsert", "false");
       config.put("debezium.sink.bigquerystream.allow-field-addition", "true");
       config.put("debezium.source.table.include.list", "inventory.test_table");
       return config;
