@@ -60,8 +60,6 @@ public abstract class BaseRecordConverter implements RecordConverter {
 
   public BaseRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema, DebeziumConfig debeziumConfig) {
     this.destination = destination;
-    // @TODO process values. ts_ms values etc...
-    // TODO add field if exists backward compatible!
     this.value = value;
     this.key = key;
     this.valueSchema = valueSchema;
@@ -289,14 +287,8 @@ public abstract class BaseRecordConverter implements RecordConverter {
         }
         return switch (fieldTypeName) {
           case "io.debezium.time.Date" -> Field.of(fieldName, StandardSQLTypeName.DATE);
-          // NOTE automatic conversion not supported by batch load! it expects string datetime value!
-          // Caused by: io.grpc.StatusRuntimeException: INVALID_ARGUMENT:
-          // Cannot return an invalid datetime value of 1562639337000 microseconds relative to the Unix epoch.
-          // The range of valid datetime values is [0001-01-01 00:00:00, 9999-12-31 23:59:59.999999] on field c_timestamp0.
-          // NOTE automatic conversion not supported by batch load! it expects string datetime value!
           case "io.debezium.time.Timestamp" -> Field.of(fieldName, StandardSQLTypeName.INT64);
           case "io.debezium.time.MicroTimestamp" -> Field.of(fieldName, StandardSQLTypeName.INT64);
-          // NOTE automatic conversion not supported by batch load! it expects string datetime value!
           case "io.debezium.time.NanoTimestamp" -> Field.of(fieldName, StandardSQLTypeName.INT64);
           default -> Field.of(fieldName, StandardSQLTypeName.INT64);
         };
@@ -319,7 +311,6 @@ public abstract class BaseRecordConverter implements RecordConverter {
           case "io.debezium.time.IsoTime" -> Field.of(fieldName, StandardSQLTypeName.TIME);
           case "io.debezium.data.Json" -> Field.of(fieldName, StandardSQLTypeName.JSON);
           case "io.debezium.time.ZonedTimestamp" -> Field.of(fieldName, StandardSQLTypeName.TIMESTAMP);
-          // Invalid time string "12:05:11Z" Field: c_time; Value: 12:05:11Z
           case "io.debezium.time.ZonedTime" -> Field.of(fieldName, StandardSQLTypeName.TIME);
           default -> Field.of(fieldName, StandardSQLTypeName.STRING);
         };
