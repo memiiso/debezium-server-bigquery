@@ -49,6 +49,8 @@ public abstract class BaseRecordConverter implements RecordConverter {
   protected static final ObjectMapper mapper = new ObjectMapper();
   protected static final String CHANGE_TYPE_PSEUDO_COLUMN = "_CHANGE_TYPE";
 
+  protected static final String REGEX_TEMPORAL_VALUE_ENDS_WITH_Z = "\\d+Z$";
+
   protected final String destination;
   protected final JsonNode value;
   protected final JsonNode key;
@@ -119,62 +121,11 @@ public abstract class BaseRecordConverter implements RecordConverter {
     return fields;
   }
 
-  protected Field schemaPrimitiveField(String fieldType, String fieldName, String fieldTypeName) {
-    switch (fieldType) {
-      case "int8":
-      case "int16":
-      case "int32":
-      case "int64":
-        if (TS_MS_FIELDS.contains(fieldName)) {
-          return Field.of(fieldName, StandardSQLTypeName.TIMESTAMP);
-        }
-        return switch (fieldTypeName) {
-          case "io.debezium.time.Date" -> Field.of(fieldName, StandardSQLTypeName.DATE);
-          // NOTE automatic conversion not supported by batch load! it expects string datetime value!
-          // Caused by: io.grpc.StatusRuntimeException: INVALID_ARGUMENT:
-          // Cannot return an invalid datetime value of 1562639337000 microseconds relative to the Unix epoch.
-          // The range of valid datetime values is [0001-01-01 00:00:00, 9999-12-31 23:59:59.999999] on field c_timestamp0.
-          // NOTE automatic conversion not supported by batch load! it expects string datetime value!
-          case "io.debezium.time.Timestamp" -> Field.of(fieldName, StandardSQLTypeName.INT64);
-          case "io.debezium.time.MicroTimestamp" -> Field.of(fieldName, StandardSQLTypeName.INT64);
-          // NOTE automatic conversion not supported by batch load! it expects string datetime value!
-          case "io.debezium.time.NanoTimestamp" -> Field.of(fieldName, StandardSQLTypeName.INT64);
-          default -> Field.of(fieldName, StandardSQLTypeName.INT64);
-        };
-      case "float8":
-      case "float16":
-      case "float32":
-      case "float64":
-        return Field.of(fieldName, StandardSQLTypeName.FLOAT64);
-      case "double":
-        return Field.of(fieldName, StandardSQLTypeName.FLOAT64);
-      case "boolean":
-        return Field.of(fieldName, StandardSQLTypeName.BOOL);
-      case "string":
-        if (BOOLEAN_FIELDS.contains(fieldName)) {
-          return Field.of(fieldName, StandardSQLTypeName.BOOL);
-        }
-        return switch (fieldTypeName) {
-          case "io.debezium.time.IsoDate" -> Field.of(fieldName, StandardSQLTypeName.DATE);
-          case "io.debezium.time.IsoTimestamp" -> Field.of(fieldName, StandardSQLTypeName.DATETIME);
-          case "io.debezium.time.IsoTime" -> Field.of(fieldName, StandardSQLTypeName.TIME);
-          case "io.debezium.data.Json" -> Field.of(fieldName, StandardSQLTypeName.JSON);
-          case "io.debezium.time.ZonedTimestamp" -> Field.of(fieldName, StandardSQLTypeName.TIMESTAMP);
-          // Invalid time string "12:05:11Z" Field: c_time; Value: 12:05:11Z
-          case "io.debezium.time.ZonedTime" -> Field.of(fieldName, StandardSQLTypeName.STRING);
-          default -> Field.of(fieldName, StandardSQLTypeName.STRING);
-        };
-      case "bytes":
-        return Field.of(fieldName, StandardSQLTypeName.BYTES);
-      case "array":
-        return Field.of(fieldName, StandardSQLTypeName.ARRAY);
-      case "map":
-        return Field.of(fieldName, StandardSQLTypeName.STRUCT);
-      default:
-        // default to String type
-        return Field.of(fieldName, StandardSQLTypeName.STRING);
+  public static String removeTrailingZ(String input) {
+    if (input != null && !input.isEmpty() && input.strip().matches(REGEX_TEMPORAL_VALUE_ENDS_WITH_Z)) {
+      return input.strip().substring(0, input.length() - 1);
     }
-
+    return input;
   }
 
   protected ArrayList<String> keyFields() {
@@ -327,11 +278,62 @@ public abstract class BaseRecordConverter implements RecordConverter {
     }
   }
 
-  public static String removeTrailingZ(String input) {
-    if (input != null && input.endsWith("Z")) {
-      return input.substring(0, input.length() - 1);
+  protected Field schemaPrimitiveField(String fieldType, String fieldName, String fieldTypeName) {
+    switch (fieldType) {
+      case "int8":
+      case "int16":
+      case "int32":
+      case "int64":
+        if (TS_MS_FIELDS.contains(fieldName)) {
+          return Field.of(fieldName, StandardSQLTypeName.TIMESTAMP);
+        }
+        return switch (fieldTypeName) {
+          case "io.debezium.time.Date" -> Field.of(fieldName, StandardSQLTypeName.DATE);
+          // NOTE automatic conversion not supported by batch load! it expects string datetime value!
+          // Caused by: io.grpc.StatusRuntimeException: INVALID_ARGUMENT:
+          // Cannot return an invalid datetime value of 1562639337000 microseconds relative to the Unix epoch.
+          // The range of valid datetime values is [0001-01-01 00:00:00, 9999-12-31 23:59:59.999999] on field c_timestamp0.
+          // NOTE automatic conversion not supported by batch load! it expects string datetime value!
+          case "io.debezium.time.Timestamp" -> Field.of(fieldName, StandardSQLTypeName.INT64);
+          case "io.debezium.time.MicroTimestamp" -> Field.of(fieldName, StandardSQLTypeName.INT64);
+          // NOTE automatic conversion not supported by batch load! it expects string datetime value!
+          case "io.debezium.time.NanoTimestamp" -> Field.of(fieldName, StandardSQLTypeName.INT64);
+          default -> Field.of(fieldName, StandardSQLTypeName.INT64);
+        };
+      case "float8":
+      case "float16":
+      case "float32":
+      case "float64":
+        return Field.of(fieldName, StandardSQLTypeName.FLOAT64);
+      case "double":
+        return Field.of(fieldName, StandardSQLTypeName.FLOAT64);
+      case "boolean":
+        return Field.of(fieldName, StandardSQLTypeName.BOOL);
+      case "string":
+        if (BOOLEAN_FIELDS.contains(fieldName)) {
+          return Field.of(fieldName, StandardSQLTypeName.BOOL);
+        }
+        return switch (fieldTypeName) {
+          case "io.debezium.time.IsoDate" -> Field.of(fieldName, StandardSQLTypeName.DATE);
+          case "io.debezium.time.IsoTimestamp" -> Field.of(fieldName, StandardSQLTypeName.DATETIME);
+          case "io.debezium.time.IsoTime" -> Field.of(fieldName, StandardSQLTypeName.TIME);
+          case "io.debezium.data.Json" -> Field.of(fieldName, StandardSQLTypeName.JSON);
+          case "io.debezium.time.ZonedTimestamp" -> Field.of(fieldName, StandardSQLTypeName.TIMESTAMP);
+          // Invalid time string "12:05:11Z" Field: c_time; Value: 12:05:11Z
+          case "io.debezium.time.ZonedTime" -> Field.of(fieldName, StandardSQLTypeName.TIME);
+          default -> Field.of(fieldName, StandardSQLTypeName.STRING);
+        };
+      case "bytes":
+        return Field.of(fieldName, StandardSQLTypeName.BYTES);
+      case "array":
+        return Field.of(fieldName, StandardSQLTypeName.ARRAY);
+      case "map":
+        return Field.of(fieldName, StandardSQLTypeName.STRUCT);
+      default:
+        // default to String type
+        return Field.of(fieldName, StandardSQLTypeName.STRING);
     }
-    return input;
+
   }
 
 }
