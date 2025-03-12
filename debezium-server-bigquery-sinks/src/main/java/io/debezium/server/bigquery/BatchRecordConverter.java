@@ -25,7 +25,7 @@ public class BatchRecordConverter extends BaseRecordConverter {
   }
 
   /**
-   * Used by `bigquerybatch` {@link BatchBigqueryChangeConsumer} consumer.
+   * Used by `bigquerybatch` {@link BatchBigqueryChangeConsumer} consumer to convert debezium event to json string.
    *
    * @param schema Bigquery table schema
    * @return returns Debezium event as a single line json string
@@ -39,13 +39,12 @@ public class BatchRecordConverter extends BaseRecordConverter {
     }
 
     try {
-      // process JSON fields
+      // process JSON event field values, handle data values
       if (schema != null) {
         for (Field f : schema.getFields()) {
           if (!value.has(f.getName())) {
             continue;
           }
-          // handle special values
           handleFieldValue((ObjectNode) value, f, value.get(f.getName()));
         }
       }

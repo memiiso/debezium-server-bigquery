@@ -87,6 +87,8 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
         Assert.assertEquals(getTableField(dest, "c_timestamptz").getType(), LegacySQLTypeName.TIMESTAMP);
         Assert.assertEquals(getTableField(dest, "c_timestamp5").getType(), LegacySQLTypeName.DATETIME);
         Assert.assertEquals(getTableField(dest, "c_date").getType(), LegacySQLTypeName.DATE);
+        Assert.assertEquals(getTableField(dest, "c_time").getType(), LegacySQLTypeName.TIME);
+        Assert.assertEquals(getTableField(dest, "c_time_whtz").getType(), LegacySQLTypeName.TIME);
         // TODO disabled because emulator has problem with DATE values
 //        assertTableRowsMatch(dest, 1, "c_date = DATE('2017-09-15')");
 //        assertTableRowsMatch(dest, 1, "c_date = DATE('2017-02-10')");

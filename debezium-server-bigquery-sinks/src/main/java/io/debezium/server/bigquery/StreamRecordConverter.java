@@ -41,7 +41,7 @@ public class StreamRecordConverter extends BaseRecordConverter {
       return null;
     }
 
-    // process JSON fields
+    // process JSON event field values, handle data values
     if (schema != null) {
       for (Field f : schema.getFields()) {
         if (!value.has(f.getName())) {
@@ -50,7 +50,7 @@ public class StreamRecordConverter extends BaseRecordConverter {
 
         switch (f.getType().getStandardType()) {
           case JSON:
-            // Nothing todo stream consumer handles JSON type correctly
+            // Nothing todo stream consumer handles JSON type correctly by default
             break;
           default:
             handleFieldValue((ObjectNode) value, f, value.get(f.getName()));
