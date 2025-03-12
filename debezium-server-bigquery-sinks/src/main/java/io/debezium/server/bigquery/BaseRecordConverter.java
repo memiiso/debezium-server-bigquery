@@ -49,7 +49,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
   protected static final ObjectMapper mapper = new ObjectMapper();
   protected static final String CHANGE_TYPE_PSEUDO_COLUMN = "_CHANGE_TYPE";
 
-  protected static final String REGEX_TEMPORAL_VALUE_ENDS_WITH_Z = "\\d+Z$";
+  protected static final String REGEX_TEMPORAL_VALUE_ENDS_WITH_Z = ".*\\d+Z$";
 
   protected final String destination;
   protected final JsonNode value;
