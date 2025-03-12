@@ -121,7 +121,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
     return fields;
   }
 
-  public static String removeTrailingZ(String input) {
+  public static String removeTemporalValueTrailingZ(String input) {
     if (input != null && !input.isEmpty() && input.strip().matches(REGEX_TEMPORAL_VALUE_ENDS_WITH_Z)) {
       return input.strip().substring(0, input.length() - 1);
     }
@@ -259,7 +259,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
       case DATETIME:
       case TIME:
         if (value.isTextual()) {
-          parentNode.replace(fieldName, TextNode.valueOf(removeTrailingZ(value.textValue())));
+          parentNode.replace(fieldName, TextNode.valueOf(removeTemporalValueTrailingZ(value.textValue())));
         }
         break;
       case TIMESTAMP:
