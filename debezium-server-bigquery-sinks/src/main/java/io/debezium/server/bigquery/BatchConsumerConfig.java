@@ -1,5 +1,6 @@
 package io.debezium.server.bigquery;
 
+import com.google.cloud.bigquery.JobInfo;
 import io.quarkus.runtime.annotations.ConfigRoot;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
@@ -29,11 +30,11 @@ public interface BatchConsumerConfig {
 
   @WithName("debezium.sink.bigquerybatch.create-disposition")
   @WithDefault("CREATE_IF_NEEDED")
-  String createDisposition();
+  JobInfo.CreateDisposition createDisposition();
 
   @WithName("debezium.sink.bigquerybatch.writeDisposition")
   @WithDefault("WRITE_APPEND")
-  String writeDisposition();
+  JobInfo.WriteDisposition writeDisposition();
 
   @WithName("debezium.sink.bigquerybatch.partition-field")
   @WithDefault("__ts_ms")

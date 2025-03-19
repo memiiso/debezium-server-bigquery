@@ -98,13 +98,14 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
       // into a table with a {@link com.google.cloud.WriteChannel}
       WriteChannelConfiguration.Builder wCCBuilder = WriteChannelConfiguration
           .newBuilder(tableId, FormatOptions.json())
-          .setWriteDisposition(JobInfo.WriteDisposition.valueOf(config.writeDisposition()))
+          .setWriteDisposition((config.writeDisposition()))
           .setClustering(clustering)
           .setSchema(schema)
           .setTimePartitioning(timePartitioning)
           .setSchemaUpdateOptions(schemaUpdateOptions)
-          .setCreateDisposition(JobInfo.CreateDisposition.valueOf(config.createDisposition()))
-          .setMaxBadRecords(0);
+          .setCreateDisposition(config.createDisposition())
+          .setMaxBadRecords(0)
+          .setCreateSession(true);
 
       //WriteChannel implementation to stream data into a BigQuery table. 
       try (TableDataWriteChannel writer = bqClient.writer(wCCBuilder.build())) {
@@ -149,13 +150,18 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
       return numRecords;
 
     } catch (BigQueryException be) {
-      StringBuilder err = new StringBuilder("Failed to load data:");
-      if (be.getErrors() != null) {
+      StringBuilder err = new StringBuilder("Failed to load data: ");
+      if (be.getErrors() == null || be.getErrors().isEmpty()) {
+        err.append(be.getMessage());
+      } else {
         for (BigQueryError ber : be.getErrors()) {
-          err.append("\n").append(ber.getMessage());
+          err.append("\n\tReason: ").append(ber.getReason());
+          err.append("\n\tLocation: ").append(ber.getLocation());
+          err.append("\n\tMessage: ").append(ber.getMessage());
         }
       }
       throw new DebeziumException(err.toString(), be);
+
     } catch (InterruptedException | IOException e) {
       e.printStackTrace();
       throw new DebeziumException(e);
