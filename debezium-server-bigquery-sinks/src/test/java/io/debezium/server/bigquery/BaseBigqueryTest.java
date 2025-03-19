@@ -163,7 +163,7 @@ public class BaseBigqueryTest {
 
   public static void assertTableRowsAboveEqual(String dest, long expectedRows, String filter) throws InterruptedException {
     TableResult tableResult = getTableData(dest, filter);
-    Assert.assertTrue("Total rows didn't match! filter:" + filter, tableResult.getTotalRows() >= expectedRows);
+    Assert.assertTrue("Total rows:" + tableResult.getTotalRows() + " expected:" + expectedRows + " didn't match! filter:" + filter, tableResult.getTotalRows() >= expectedRows);
   }
 
 
