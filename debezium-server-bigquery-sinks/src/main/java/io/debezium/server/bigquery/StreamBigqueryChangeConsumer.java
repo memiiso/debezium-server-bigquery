@@ -41,7 +41,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of a Debezium change consumer that delivers events to BigQuery tables in a streaming manner.
@@ -129,7 +128,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       writer.initialize();
       return writer;
     } catch (DescriptorValidationException | IOException | InterruptedException e) {
-      throw new DebeziumException("Failed to initialize stream writer for table " + table.getTableId(), e);
+      throw new DebeziumException("Failed to initialize stream writer for table " + table.getGeneratedId(), e);
     }
   }
 
@@ -240,7 +239,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     TableInfo tableInfo =
         TableInfo.newBuilder(tableId, tableDefinition).build();
     Table table = bqClient.create(tableInfo);
-    LOGGER.warn("Created table {} PK {}", table.getTableId(), tableConstraints.getPrimaryKey());
+    LOGGER.warn("Created table {} PK {}", table.getGeneratedId(), tableConstraints.getPrimaryKey());
     // NOTE @TODO ideally we should wait here for streaming cache to update with the new table information 
     // but seems like there is no proper way to wait... 
     // Without wait consumer fails
@@ -278,8 +277,8 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
    */
   private Table updateTableSchema(Table table, Schema updatedSchema, String destination) {
     Schema currentSchema = table.getDefinition().getSchema();
-    List<Field> tableFields = currentSchema.getFields();
-    List<String> currentFieldNames = tableFields.stream().map(Field::getName).collect(Collectors.toList());
+    List<Field> tableFields = new ArrayList<>(currentSchema.getFields());
+    List<String> currentFieldNames = currentSchema.getFields().stream().map(Field::getName).toList();
     List<Field> newFields = new ArrayList<>();
 
     for (Field field : updatedSchema.getFields()) {
@@ -290,15 +289,14 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     }
 
     if (!newFields.isEmpty()) {
-      LOGGER.warn("Updating table {} with new fields: {}", table.getTableId(), newFields);
+      LOGGER.warn("Adding new fields to table {} fields:{}", table.getGeneratedId(), newFields);
       Schema newSchema = Schema.of(tableFields);
       TableDefinition newDefinition = table.getDefinition().toBuilder().setSchema(newSchema).build();
-      Table updatedTable = table.toBuilder().setDefinition(newDefinition).build();
-      table = updatedTable.update();
-      LOGGER.info("New fields {} successfully added to {}, refreshing stream writer...", newFields, table.getTableId());
+      table = table.toBuilder().setDefinition(newDefinition).build().update();
+      LOGGER.info("New fields successfully added to table {}", table.getGeneratedId());
       closeStreamWriter(jsonStreamWriters.get(destination), destination);
       jsonStreamWriters.replace(destination, getDataWriter(table));
-      LOGGER.info("New fields {} added to {}", newFields, table.getTableId());
+      LOGGER.info("Stream writer of the table is updated with the new schema");
     }
 
     return table;
