@@ -3,6 +3,7 @@ package io.debezium.server.bigquery;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.core.FixedExecutorProvider;
 import com.google.api.gax.retrying.RetrySettings;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.storage.v1.AppendRowsRequest;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
@@ -13,12 +14,15 @@ import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.rpc.Status;
 import io.debezium.DebeziumException;
 import org.json.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.threeten.bp.Duration;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -27,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * for adding data in JSON format and handling potential errors during the write process.
  */
 public class StreamDataWriter {
+  private static final Logger LOGGER = LoggerFactory.getLogger(StreamDataWriter.class);
   private static final int MAX_RECREATE_COUNT = 3;
   private final BigQueryWriteClient client;
   private final Boolean ignoreUnknownFields;
@@ -68,7 +73,7 @@ public class StreamDataWriter {
     // For more information about JsonStreamWriter, see:
     // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/JsonStreamWriter.html
 
-    return JsonStreamWriter.newBuilder(this.streamOrTableName, client)
+    JsonStreamWriter streamWriter = JsonStreamWriter.newBuilder(this.streamOrTableName, client)
         .setIgnoreUnknownFields(ignoreUnknownFields)
         .setExecutorProvider(FixedExecutorProvider.create(Executors.newScheduledThreadPool(100)))
         //.setEnableConnectionPool(true)
@@ -81,6 +86,8 @@ public class StreamDataWriter {
         .setCredentialsProvider(client.getSettings().getCredentialsProvider())
         .setChannelProvider(client.getSettings().getTransportChannelProvider())
         .build();
+    ensureStreamExists(streamWriter.getStreamName());
+    return streamWriter;
   }
 
 
@@ -145,5 +152,31 @@ public class StreamDataWriter {
       streamWriter.close();
       client.finalizeWriteStream(streamWriter.getStreamName());
     }
+  }
+
+  private void ensureStreamExists(String streamName) {
+    long retryIntervalSeconds = 2;
+    long startTime = System.currentTimeMillis();
+    long endTime = startTime + TimeUnit.SECONDS.toMillis(15);
+
+    while (System.currentTimeMillis() < endTime) {
+      try {
+        TimeUnit.SECONDS.sleep(retryIntervalSeconds);
+        client.getWriteStream(streamName);
+        LOGGER.debug("Stream {} exists.", streamName);
+        return;
+      } catch (BigQueryException e) {
+        if (e.getCode() == 404) {
+          LOGGER.warn("Stream {} does not exist", streamName);
+        } else {
+          LOGGER.warn("Error checking if stream exists for {}: {}", streamName, e.getMessage());
+        }
+      } catch (Exception e) {
+        LOGGER.warn("Error checking if stream exists for {}: {}", streamName, e.getMessage());
+      }
+      LOGGER.warn("Waiting {} seconds before checking again.", retryIntervalSeconds);
+    }
+
+    throw new DebeziumException("Timed out waiting for stream " + streamName + " to exist.");
   }
 }

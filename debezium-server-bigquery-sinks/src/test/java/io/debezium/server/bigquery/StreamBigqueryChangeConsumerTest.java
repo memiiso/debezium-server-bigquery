@@ -39,7 +39,6 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
   @BeforeAll
   public static void setup() throws InterruptedException {
     bqClient = BigQueryDB.bigQueryClient();
-//    truncateTables();
     Thread.sleep(5000);
   }
 
@@ -109,17 +108,17 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
   }
 
   @Test
-  @Disabled
+  @Disabled // needs GCP for testing. doesnt work with emulator
   public void testSchemaChanges() throws Exception {
     String dest = "testc.inventory.customers";
     // apply stream data every 2 seconds
     TableId tableId = getTableId(dest);
     String query2 = "ALTER table  " + tableId.getDataset() + "." + tableId.getTable() + " SET OPTIONS " +
         "(max_staleness = INTERVAL '0-0 0 0:0:2' YEAR TO SECOND);";
-    bqClient.query(QueryJobConfiguration.newBuilder(query2).build());
     //
     Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
       try {
+        bqClient.query(QueryJobConfiguration.newBuilder(query2).build());
         assertTableRowsAboveEqual(dest, 4);
         return true;
       } catch (AssertionError | Exception e) {
@@ -144,11 +143,11 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
       try {
         prettyPrint(dest);
         assertTableRowsAboveEqual(dest, 8);
-        assertTableRowsMatch(dest, 2, "__op = 'u'");
+        assertTableRowsAboveEqual(dest, 3, "__op = 'u'");
         assertTableRowsMatch(dest, 1, "first_name = 'SallyUSer2'");
         assertTableRowsMatch(dest, 1, "last_name is null");
         assertTableRowsMatch(dest, 1, "id = 1004 AND __op = 'd'");
-//        assertTableRowsMatch(dest, 1, "test_varchar_column = 'value1'");
+        assertTableRowsMatch(dest, 1, "test_varchar_column = 'value1'");
         return true;
       } catch (AssertionError | Exception e) {
         LOGGER.error("Error: {}", e.getMessage());
@@ -165,7 +164,7 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
         prettyPrint(dest);
         assertTableRowsAboveEqual(dest, 9);
         assertTableRowsMatch(dest, 1, "first_name = 'User3'");
-//        assertTableRowsMatch(dest, 1, "test_varchar_column = 'test_varchar_value3'");
+        assertTableRowsMatch(dest, 1, "test_varchar_column = 'test_varchar_value3'");
         return true;
       } catch (AssertionError | Exception e) {
         LOGGER.error("Error: {}", e.getMessage());
