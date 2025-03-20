@@ -108,7 +108,7 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
   }
 
   @Test
-  @Disabled
+  @Disabled // needs GCP for testing. doesnt work with emulator
   public void testSchemaChanges() throws Exception {
     String dest = "testc.inventory.customers";
     // apply stream data every 2 seconds
@@ -147,7 +147,7 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
         assertTableRowsMatch(dest, 1, "first_name = 'SallyUSer2'");
         assertTableRowsMatch(dest, 1, "last_name is null");
         assertTableRowsMatch(dest, 1, "id = 1004 AND __op = 'd'");
-//        assertTableRowsMatch(dest, 1, "test_varchar_column = 'value1'");
+        assertTableRowsMatch(dest, 1, "test_varchar_column = 'value1'");
         return true;
       } catch (AssertionError | Exception e) {
         LOGGER.error("Error: {}", e.getMessage());
@@ -164,7 +164,7 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
         prettyPrint(dest);
         assertTableRowsAboveEqual(dest, 9);
         assertTableRowsMatch(dest, 1, "first_name = 'User3'");
-//        assertTableRowsMatch(dest, 1, "test_varchar_column = 'test_varchar_value3'");
+        assertTableRowsMatch(dest, 1, "test_varchar_column = 'test_varchar_value3'");
         return true;
       } catch (AssertionError | Exception e) {
         LOGGER.error("Error: {}", e.getMessage());
