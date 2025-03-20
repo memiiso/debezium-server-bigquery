@@ -51,7 +51,6 @@ public class StreamDataWriter {
   public void initialize()
       throws DescriptorValidationException, IOException, InterruptedException {
     streamWriter = createStreamWriter();
-    waitForStreamExists();
   }
 
   private JsonStreamWriter createStreamWriter()
@@ -74,7 +73,7 @@ public class StreamDataWriter {
     // For more information about JsonStreamWriter, see:
     // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/JsonStreamWriter.html
 
-    return JsonStreamWriter.newBuilder(this.streamOrTableName, client)
+    JsonStreamWriter streamWriter = JsonStreamWriter.newBuilder(this.streamOrTableName, client)
         .setIgnoreUnknownFields(ignoreUnknownFields)
         .setExecutorProvider(FixedExecutorProvider.create(Executors.newScheduledThreadPool(100)))
         //.setEnableConnectionPool(true)
@@ -87,6 +86,8 @@ public class StreamDataWriter {
         .setCredentialsProvider(client.getSettings().getCredentialsProvider())
         .setChannelProvider(client.getSettings().getTransportChannelProvider())
         .build();
+    ensureStreamExists(streamWriter.getStreamName());
+    return streamWriter;
   }
 
 
@@ -153,27 +154,27 @@ public class StreamDataWriter {
     }
   }
 
-  public void waitForStreamExists() {
-    long retryIntervalMillis = 2;
+  private void ensureStreamExists(String streamName) {
+    long retryIntervalSeconds = 2;
     long startTime = System.currentTimeMillis();
     long endTime = startTime + TimeUnit.SECONDS.toMillis(15);
-    String streamName = streamWriter.getStreamName();
 
     while (System.currentTimeMillis() < endTime) {
       try {
-        TimeUnit.SECONDS.sleep(retryIntervalMillis);
+        TimeUnit.SECONDS.sleep(retryIntervalSeconds);
         client.getWriteStream(streamName);
-        LOGGER.info("Stream {} exists.", streamName);
+        LOGGER.debug("Stream {} exists.", streamName);
         return;
       } catch (BigQueryException e) {
         if (e.getCode() == 404) {
-          LOGGER.info("Stream {} does not exist.", streamName);
+          LOGGER.warn("Stream {} does not exist", streamName);
         } else {
-          LOGGER.error("Error checking if stream exists for {}: {}", streamName, e.getMessage());
+          LOGGER.warn("Error checking if stream exists for {}: {}", streamName, e.getMessage());
         }
       } catch (Exception e) {
-        LOGGER.error("Error checking if stream exists for {}: {}", streamName, e.getMessage());
+        LOGGER.warn("Error checking if stream exists for {}: {}", streamName, e.getMessage());
       }
+      LOGGER.warn("Waiting {} seconds before checking again.", retryIntervalSeconds);
     }
 
     throw new DebeziumException("Timed out waiting for stream " + streamName + " to exist.");
