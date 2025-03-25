@@ -33,7 +33,7 @@
         <maven.compiler.release>17</maven.compiler.release>
 
         <skipITs>true</skipITs>
-        <version.gcp.librariesbom>26.56.0</version.gcp.librariesbom>
+        <version.gcp.librariesbom>26.57.0</version.gcp.librariesbom>
         <version.gcp.bigquerybom>2.48.1</version.gcp.bigquerybom>
         <!-- Plugin versions -->
         <version.assembly.plugin>3.7.1</version.assembly.plugin>
