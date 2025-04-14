@@ -9,6 +9,7 @@
 package io.debezium.server.bigquery;
 
 import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.PrimaryKey;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
 import io.debezium.server.bigquery.shared.BigQueryDB;
@@ -44,6 +45,19 @@ public class StreamBigqueryChangeConsumerTest extends BaseBigqueryTest {
 
   @Test
   public void testSimpleUpload() {
+    // table should be created with PK
+    Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
+      String dest = "testc.inventory.customers";
+      try {
+        TableId tableId = getTableId(dest);
+        PrimaryKey pk = bqClient.getTable(tableId).getTableConstraints().getPrimaryKey();
+        return pk.getColumns().contains("id");
+      } catch (AssertionError | Exception e) {
+        LOGGER.error("Error: {}", e.getMessage());
+        return false;
+      }
+    });
+
     Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
       String dest = "testc.inventory.customers";
       try {
