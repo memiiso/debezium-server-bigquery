@@ -70,6 +70,8 @@ jobs:
           context: ./
           file: ./Dockerfile
           push: true
+          build-args: |
+            RELEASE_VERSION=${{ env.RELEASE_NAME }}
           tags: ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${{ env.RELEASE_NAME }}
 
       - name: Delete Untagged Docker Images
