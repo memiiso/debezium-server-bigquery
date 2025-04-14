@@ -129,7 +129,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
   protected ArrayList<String> keyFields() {
     ArrayList<String> keyFields = new ArrayList<>();
 
-    if (this.keySchema() != null && this.keySchema().has("field")) {
+    if (this.keySchema() != null && this.keySchema().has("fields")) {
       for (JsonNode jsonSchemaFieldNode : this.keySchema().get("fields")) {
         keyFields.add(jsonSchemaFieldNode.get("field").textValue());
       }
