@@ -99,13 +99,17 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
       WriteChannelConfiguration.Builder wCCBuilder = WriteChannelConfiguration
           .newBuilder(tableId, FormatOptions.json())
           .setWriteDisposition((config.writeDisposition()))
-          .setClustering(clustering)
           .setSchema(schema)
-          .setTimePartitioning(timePartitioning)
           .setSchemaUpdateOptions(schemaUpdateOptions)
           .setCreateDisposition(config.createDisposition())
           .setMaxBadRecords(0)
           .setCreateSession(true);
+
+      if (!config.common().structAsJson()) {
+        wCCBuilder
+            .setTimePartitioning(timePartitioning)
+            .setClustering(clustering);
+      }
 
       //WriteChannel implementation to stream data into a BigQuery table. 
       try (TableDataWriteChannel writer = bqClient.writer(wCCBuilder.build())) {

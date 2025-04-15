@@ -21,4 +21,8 @@ public interface CommonConfig {
   @WithDefault("NoBatchSizeWait")
   String batchSizeWaitName();
 
+  @WithName("debezium.sink.batch.struct-as-json")
+  @WithDefault("false")
+  boolean structAsJson();
+
 }
