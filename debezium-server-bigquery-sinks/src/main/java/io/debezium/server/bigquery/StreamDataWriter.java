@@ -4,12 +4,14 @@ import com.google.api.core.ApiFuture;
 import com.google.api.gax.core.FixedExecutorProvider;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.storage.v1.AppendRowsRequest;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1.Exceptions;
 import com.google.cloud.bigquery.storage.v1.JsonStreamWriter;
 import com.google.cloud.bigquery.storage.v1.RowError;
+import com.google.cloud.bigquery.storage.v1.TableSchema;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import com.google.rpc.Status;
 import io.debezium.DebeziumException;
@@ -39,13 +41,18 @@ public class StreamDataWriter {
   private final Object lock = new Object();
   JsonStreamWriter streamWriter;
   private AtomicInteger recreateCount = new AtomicInteger(0);
+  private final TableSchema tableSchema;
 
 
-  public StreamDataWriter(String streamOrTableName, BigQueryWriteClient client, Boolean ignoreUnknownFields)
+  public StreamDataWriter(String streamOrTableName,
+                          BigQueryWriteClient client,
+                          Boolean ignoreUnknownFields,
+                          Schema tableSchema)
       throws DescriptorValidationException, IOException, InterruptedException {
     this.client = client;
     this.ignoreUnknownFields = ignoreUnknownFields;
     this.streamOrTableName = streamOrTableName;
+    this.tableSchema = StorageWriteSchemaConverter.toStorageTableSchema(tableSchema);
   }
 
   public void initialize()
@@ -73,7 +80,7 @@ public class StreamDataWriter {
     // For more information about JsonStreamWriter, see:
     // https://googleapis.dev/java/google-cloud-bigquerystorage/latest/com/google/cloud/bigquery/storage/v1/JsonStreamWriter.html
 
-    JsonStreamWriter streamWriter = JsonStreamWriter.newBuilder(this.streamOrTableName, client)
+    JsonStreamWriter streamWriter = JsonStreamWriter.newBuilder(this.streamOrTableName, this.tableSchema, client)
         .setIgnoreUnknownFields(ignoreUnknownFields)
         .setExecutorProvider(FixedExecutorProvider.create(Executors.newScheduledThreadPool(100)))
         //.setEnableConnectionPool(true)
