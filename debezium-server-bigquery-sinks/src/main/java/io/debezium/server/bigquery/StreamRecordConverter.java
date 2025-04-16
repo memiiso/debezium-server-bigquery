@@ -8,9 +8,11 @@
 
 package io.debezium.server.bigquery;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
 import io.debezium.DebeziumException;
@@ -50,7 +52,16 @@ public class StreamRecordConverter extends BaseRecordConverter {
 
         switch (f.getType().getStandardType()) {
           case JSON:
-            // Nothing todo stream consumer handles JSON type correctly by default
+            // nested struct, json data. this will happen when unwrap is not enabled
+            if (value.isObject()) {
+              try {
+                String structToJsonString = mapper.writeValueAsString(value.get(f.getName()));
+                ((ObjectNode) value).replace(f.getName(), TextNode.valueOf(structToJsonString));
+              } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+              }
+            }
+            // Nothing todo. by default, stream consumer handles JSON type correctly.
             break;
           default:
             handleFieldValue((ObjectNode) value, f, value.get(f.getName()));

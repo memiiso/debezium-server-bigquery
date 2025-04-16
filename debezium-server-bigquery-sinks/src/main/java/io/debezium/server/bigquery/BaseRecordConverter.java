@@ -103,9 +103,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
               fields.add(Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(geometryFields)).build());
               break;
             default:
-              // recursive call for nested fields
-              ArrayList<Field> subFields = schemaFields(jsonSchemaFieldNode);
-              fields.add(Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(subFields)).build());
+              fields.add(getStructField(jsonSchemaFieldNode, fieldName));
               break;
           }
           break;
@@ -117,6 +115,15 @@ public abstract class BaseRecordConverter implements RecordConverter {
     }
 
     return fields;
+  }
+
+  protected Field getStructField(JsonNode jsonSchemaFieldNode, String fieldName) {
+    if (debeziumConfig.common().nestedAsJson()) {
+      return Field.of(fieldName, StandardSQLTypeName.JSON);
+    }
+    // recursive call for nested fields
+    ArrayList<Field> subFields = schemaFields(jsonSchemaFieldNode);
+    return Field.newBuilder(fieldName, StandardSQLTypeName.STRUCT, FieldList.of(subFields)).build();
   }
 
   public static String removeTemporalValueTrailingZ(String input) {
@@ -247,12 +254,17 @@ public abstract class BaseRecordConverter implements RecordConverter {
         }
         break;
       case JSON:
-        try {
-          parentNode.replace(fieldName, mapper.readTree(value.textValue()));
-        } catch (JsonProcessingException e) {
-          throw new DebeziumException("Failed to process JSON field: " + fieldName + " value: " + value.textValue(), e);
+        if (value.isTextual()) {
+          try {
+            parentNode.replace(fieldName, mapper.readTree(value.textValue()));
+          } catch (JsonProcessingException e) {
+            throw new DebeziumException("Failed to process JSON field: " + fieldName + " value: " + value.textValue(), e);
+          }
         }
-        break;
+        if (value.isObject()) {
+          break;
+        }
+        throw new DebeziumException("Unexpected JSON value: " + fieldName + " value-type: " + value.getNodeType() + "value: " + value.textValue());
       case DATE:
       case DATETIME:
       case TIME:

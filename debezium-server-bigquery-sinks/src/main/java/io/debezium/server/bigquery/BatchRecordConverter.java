@@ -39,9 +39,10 @@ public class BatchRecordConverter extends BaseRecordConverter {
     }
 
     try {
-      // process JSON event field values, handle data values
+      // handle event values
       if (schema != null) {
         for (Field f : schema.getFields()) {
+          // skip non-existing values
           if (!value.has(f.getName())) {
             continue;
           }

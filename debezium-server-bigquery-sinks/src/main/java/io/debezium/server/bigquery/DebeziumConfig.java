@@ -6,10 +6,14 @@ import io.quarkus.runtime.annotations.ConfigRoot;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 import io.smallrye.config.WithName;
+import io.smallrye.config.WithParentName;
 
 @ConfigRoot
 @ConfigMapping
 public interface DebeziumConfig {
+
+  @WithParentName
+  CommonConfig common();
 
   @WithName("debezium.format.value")
   @WithDefault("json")
