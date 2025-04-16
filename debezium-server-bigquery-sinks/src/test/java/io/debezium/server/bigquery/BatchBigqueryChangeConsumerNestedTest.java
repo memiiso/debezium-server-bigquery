@@ -69,7 +69,7 @@ public class BatchBigqueryChangeConsumerNestedTest extends BaseBigqueryTest {
       Map<String, String> config = new HashMap<>();
       config.put("debezium.sink.type", "bigquerybatch");
       config.put("debezium.transforms", ",");
-      config.put("debezium.sink.batch.struct-as-json", "true");
+      config.put("debezium.sink.batch.nested-as-json", "true");
       return config;
     }
   }
