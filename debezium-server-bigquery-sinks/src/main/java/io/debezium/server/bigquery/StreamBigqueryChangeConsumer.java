@@ -123,7 +123,8 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       StreamDataWriter writer = new StreamDataWriter(
           streamOrTableName,
           bigQueryWriteClient,
-          config.ignoreUnknownFields()
+          config.ignoreUnknownFields(),
+          table.getDefinition().getSchema()
       );
       writer.initialize();
       return writer;
