@@ -118,7 +118,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
   }
 
   protected Field getStructField(JsonNode jsonSchemaFieldNode, String fieldName) {
-    if (debeziumConfig.common().structAsJson()) {
+    if (debeziumConfig.common().nestedAsJson()) {
       return Field.of(fieldName, StandardSQLTypeName.JSON);
     }
     // recursive call for nested fields

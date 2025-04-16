@@ -105,7 +105,7 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
           .setMaxBadRecords(0)
           .setCreateSession(true);
 
-      if (!config.common().structAsJson()) {
+      if (!config.common().nestedAsJson()) {
         wCCBuilder
             .setTimePartitioning(timePartitioning)
             .setClustering(clustering);
