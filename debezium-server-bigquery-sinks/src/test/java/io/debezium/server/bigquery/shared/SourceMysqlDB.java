@@ -80,7 +80,7 @@ public class SourceMysqlDB implements QuarkusTestResourceLifecycleManager {
     params.put("debezium.source.database.dbname", MYSQL_DATABASE);
     params.put("debezium.source.database.include.list", "inventory");
     params.put("debezium.source.connector.class", "io.debezium.connector.mysql.MySqlConnector");
-    params.put("debezium.transforms.unwrap.add.fields", "op,table,ts_ms,source.ts_ms,db,source.file,source.pos,source.row,source.gtid");
+    params.put("debezium.transforms.unwrap.add.fields", "op,table,ts_ms,source.ts_ms,ts_ns,source.ts_ns,db,source.file,source.pos,source.row,source.gtid");
 
     return params;
   }

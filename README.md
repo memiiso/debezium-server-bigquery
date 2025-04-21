@@ -89,7 +89,7 @@ the [Storage Write API](https://cloud.google.com/bigquery/docs/write-api-streami
 | `debezium.source.schema.history.internal.bigquery.table-name` | `_debezium_database_history_storage`                            |                                                                                                            |
 | `debezium.transforms`                                         | `unwrap`                                                        |                                                                                                            |
 | `debezium.transforms.unwrap.type`                             | `io.debezium.transforms.ExtractNewRecordState`                  |                                                                                                            |
-| `debezium.transforms.unwrap.add.fields`                       | `op,table,source.ts_ms,db,ts_ms`                                |                                                                                                            |
+| `debezium.transforms.unwrap.add.fields`                       | `op,table,source.ts_ms,db,ts_ms,ts_ns,source.ts_ns`             |                                                                                                            |
 | `debezium.transforms.unwrap.delete.handling.mode`             | `rewrite`                                                       |                                                                                                            |
 | `debezium.transforms.unwrap.drop.tombstones`                  | `true`                                                          |                                                                                                            |
 
@@ -134,7 +134,7 @@ see [debezium feature](https://debezium.io/documentation/reference/configuration
 ```properties
 debezium.transforms=unwrap
 debezium.transforms.unwrap.type=io.debezium.transforms.ExtractNewRecordState
-debezium.transforms.unwrap.add.fields=op,table,lsn,source.ts_ms
+debezium.transforms.unwrap.add.fields=op,table,lsn,source.ts_ms,source.ts_ns
 debezium.transforms.unwrap.add.headers=db
 debezium.transforms.unwrap.delete.handling.mode=rewrite
 ```
