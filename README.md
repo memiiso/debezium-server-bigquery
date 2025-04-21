@@ -63,8 +63,8 @@ the [Storage Write API](https://cloud.google.com/bigquery/docs/write-api-streami
 | `debezium.sink.bigquerystream.bigquery-dev-emulator`     | `false`          | Whether or not Debezium should connect to `bq-emulator` instance.                                                                      |
 | `debezium.sink.bigquerystream.upsert`                    | `false`          | Running upsert mode overwriting updated rows. Using [Bigquery CDC feature](https://cloud.google.com/bigquery/docs/change-data-capture) |
 | `debezium.sink.bigquerystream.upsert-keep-deletes`       | `true`           | With upsert mode, keeps deleted rows in bigquery table.                                                                                |
-| `debezium.sink.bigquerystream.upsert-dedup-column`       | `__source_ts_ms` | With upsert mode used to deduplicate data. row with highest `__source_ts_ms` is kept.                                                  |
-| `debezium.sink.bigquerystream.upsert-op-column`          | `__op`           | Used with upsert mode to deduplicate data when `__source_ts_ms` of rows are same.                                                      |
+| `debezium.sink.bigquerystream.upsert-dedup-column`       | `__source_ts_ns` | With upsert mode used to deduplicate data. row with highest `__source_ts_ns` is kept.                                                  |
+| `debezium.sink.bigquerystream.upsert-op-column`          | `__op`           | Used with upsert mode to deduplicate data when `__source_ts_ns` of rows are same.                                                      |
 | `debezium.sink.bigquerystream.cast-deleted-field`        | `false`          | Cast deleted field to boolean type(by default it is string type)                                                                       |
 
 ## Shared and Debezium Configs
@@ -106,13 +106,13 @@ Primary Key consumer falls back to append mode.
 
 #### Upsert Mode Data Deduplication
 
-With upsert mode data deduplication is done. Deduplication is done based on `__source_ts_ms` value and event type `__op`
+With upsert mode data deduplication is done. Deduplication is done based on `__source_ts_ns` value and event type `__op`
 .
-its is possible to change this field using `debezium.sink.bigquerystream.upsert-dedup-column=__source_ts_ms` (Currently
+its is possible to change this field using `debezium.sink.bigquerystream.upsert-dedup-column=__source_ts_ns` (Currently
 only
 Long field type supported.)
 
-Operation type priorities are `{"c":1, "r":2, "u":3, "d":4}`. When two records with same key and same `__source_ts_ms`
+Operation type priorities are `{"c":1, "r":2, "u":3, "d":4}`. When two records with same key and same `__source_ts_ns`
 values received then the record with higher `__op` priority is kept and added to destination table and duplicate record
 is dropped from stream.
 
