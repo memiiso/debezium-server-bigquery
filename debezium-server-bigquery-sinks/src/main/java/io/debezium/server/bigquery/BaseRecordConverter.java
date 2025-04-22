@@ -231,10 +231,10 @@ public abstract class BaseRecordConverter implements RecordConverter {
           try {
             String hexString = Hex.encodeHexString(value.binaryValue());
             parentNode.replace(fieldName, TextNode.valueOf(hexString));
-            break;
           } catch (IOException e) {
             throw new DebeziumException("Failed to process GEOGRAPHY field: " + fieldName + " value: " + value.textValue(), e);
           }
+          break;
         }
         if (value.isTextual()) {
           String hexString = Hex.encodeHexString(Base64.getDecoder().decode(value.textValue()));
@@ -260,6 +260,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
           } catch (JsonProcessingException e) {
             throw new DebeziumException("Failed to process JSON field: " + fieldName + " value: " + value.textValue(), e);
           }
+          break;
         }
         if (value.isObject()) {
           break;
