@@ -135,32 +135,32 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
         .addKeyField("id", 1)
         .addKeyField("first_name", "row1")
         .addField("__op", "r")
-        .addField("__source_ts_ms", 3L)
+        .addField("__source_ts_ns", 3L)
         .build();
     RecordConverter e2 = builder
         .destination("destination")
         .addKeyField("id", 1)
         .addKeyField("first_name", "row1")
         .addField("__op", "u")
-        .addField("__source_ts_ms", 1L)
+        .addField("__source_ts_ns", 1L)
         .build();
 
     List<RecordConverter> records = List.of(e1, e2);
     List<RecordConverter> dedups = streamConsumer.deduplicateBatch(records);
     Assertions.assertEquals(1, dedups.size());
-    Assertions.assertEquals(3L, dedups.get(0).value().get("__source_ts_ms").asLong(0L));
+    Assertions.assertEquals(3L, dedups.get(0).value().get("__source_ts_ns").asLong(0L));
 
     RecordConverter e21 = builder
         .destination("destination")
         .addKeyField("id", 1)
         .addField("__op", "r")
-        .addField("__source_ts_ms", 1L)
+        .addField("__source_ts_ns", 1L)
         .build();
     RecordConverter e22 = builder
         .destination("destination")
         .addKeyField("id", 1)
         .addField("__op", "u")
-        .addField("__source_ts_ms", 1L)
+        .addField("__source_ts_ns", 1L)
         .build();
 
     List<RecordConverter> records2 = List.of(e21, e22);

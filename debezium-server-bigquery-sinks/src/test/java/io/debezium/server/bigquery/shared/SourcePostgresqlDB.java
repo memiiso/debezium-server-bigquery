@@ -119,7 +119,7 @@ public class SourcePostgresqlDB implements QuarkusTestResourceLifecycleManager {
     params.put("debezium.source.database.dbname", POSTGRES_DBNAME);
     params.put("debezium.source.schema.include.list", "inventory");
     params.put("debezium.source.connector.class", "io.debezium.connector.postgresql.PostgresConnector");
-    params.put("debezium.transforms.unwrap.add.fields", "op,table,ts_ms,source.ts_ms,db,source.lsn,source.txId");
+    params.put("debezium.transforms.unwrap.add.fields", "op,table,ts_ms,source.ts_ms,db,source.lsn,source.txId,source.ts_ns");
     return params;
   }
 
