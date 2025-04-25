@@ -258,7 +258,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     Table table = bqClient.getTable(tableId);
     // create table if missing
     if (config.createIfNeeded() && table == null) {
-      table = this.createTable(tableId,
+      return this.createTable(tableId,
           sampleBqEvent.tableSchema(),
           sampleBqEvent.tableClustering(config.clusteringField()),
           sampleBqEvent.tableConstraints()
