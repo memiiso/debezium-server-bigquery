@@ -23,6 +23,7 @@ import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.TableName;
+import com.google.cloud.bigquery.storage.v1.TableSchema;
 import com.google.common.annotations.Beta;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
@@ -119,12 +120,12 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
         TableName tableName = TableName.of(table.getTableId().getProject(), table.getTableId().getDataset(), table.getTableId().getTable());
         streamOrTableName = tableName.toString();
       }
-
+      TableSchema storageTableSchema = StorageWriteSchemaConverter.toStorageTableSchema(table.getDefinition().getSchema(), doUpsert(table));
       StreamDataWriter writer = new StreamDataWriter(
           streamOrTableName,
           bigQueryWriteClient,
           config.ignoreUnknownFields(),
-          table.getDefinition().getSchema()
+          storageTableSchema
       );
       writer.initialize();
       return writer;
@@ -142,6 +143,10 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
   }
 
+  private boolean doUpsert(Table table) {
+    return doTableHasPrimaryKey(table) && config.upsert();
+  }
+
   @Override
   public long uploadDestination(String destination, List<RecordConverter> data) {
     long numRecords = data.size();
@@ -153,8 +158,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       // for the tables without primary key run append mode
       // Otherwise it throws Exception
       // INVALID_ARGUMENT:Create UPSERT stream is not supported for primary key disabled table: xyz
-      final boolean tableHasPrimaryKey = doTableHasPrimaryKey(table);
-      final boolean doUpsert = config.upsert() && tableHasPrimaryKey;
+      final boolean doUpsert = doUpsert(table);
 
       if (doUpsert) {
         data = deduplicateBatch(data);
@@ -271,9 +275,9 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   /**
    * Updates the table schema by adding new fields from the updated schema.
    *
-   * @param table       The existing BigQuery table.
+   * @param table         The existing BigQuery table.
    * @param updatedSchema The schema containing potential new fields.
-   * @param destination The destination table name.
+   * @param destination   The destination table name.
    * @return The updated BigQuery table.
    */
   private Table updateTableSchema(Table table, Schema updatedSchema, String destination) {
