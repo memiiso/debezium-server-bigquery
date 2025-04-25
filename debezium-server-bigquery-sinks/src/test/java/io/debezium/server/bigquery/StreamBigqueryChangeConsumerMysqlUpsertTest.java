@@ -10,7 +10,6 @@ package io.debezium.server.bigquery;
 
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.shared.BigQueryDB;
 import io.debezium.server.bigquery.shared.SourceMysqlDB;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -20,7 +19,6 @@ import io.quarkus.test.junit.TestProfile;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -44,8 +42,11 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
   }
 
   @Test
-  @Disabled
   public void testMysqlSimpleUploadWithDelete() throws Exception {
+    // only runs for real bigquery tests
+    if (streamConsumer.config.isBigqueryDevEmulator()) {
+      return;
+    }
 
     String createTable = "CREATE TABLE IF NOT EXISTS inventory.test_table (" +
         " c_id INTEGER ," +
@@ -65,9 +66,6 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
     SourceMysqlDB.runSQL(sqlInsert);
 
     Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
-      if (streamConsumer.config.isBigqueryDevEmulator()) {
-        return true;
-      }
       try {
         String query2 = "ALTER table  " + tableId.getDataset() + "." + tableId.getTable() + " SET OPTIONS " +
             "(max_staleness = INTERVAL '0-0 0 0:0:2' YEAR TO SECOND);";
@@ -95,9 +93,7 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
 
     Awaitility.await().atMost(Duration.ofSeconds(120)).until(() -> {
       try {
-        TableResult result = getTableData(dest);
-        result.iterateAll().forEach(System.out::println);
-        System.out.println(result.getTotalRows());
+        prettyPrint(dest);
         assertTableRowsMatch(dest, 4);
         assertTableRowsMatch(dest, 4, "__deleted = true");
         assertTableRowsMatch(dest, 4, "__op = 'd'");
