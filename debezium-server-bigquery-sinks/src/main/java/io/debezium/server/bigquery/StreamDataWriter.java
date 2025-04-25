@@ -4,7 +4,6 @@ import com.google.api.core.ApiFuture;
 import com.google.api.gax.core.FixedExecutorProvider;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.storage.v1.AppendRowsRequest;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
@@ -47,12 +46,12 @@ public class StreamDataWriter {
   public StreamDataWriter(String streamOrTableName,
                           BigQueryWriteClient client,
                           Boolean ignoreUnknownFields,
-                          Schema tableSchema)
+                          TableSchema tableSchema)
       throws DescriptorValidationException, IOException, InterruptedException {
     this.client = client;
     this.ignoreUnknownFields = ignoreUnknownFields;
     this.streamOrTableName = streamOrTableName;
-    this.tableSchema = StorageWriteSchemaConverter.toStorageTableSchema(tableSchema);
+    this.tableSchema = tableSchema;
   }
 
   public void initialize()
@@ -170,7 +169,7 @@ public class StreamDataWriter {
       try {
         TimeUnit.SECONDS.sleep(retryIntervalSeconds);
         client.getWriteStream(streamName);
-        LOGGER.debug("Stream {} exists.", streamName);
+        LOGGER.info("Stream is available for writing {} ", streamName);
         return;
       } catch (BigQueryException e) {
         if (e.getCode() == 404) {

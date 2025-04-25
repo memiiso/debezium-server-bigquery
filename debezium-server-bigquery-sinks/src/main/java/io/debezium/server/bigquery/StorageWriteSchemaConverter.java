@@ -11,16 +11,18 @@ import java.util.stream.Collectors;
 
 public class StorageWriteSchemaConverter {
 
-  public static TableSchema toStorageTableSchema(Schema schema) {
+  public static TableSchema toStorageTableSchema(Schema schema, boolean doUpsert) {
     TableSchema.Builder builder = TableSchema.newBuilder();
     for (Field field : schema.getFields()) {
       builder.addFields(convertField(field));
     }
-    builder.addFields(TableFieldSchema.newBuilder()
-        .setName("_CHANGE_TYPE")
-        .setType(TableFieldSchema.Type.STRING)
-        .setMode(TableFieldSchema.Mode.NULLABLE)
-        .build());
+    if (doUpsert) {
+      builder.addFields(TableFieldSchema.newBuilder()
+          .setName("_CHANGE_TYPE")
+          .setType(TableFieldSchema.Type.STRING)
+          .setMode(TableFieldSchema.Mode.NULLABLE)
+          .build());
+    }
     return builder.build();
   }
 
