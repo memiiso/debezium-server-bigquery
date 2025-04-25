@@ -169,7 +169,7 @@ public class StreamDataWriter {
       try {
         TimeUnit.SECONDS.sleep(retryIntervalSeconds);
         client.getWriteStream(streamName);
-        LOGGER.debug("Stream {} exists.", streamName);
+        LOGGER.info("Stream is available for writing {} ", streamName);
         return;
       } catch (BigQueryException e) {
         if (e.getCode() == 404) {
