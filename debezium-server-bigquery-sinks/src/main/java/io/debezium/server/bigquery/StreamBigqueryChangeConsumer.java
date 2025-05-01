@@ -250,15 +250,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
     TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefBuilder.build()).build();
     Table table = bqClient.create(tableInfo);
-    if (tableConstraints != null) {
-      LOGGER.warn("Created table {} PK {}", table.getGeneratedId(), tableConstraints.getPrimaryKey());
-    } else {
-      LOGGER.warn("Created table {} PK []", table.getGeneratedId());
-    }
-    // NOTE @TODO ideally we should wait here for streaming cache to update with the new table information 
-    // but seems like there is no proper way to wait... 
-    // Without wait consumer fails
-
+    LOGGER.warn("Created table {} PK {}", table.getGeneratedId(), tableInfo.getTableConstraints());
     return table;
   }
 
