@@ -235,20 +235,22 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   private Table createTable(TableId tableId, Schema schema, Clustering clustering, TableConstraints tableConstraints) {
 
     StandardTableDefinition.Builder tableDefBuilder = StandardTableDefinition.newBuilder().setSchema(schema);
+
     if (!config.common().nestedAsJson()) {
-      tableDefBuilder
-          .setTimePartitioning(timePartitioning)
-          .setClustering(clustering)
-          .setTableConstraints(tableConstraints);
+      tableDefBuilder.setTimePartitioning(timePartitioning);
+    }
+
+    if (tableConstraints != null) {
+      tableDefBuilder.setTableConstraints(tableConstraints);
+    }
+
+    if (clustering != null && clustering.getFields() != null && !clustering.getFields().isEmpty()) {
+      tableDefBuilder.setClustering(clustering);
     }
 
     TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefBuilder.build()).build();
     Table table = bqClient.create(tableInfo);
-    LOGGER.warn("Created table {} PK {}", table.getGeneratedId(), tableConstraints.getPrimaryKey());
-    // NOTE @TODO ideally we should wait here for streaming cache to update with the new table information 
-    // but seems like there is no proper way to wait... 
-    // Without wait consumer fails
-
+    LOGGER.warn("Created table {} PK {}", table.getGeneratedId(), table.getTableConstraints());
     return table;
   }
 
