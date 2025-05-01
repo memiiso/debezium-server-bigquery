@@ -250,7 +250,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
     TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefBuilder.build()).build();
     Table table = bqClient.create(tableInfo);
-    LOGGER.warn("Created table {} PK {}", table.getGeneratedId(), tableInfo.getTableConstraints());
+    LOGGER.warn("Created table {} PK {}", table.getGeneratedId(), table.getTableConstraints());
     return table;
   }
 
