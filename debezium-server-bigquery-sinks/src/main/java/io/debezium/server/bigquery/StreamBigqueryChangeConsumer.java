@@ -235,11 +235,17 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   private Table createTable(TableId tableId, Schema schema, Clustering clustering, TableConstraints tableConstraints) {
 
     StandardTableDefinition.Builder tableDefBuilder = StandardTableDefinition.newBuilder().setSchema(schema);
+
     if (!config.common().nestedAsJson()) {
-      tableDefBuilder
-          .setTimePartitioning(timePartitioning)
-          .setClustering(clustering)
-          .setTableConstraints(tableConstraints);
+      tableDefBuilder.setTimePartitioning(timePartitioning);
+    }
+
+    if (tableConstraints != null) {
+      tableDefBuilder.setTableConstraints(tableConstraints);
+    }
+
+    if (clustering != null && clustering.getFields() != null && !clustering.getFields().isEmpty()) {
+      tableDefBuilder.setClustering(clustering);
     }
 
     TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefBuilder.build()).build();

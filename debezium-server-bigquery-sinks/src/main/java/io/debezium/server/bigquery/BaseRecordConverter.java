@@ -173,6 +173,10 @@ public abstract class BaseRecordConverter implements RecordConverter {
 
   @Override
   public TableConstraints tableConstraints() {
+    if (this.keyFields().isEmpty()) {
+      return null;
+    }
+
     return
         TableConstraints.newBuilder()
             .setPrimaryKey(PrimaryKey.newBuilder().setColumns(this.keyFields()).build())
@@ -183,13 +187,13 @@ public abstract class BaseRecordConverter implements RecordConverter {
   public Clustering tableClustering(String clusteringField) {
     // special destinations like "heartbeat.topics"
     if (this.destination().startsWith("__debezium")) {
-      return Clustering.newBuilder().build();
+      return null;
     }
 
-    if (this.keySchema() == null) {
+    ArrayList<String> keyFields = this.keyFields();
+    if (keyFields.isEmpty()) {
       return Clustering.newBuilder().setFields(List.of(clusteringField)).build();
     } else {
-      ArrayList<String> keyFields = this.keyFields();
       // NOTE Limit clustering fields to 4. it's the limit of Bigquery
       List<String> clusteringFields = keyFields.stream().limit(3).collect(Collectors.toList());
       clusteringFields.add(clusteringField);
