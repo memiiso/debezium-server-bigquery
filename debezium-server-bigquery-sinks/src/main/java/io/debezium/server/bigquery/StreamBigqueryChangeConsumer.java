@@ -236,8 +236,10 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
     StandardTableDefinition.Builder tableDefBuilder = StandardTableDefinition.newBuilder().setSchema(schema);
 
-    if (!config.common().nestedAsJson()) {
+    if (schemaContainsField(schema, timePartitioning.getField())) {
       tableDefBuilder.setTimePartitioning(timePartitioning);
+    } else {
+      LOGGER.warn("PTT field `{}` not found in table schema, creating {} without PTT definition", timePartitioning.getField(), tableId.getTable());
     }
 
     if (tableConstraints != null) {

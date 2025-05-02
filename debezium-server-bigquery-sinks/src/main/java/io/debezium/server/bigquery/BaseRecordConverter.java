@@ -192,7 +192,11 @@ public abstract class BaseRecordConverter implements RecordConverter {
 
     ArrayList<String> keyFields = this.keyFields();
     if (keyFields.isEmpty()) {
+      if (value().has(clusteringField)) {
       return Clustering.newBuilder().setFields(List.of(clusteringField)).build();
+      } else {
+        return null;
+      }
     } else {
       // NOTE Limit clustering fields to 4. it's the limit of Bigquery
       List<String> clusteringFields = keyFields.stream().limit(3).collect(Collectors.toList());
