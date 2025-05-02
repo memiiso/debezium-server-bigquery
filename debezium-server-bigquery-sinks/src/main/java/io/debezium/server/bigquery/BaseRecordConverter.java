@@ -173,7 +173,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
 
   @Override
   public TableConstraints tableConstraints() {
-    if (this.keyFields().isEmpty()) {
+    if (this.keyFields().isEmpty() || this.destination().startsWith("__debezium")) {
       return null;
     }
 
