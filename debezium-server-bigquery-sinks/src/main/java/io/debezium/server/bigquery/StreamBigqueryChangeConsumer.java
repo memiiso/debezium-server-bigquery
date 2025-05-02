@@ -238,6 +238,8 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
     if (schemaContainsField(schema, timePartitioning.getField())) {
       tableDefBuilder.setTimePartitioning(timePartitioning);
+    } else {
+      LOGGER.warn("PTT field `{}` not found in table schema, creating {} without PTT definition", timePartitioning.getField(), tableId);
     }
 
     if (tableConstraints != null) {
