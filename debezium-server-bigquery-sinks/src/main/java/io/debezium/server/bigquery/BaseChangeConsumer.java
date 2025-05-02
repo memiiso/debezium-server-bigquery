@@ -10,6 +10,7 @@ package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.bigquery.Schema;
 import io.debezium.DebeziumException;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
@@ -144,6 +145,18 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
       consumerStart = clock.currentTimeInMillis();
       logTimer = Threads.timer(clock, LOG_INTERVAL);
     }
+  }
+
+  protected static boolean schemaHasField(Schema schema, String field) {
+    try {
+      if (schema.getFields() != null && schema.getFields().get(field) != null) {
+        return true;
+      }
+    } catch (Exception e) {
+      return false;
+    }
+
+    return false;
   }
 
   public abstract long uploadDestination(String destination, List<RecordConverter> data);

@@ -105,7 +105,7 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
           .setMaxBadRecords(0)
           .setCreateSession(true);
 
-      if (schema.getFields() != null && schema.getFields().get(timePartitioning.getField()) != null) {
+      if (schemaHasField(schema, timePartitioning.getField())) {
         wCCBuilder.setTimePartitioning(timePartitioning);
       }
 
