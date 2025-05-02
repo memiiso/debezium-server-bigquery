@@ -105,10 +105,12 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
           .setMaxBadRecords(0)
           .setCreateSession(true);
 
-      if (!config.common().nestedAsJson()) {
-        wCCBuilder
-            .setTimePartitioning(timePartitioning)
-            .setClustering(clustering);
+      if (schema.getFields() != null && schema.getFields().get(timePartitioning.getField()) != null) {
+        wCCBuilder.setTimePartitioning(timePartitioning);
+      }
+
+      if (clustering != null && clustering.getFields() != null && !clustering.getFields().isEmpty()) {
+        wCCBuilder.setClustering(clustering);
       }
 
       //WriteChannel implementation to stream data into a BigQuery table. 
