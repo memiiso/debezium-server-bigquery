@@ -147,7 +147,7 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
     }
   }
 
-  protected static boolean schemaHasField(Schema schema, String field) {
+  protected static boolean schemaContainsField(Schema schema, String field) {
     try {
       if (schema.getFields() != null && schema.getFields().get(field) != null) {
         return true;

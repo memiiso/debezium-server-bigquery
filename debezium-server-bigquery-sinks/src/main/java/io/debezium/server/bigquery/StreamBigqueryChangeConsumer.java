@@ -236,7 +236,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
     StandardTableDefinition.Builder tableDefBuilder = StandardTableDefinition.newBuilder().setSchema(schema);
 
-    if (schemaHasField(schema, timePartitioning.getField())) {
+    if (schemaContainsField(schema, timePartitioning.getField())) {
       tableDefBuilder.setTimePartitioning(timePartitioning);
     }
 
