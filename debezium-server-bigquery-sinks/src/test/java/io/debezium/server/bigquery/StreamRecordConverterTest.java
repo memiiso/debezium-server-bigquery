@@ -14,6 +14,7 @@ import io.debezium.server.bigquery.shared.BigQueryDB;
 import io.debezium.server.bigquery.shared.SourcePostgresqlDB;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ class StreamRecordConverterTest extends BaseBigqueryTest {
   final String serdeWithSchema = Files.readString(Path.of("src/test/resources/json/serde-with-schema.json"));
   final String unwrapWithSchema = Files.readString(Path.of("src/test/resources/json/unwrap-with-schema.json"));
   final String unwrapWithGeomSchema = Files.readString(Path.of("src/test/resources/json/serde-with-schema_geom.json"));
+  final String variousArrayDataTypes = Files.readString(Path.of("src/test/resources/json/various-array-data-types.json"));
 
   StreamRecordConverterTest() throws IOException {
   }
@@ -51,6 +53,29 @@ class StreamRecordConverterTest extends BaseBigqueryTest {
     JSONObject convertedG = (JSONObject) converted.get("g");
     Assert.assertEquals(convertedG.get("srid"), 123);
     Assert.assertEquals("d35d35d34d34d34d34d34d34d34d34d347f4ddfd34d34d34d34d34d347f4dd", convertedG.get("wkb"));
+  }
+
+  @Test
+  public void testArrayValues() throws JsonProcessingException {
+
+    StreamRecordConverter event = new StreamRecordConverter("test",
+        streamConsumer.valDeserializer.deserialize("test", variousArrayDataTypes.getBytes()),
+        null,
+        streamConsumer.mapper.readTree(variousArrayDataTypes).get("schema"),
+        null,
+        streamConsumer.debeziumConfig
+    );
+    Schema schema = event.tableSchema();
+    LOGGER.error("{}", event.tableSchema().toString());
+    LOGGER.error("{}", event.convert(schema).toString());
+    JSONObject converted = event.convert(schema);
+    JSONObject after = converted.optJSONObject("after");
+    Assert.assertNotNull(after);
+    JSONArray cTextArray = after.optJSONArray("c_text");
+    Assert.assertNotNull(cTextArray);
+    Assert.assertEquals(2, cTextArray.length());
+    Assert.assertEquals("Hello", cTextArray.getString(0));
+    Assert.assertEquals("World", cTextArray.getString(1));
   }
 
 }
