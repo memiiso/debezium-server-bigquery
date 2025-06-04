@@ -109,7 +109,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
           break;
         default:
           // default to String type
-          fields.add(schemaPrimitiveField(fieldType, fieldName, fieldTypeName));
+          fields.add(schemaPrimitiveField(jsonSchemaFieldNode, fieldType, fieldName, fieldTypeName));
           break;
       }
     }
@@ -270,7 +270,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
           }
           break;
         }
-        if (value.isObject()) {
+        if (value.isObject() || value.isArray()) {
           break;
         }
         throw new DebeziumException("Unexpected JSON value: " + fieldName + " value-type: " + value.getNodeType() + "value: " + value.textValue());
@@ -297,7 +297,7 @@ public abstract class BaseRecordConverter implements RecordConverter {
     }
   }
 
-  protected Field schemaPrimitiveField(String fieldType, String fieldName, String fieldTypeName) {
+  protected Field schemaPrimitiveField(JsonNode jsonSchemaFieldNode, String fieldType, String fieldName, String fieldTypeName) {
     switch (fieldType) {
       case "int8":
       case "int16":
@@ -338,7 +338,16 @@ public abstract class BaseRecordConverter implements RecordConverter {
       case "bytes":
         return Field.of(fieldName, StandardSQLTypeName.BYTES);
       case "array":
-        return Field.of(fieldName, StandardSQLTypeName.ARRAY);
+        JsonNode itemsNode = jsonSchemaFieldNode.get("items");
+        if (itemsNode == null) {
+          return Field.of(fieldName, StandardSQLTypeName.JSON);
+        }
+
+        String itemType = itemsNode.get("type").textValue();
+        String itemTypeName = itemsNode.has("name") ? itemsNode.get("name").textValue() : "NO-SEMANTIC-TYPE";
+        Field elementField = schemaPrimitiveField(jsonSchemaFieldNode, itemType, fieldName + "_element", itemTypeName);
+
+        return Field.newBuilder(fieldName, elementField.getType()).setMode(Field.Mode.REPEATED).build();
       case "map":
         return Field.of(fieldName, StandardSQLTypeName.STRUCT);
       default:

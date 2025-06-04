@@ -1,0 +1,635 @@
+{
+  "schema": {
+    "type": "struct",
+    "fields": [
+      {
+        "type": "struct",
+        "fields": [
+          {
+            "type": "int32",
+            "optional": false,
+            "field": "c_id"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int32",
+              "optional": true
+            },
+            "optional": true,
+            "field": "c_integer"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true
+            },
+            "optional": true,
+            "field": "c_text"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true
+            },
+            "optional": true,
+            "field": "c_varchar"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true,
+              "name": "io.debezium.data.Uuid",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_uuid"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true,
+              "name": "io.debezium.data.Json",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_json"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true,
+              "name": "io.debezium.data.Json",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_jsonb"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int32",
+              "optional": true,
+              "name": "io.debezium.time.Date",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_date"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.Timestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp0"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.Timestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp1"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.Timestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp2"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.Timestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp3"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.MicroTimestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp4"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.MicroTimestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp5"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.MicroTimestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp6"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true,
+              "name": "io.debezium.time.ZonedTimestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamptz"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true,
+              "name": "io.debezium.time.ZonedTime",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_time"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.MicroTime",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_time_whtz"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "bytes",
+              "optional": true
+            },
+            "optional": true,
+            "field": "c_binary"
+          }
+        ],
+        "optional": true,
+        "name": "postgres.public.test_data_types.Value",
+        "field": "before"
+      },
+      {
+        "type": "struct",
+        "fields": [
+          {
+            "type": "int32",
+            "optional": false,
+            "field": "c_id"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int32",
+              "optional": true
+            },
+            "optional": true,
+            "field": "c_integer"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true
+            },
+            "optional": true,
+            "field": "c_text"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true
+            },
+            "optional": true,
+            "field": "c_varchar"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true,
+              "name": "io.debezium.data.Uuid",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_uuid"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true,
+              "name": "io.debezium.data.Json",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_json"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true,
+              "name": "io.debezium.data.Json",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_jsonb"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int32",
+              "optional": true,
+              "name": "io.debezium.time.Date",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_date"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.Timestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp0"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.Timestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp1"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.Timestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp2"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.Timestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp3"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.MicroTimestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp4"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.MicroTimestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp5"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.MicroTimestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamp6"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true,
+              "name": "io.debezium.time.ZonedTimestamp",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_timestamptz"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "optional": true,
+              "name": "io.debezium.time.ZonedTime",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_time"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "int64",
+              "optional": true,
+              "name": "io.debezium.time.MicroTime",
+              "version": 1
+            },
+            "optional": true,
+            "field": "c_time_whtz"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "bytes",
+              "optional": true
+            },
+            "optional": true,
+            "field": "c_binary"
+          }
+        ],
+        "optional": true,
+        "name": "postgres.public.test_data_types.Value",
+        "field": "after"
+      },
+      {
+        "type": "struct",
+        "fields": [
+          {
+            "type": "string",
+            "optional": false,
+            "field": "version"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "connector"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "name"
+          },
+          {
+            "type": "int64",
+            "optional": false,
+            "field": "ts_ms"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "name": "io.debezium.data.Enum",
+            "version": 1,
+            "parameters": {
+              "allowed": "true,last,false,incremental"
+            },
+            "default": "false",
+            "field": "snapshot"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "db"
+          },
+          {
+            "type": "string",
+            "optional": true,
+            "field": "sequence"
+          },
+          {
+            "type": "int64",
+            "optional": true,
+            "field": "ts_us"
+          },
+          {
+            "type": "int64",
+            "optional": true,
+            "field": "ts_ns"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "schema"
+          },
+          {
+            "type": "string",
+            "optional": false,
+            "field": "table"
+          },
+          {
+            "type": "int64",
+            "optional": true,
+            "field": "txId"
+          },
+          {
+            "type": "int64",
+            "optional": true,
+            "field": "lsn"
+          },
+          {
+            "type": "int64",
+            "optional": true,
+            "field": "xmin"
+          }
+        ],
+        "optional": false,
+        "name": "io.debezium.connector.postgresql.Source",
+        "field": "source"
+      },
+      {
+        "type": "struct",
+        "fields": [
+          {
+            "type": "string",
+            "optional": false,
+            "field": "id"
+          },
+          {
+            "type": "int64",
+            "optional": false,
+            "field": "total_order"
+          },
+          {
+            "type": "int64",
+            "optional": false,
+            "field": "data_collection_order"
+          }
+        ],
+        "optional": true,
+        "name": "event.block",
+        "version": 1,
+        "field": "transaction"
+      },
+      {
+        "type": "string",
+        "optional": false,
+        "field": "op"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "field": "ts_ms"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "field": "ts_us"
+      },
+      {
+        "type": "int64",
+        "optional": true,
+        "field": "ts_ns"
+      }
+    ],
+    "optional": false,
+    "name": "postgres.public.test_data_types.Envelope",
+    "version": 2
+  },
+  "payload": {
+    "before": null,
+    "after": {
+      "c_id": 1,
+      "c_integer": [
+        10,
+        20
+      ],
+      "c_text": [
+        "Hello",
+        "World"
+      ],
+      "c_varchar": [
+        "example",
+        "test"
+      ],
+      "c_uuid": [
+        "123e4567-e89b-12d3-a456-426614174000",
+        "987e6543-e21b-45d3-b456-426614174111"
+      ],
+      "c_json": [
+        "{\"name\": \"John\"}",
+        "{\"name\": \"Jane\"}"
+      ],
+      "c_jsonb": [
+        "{\"role\": \"admin\"}",
+        "{\"role\": \"user\"}"
+      ],
+      "c_date": [
+        20118
+      ],
+      "c_timestamp0": [
+        1738224000000
+      ],
+      "c_timestamp1": [
+        1738224000100
+      ],
+      "c_timestamp2": [
+        1738224000120
+      ],
+      "c_timestamp3": [
+        1738224000123
+      ],
+      "c_timestamp4": [
+        1738224000123400
+      ],
+      "c_timestamp5": [
+        1738224000123450
+      ],
+      "c_timestamp6": [
+        1738224000123456
+      ],
+      "c_timestamptz": [
+        "2025-01-30T08:00:00.000000Z",
+        "2025-01-30T08:00:00.000000Z"
+      ],
+      "c_time": [
+        "08:00:00Z",
+        "08:30:00Z"
+      ],
+      "c_time_whtz": [
+        28800000000,
+        53130000000
+      ],
+      "c_binary": [
+        "Sm9obg==",
+        "SmFuZQ=="
+      ]
+    },
+    "source": {
+      "version": "3.0.0.Final",
+      "connector": "postgresql",
+      "name": "postgres",
+      "ts_ms": 1748996736150,
+      "snapshot": "false",
+      "db": "postgres",
+      "sequence": "[null,\"22096576\"]",
+      "ts_us": 1748996736150018,
+      "ts_ns": 1748996736150018000,
+      "schema": "public",
+      "table": "test_data_types",
+      "txId": 742,
+      "lsn": 22096576,
+      "xmin": null
+    },
+    "transaction": null,
+    "op": "c",
+    "ts_ms": 1748996736451,
+    "ts_us": 1748996736451134,
+    "ts_ns": 1748996736451134199
+  }
+}
