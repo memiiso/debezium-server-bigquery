@@ -50,12 +50,13 @@ public class StreamRecordConverter extends BaseRecordConverter {
           continue;
         }
 
+        JsonNode fieldValue = value.get(f.getName());
         switch (f.getType().getStandardType()) {
           case JSON:
             // nested struct, json data. this will happen when unwrap is not enabled
-            if (value.isObject()) {
+            if (fieldValue.isObject()) {
               try {
-                String structToJsonString = mapper.writeValueAsString(value.get(f.getName()));
+                String structToJsonString = mapper.writeValueAsString(fieldValue);
                 ((ObjectNode) value).replace(f.getName(), TextNode.valueOf(structToJsonString));
               } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
@@ -64,7 +65,7 @@ public class StreamRecordConverter extends BaseRecordConverter {
             // Nothing todo. by default, stream consumer handles JSON type correctly.
             break;
           default:
-            handleFieldValue((ObjectNode) value, f, value.get(f.getName()));
+            handleFieldValue((ObjectNode) value, f, fieldValue);
             break;
         }
       }

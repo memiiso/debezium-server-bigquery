@@ -114,10 +114,13 @@ public class ConsumerUtil {
       // testing only
       if (isBigqueryDevEmulator) {
         credentials = NoCredentials.getInstance();
+        LOGGER.debug("Using NoCredentials for BigQuery client as emulator mode is active.");
       } else if (credentialsFile.isPresent() && !credentialsFile.orElse("").isEmpty()) {
         credentials = GoogleCredentials.fromStream(new FileInputStream(credentialsFile.get()));
+        LOGGER.debug("Using Google credentials from file '{}' for BigQuery client.", credentialsFile.get());
       } else {
         credentials = GoogleCredentials.getApplicationDefault();
+        LOGGER.debug("Using Google Application Default Credentials for BigQuery client.");
       }
     } catch (IOException e) {
       throw new DebeziumException("Failed to initialize google credentials", e);

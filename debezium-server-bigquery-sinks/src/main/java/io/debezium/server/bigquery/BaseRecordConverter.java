@@ -177,6 +177,11 @@ public abstract class BaseRecordConverter implements RecordConverter {
       return null;
     }
 
+    if (debeziumConfig.common().nestedAsJson()) {
+      LOGGER.debug("Skipping table primary key for destination '{}' because 'debezium.sink.batch.nested-as-json' is true.", destination());
+      return null;
+    }
+
     return
         TableConstraints.newBuilder()
             .setPrimaryKey(PrimaryKey.newBuilder().setColumns(this.keyFields()).build())
@@ -187,6 +192,11 @@ public abstract class BaseRecordConverter implements RecordConverter {
   public Clustering tableClustering(String clusteringField) {
     // special destinations like "heartbeat.topics"
     if (this.destination().startsWith("__debezium")) {
+      return null;
+    }
+
+    if (debeziumConfig.common().nestedAsJson()) {
+      LOGGER.debug("Skipping table clustering for destination '{}' because 'debezium.sink.batch.nested-as-json' is true.", destination());
       return null;
     }
 
