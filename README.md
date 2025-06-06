@@ -5,7 +5,7 @@
 # Table of contents
 
 * [Debezium Bigquery Consumers](#debezium-bigquery-consumers)
-    * [`bigquerybatch` Consumer](#bigquerybatch-consumer)
+    * [`bigquerybatch` Consumer (Uses BQ Free API)](#bigquerybatch-consumer)
     * [`bigquerystream` Consumer](#bigquerystream-consumer)
 * [Install from source](#install-from-source)
 
