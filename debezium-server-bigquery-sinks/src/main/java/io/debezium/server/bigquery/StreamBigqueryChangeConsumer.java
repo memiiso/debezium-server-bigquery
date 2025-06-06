@@ -101,7 +101,9 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
   private void closeStreamWriter(StreamDataWriter writer, String destination) {
     try {
-      writer.close(bigQueryWriteClient);
+      if (writer != null) {
+        writer.close(bigQueryWriteClient);
+      }
     } catch (Exception e) {
       e.printStackTrace();
       LOGGER.warn("Exception while closing bigquery stream, destination:" + destination, e);
