@@ -100,7 +100,22 @@ public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
         Assert.assertEquals(getTableField(dest, "c_binary").getType(), LegacySQLTypeName.BYTES);
         return true;
       } catch (AssertionError | Exception e) {
-        LOGGER.error("Error: {}", e.getMessage());
+        return false;
+      }
+    });
+
+    SourcePostgresqlDB.runSQL("""
+        INSERT INTO
+           inventory.test_data_types
+        VALUES
+           (4 , '{"jfield": 222}'::json , '{"jfield": 222}'::jsonb , '2017-02-10'::DATE , '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:57.666666+01', '2019-07-09 02:28:20.666666+01', '04:10:22 UTC', '04:05:22.789', INTERVAL '10' DAY, 'abcd'::bytea )
+        ;""");
+    Awaitility.await().until(() -> {
+      try {
+        prettyPrint(dest);
+        assertTableRowsAboveEqual(dest, 4);
+        return true;
+      } catch (AssertionError | Exception e) {
         return false;
       }
     });

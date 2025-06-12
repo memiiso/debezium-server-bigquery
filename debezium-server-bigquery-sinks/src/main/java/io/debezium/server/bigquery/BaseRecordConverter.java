@@ -28,6 +28,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -48,6 +53,8 @@ public abstract class BaseRecordConverter implements RecordConverter {
   protected static final List<String> BOOLEAN_FIELDS = List.of("__deleted");
   protected static final ObjectMapper mapper = new ObjectMapper();
   protected static final String CHANGE_TYPE_PSEUDO_COLUMN = "_CHANGE_TYPE";
+  protected static final OffsetDateTime EPOCH = Instant.ofEpochSecond(0).atOffset(ZoneOffset.UTC);
+  protected static final LocalDate EPOCH_DAY = EPOCH.toLocalDate();
 
   protected static final String REGEX_TEMPORAL_VALUE_ENDS_WITH_Z = ".*\\d+Z$";
 
@@ -215,6 +222,14 @@ public abstract class BaseRecordConverter implements RecordConverter {
     }
   }
 
+  protected static LocalDate dateFromDays(int daysFromEpoch) {
+    return ChronoUnit.DAYS.addTo(EPOCH_DAY, daysFromEpoch);
+  }
+
+  protected static String isoLocalDateFromDays(int daysFromEpoch) {
+    return dateFromDays(daysFromEpoch).format(DateTimeFormatter.ISO_LOCAL_DATE);
+  }
+
   @Override
   public Schema tableSchema() {
     ArrayList<Field> fields = schemaFields(this.valueSchema());
@@ -285,6 +300,14 @@ public abstract class BaseRecordConverter implements RecordConverter {
         }
         throw new DebeziumException("Unexpected JSON value: " + fieldName + " value-type: " + value.getNodeType() + "value: " + value.textValue());
       case DATE:
+        if (value.isTextual()) {
+          parentNode.replace(fieldName, TextNode.valueOf(removeTemporalValueTrailingZ(value.textValue())));
+        }
+
+        if (value.isNumber()) {
+          parentNode.replace(fieldName, TextNode.valueOf(isoLocalDateFromDays(value.intValue())));
+        }
+        break;
       case DATETIME:
       case TIME:
         if (value.isTextual()) {
