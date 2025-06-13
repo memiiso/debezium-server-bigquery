@@ -1,5 +1,6 @@
 package io.debezium.server.bigquery;
 
+import io.debezium.DebeziumException;
 import io.debezium.jdbc.TemporalPrecisionMode;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.quarkus.runtime.annotations.ConfigRoot;
@@ -79,6 +80,10 @@ public interface DebeziumConfig {
   @WithDefault("true")
   String unwrapDeleteTombstoneHandlingMode();
 
+  @WithName("debezium.source.time.precision.mode.adaptive-allowed")
+  @WithDefault("false")
+  boolean temporalPrecisionModeAdaptiveAllowed();
+
   default boolean isIsoStringTemporalMode() {
     return temporalPrecisionMode() == TemporalPrecisionMode.ISOSTRING;
   }
@@ -87,4 +92,14 @@ public interface DebeziumConfig {
     return temporalPrecisionMode() == TemporalPrecisionMode.ADAPTIVE ||
         temporalPrecisionMode() == TemporalPrecisionMode.ADAPTIVE_TIME_MICROSECONDS;
   }
+
+  default void validateTemporalPrecisionMode() {
+    if (isAdaptiveTemporalMode()) {
+      if (!temporalPrecisionModeAdaptiveAllowed()) {
+        throw new DebeziumException("Debezium Adaptive Temporal Precision Modes are not supported!  Temporal Precision Mode:" + temporalPrecisionMode() +
+            " to enable it set `debezium.source.time.precision.mode.adaptive-allowed` to true.");
+      }
+    }
+  }
+
 }

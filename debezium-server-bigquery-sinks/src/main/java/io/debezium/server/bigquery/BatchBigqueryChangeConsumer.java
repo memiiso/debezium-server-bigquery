@@ -65,6 +65,7 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
 
   public void initialize() throws InterruptedException {
     super.initialize();
+    config.debezium().validateTemporalPrecisionMode();
     bqClient = ConsumerUtil.bigqueryClient(config.isBigqueryDevEmulator(), config.gcpProject(), config.bqDataset(), config.credentialsFile(), config.bqLocation(), config.bigQueryCustomHost());
     timePartitioning =
         TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(config.partitionType())).setField(config.partitionField()).build();
