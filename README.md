@@ -204,7 +204,7 @@ quarkus.log.category."org.eclipse.jetty".level=WARN
 # Install from source
 
 - Requirements:
-    - JDK 11
+    - JDK 21
     - Maven
 - Clone from repo: `git clone https://github.com/memiiso/debezium-server-bigquery.git`
 - From the root of the project:
