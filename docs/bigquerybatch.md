@@ -1,9 +1,12 @@
 ## `bigquerybatch` Consumer
 
-Writes debezium events to Bigquery
-using [BigQuery Storage Write API](https://cloud.google.com/bigquery/docs/write-api).
+Writes debezium events to Bigquery using [BigQuery Storage Write API](https://cloud.google.com/bigquery/docs/write-api).
 It groups CDC events and appends to destination BigQuery
 table [using BigQuery Write API](https://cloud.google.com/bigquery/docs/batch-loading-data#loading_data_from_local_files)
+
+**NOTE**: this consumer only supports append mode.
+
+## Configuration
 
 | Config                                               | Default            | Description                                                                                                |
 |------------------------------------------------------|--------------------|------------------------------------------------------------------------------------------------------------|
