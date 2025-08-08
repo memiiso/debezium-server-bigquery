@@ -33,7 +33,7 @@ By default, Bigquery Streaming consumer is running with append mode
 Upsert mode uses source Primary Key and does upsert on target table(delete followed by insert). For the tables without
 Primary Key consumer falls back to append mode.
 
-#### Upsert Mode Data Deduplication
+### Upsert Mode Data Deduplication
 
 With upsert mode data deduplication is done. Deduplication is done based on `__source_ts_ns` value and event type `__op`
 .
