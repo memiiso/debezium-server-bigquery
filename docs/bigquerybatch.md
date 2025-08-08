@@ -5,6 +5,7 @@ It groups CDC events and appends to destination BigQuery
 table [using BigQuery Write API](https://cloud.google.com/bigquery/docs/batch-loading-data#loading_data_from_local_files)
 
 **NOTE**: this consumer only supports append mode.
+**NOTE**: this consumer uses free api to import data to bigquery
 
 ## Configuration
 

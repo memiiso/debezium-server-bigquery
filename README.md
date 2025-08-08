@@ -6,12 +6,11 @@
 
 This project adds Bigquery consumers
 to [Debezium Server](https://debezium.io/documentation/reference/operations/debezium-server.html).
-This consumer replicates RDBMS CDC events to Bigquery in real time.
+These consumers replicate Given Database to Bigquery in real time.
 
-* [Debezium Bigquery Consumers](#debezium-bigquery-consumers)
-    * [`bigquerybatch` Consumer (Uses BQ Free API)](#bigquerybatch-consumer)
-    * [`bigquerystream` Consumer](#bigquerystream-consumer)
-* [Install from source](#install-from-source)
+* Debezium Bigquery Consumers
+    * [`bigquerybatch` Consumer (Uses BQ Free API)](https://memiiso.github.io/debezium-server-bigquery/bigquerybatch/)
+    * [`bigquerystream` Consumer](https://memiiso.github.io/debezium-server-bigquery/bigquerystream/)
 
 # Install from source
 
