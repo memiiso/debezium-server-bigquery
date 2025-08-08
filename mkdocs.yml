@@ -13,8 +13,9 @@ theme:
     - content.tabs.link
 nav:
   - Home: index.md
-  - bigquerybatch Consumer: bigquerybatch.md
-  - bigquerystream Consumer: bigquerystream.md
+  - bigquerybatch: bigquerybatch.md
+  - bigquerystream: bigquerystream.md
+  - Configuration: configuration.md
   #  - Migration Guideline: migration.md
   #  - FAQ: faq.md
   - Contributing: contributing.md
