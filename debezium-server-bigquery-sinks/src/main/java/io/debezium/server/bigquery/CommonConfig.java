@@ -25,4 +25,12 @@ public interface CommonConfig {
   @WithDefault("false")
   boolean nestedAsJson();
 
+  @WithName("debezium.sink.batch.concurrent-uploads")
+  @WithDefault("1")
+  int concurrentUploads();
+
+  @WithName("debezium.sink.batch.concurrent-uploads.timeout-minutes")
+  @WithDefault("60")
+  int concurrentUploadsTimeoutMinutes();
+
 }
