@@ -79,10 +79,11 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       try {
         bigQueryWriteClient.close();
       } catch (Exception e) {
-        e.printStackTrace();
         LOGGER.warn("Exception while closing BigQueryWriteClient", e);
       }
     }
+
+    shutdownExecutors();
   }
 
   public void initialize() throws InterruptedException {
@@ -105,7 +106,6 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
         writer.close(bigQueryWriteClient);
       }
     } catch (Exception e) {
-      e.printStackTrace();
       LOGGER.warn("Exception while closing bigquery stream, destination:" + destination, e);
     }
   }

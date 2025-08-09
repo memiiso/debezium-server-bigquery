@@ -12,7 +12,12 @@ import autovalue.shaded.com.google.common.collect.ImmutableList;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.QueryParameterValue;
+import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableResult;
 import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
 import io.debezium.server.bigquery.ConsumerUtil;
@@ -33,7 +38,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Future;
 
 /**
@@ -91,7 +100,6 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     try {
       initializeTable();
     } catch (SQLException e) {
-      e.printStackTrace();
       throw new IllegalStateException("Failed to create bigquery offset table:" + this.tableFullName, e);
     }
     load();
@@ -148,7 +156,6 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
         LOG.debug("Loaded offset data {}", dataJsonString);
       }
     } catch (SQLException | JsonProcessingException e) {
-      e.printStackTrace();
       LOG.error("Failed load offset data from bigquery", e);
       throw new RuntimeException(e);
     }
