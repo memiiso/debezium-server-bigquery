@@ -169,7 +169,6 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
       throw new DebeziumException(err.toString(), be);
 
     } catch (InterruptedException | IOException e) {
-      e.printStackTrace();
       throw new DebeziumException(e);
     }
   }

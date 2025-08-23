@@ -20,6 +20,7 @@ import io.debezium.server.bigquery.batchsizewait.BatchSizeWait;
 import io.debezium.util.Clock;
 import io.debezium.util.Strings;
 import io.debezium.util.Threads;
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -31,10 +32,19 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -69,6 +79,10 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
   CommonConfig commonConfig;
   @Inject
   DebeziumConfig debeziumConfig;
+  ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+  private int numConcurrentUploads;
+  private int concurrentUploadsTimeoutMinutes;
+  private Semaphore concurrencyLimiter;
 
   public void initialize() throws InterruptedException {
     // configure and set 
@@ -89,6 +103,35 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
     batchSizeWait = ConsumerUtil.selectInstance(batchSizeWaitInstances, commonConfig.batchSizeWaitName());
     LOGGER.info("Using {} to optimize batch size", batchSizeWait.getClass().getSimpleName());
     batchSizeWait.initizalize();
+
+    this.numConcurrentUploads = commonConfig.concurrentUploads();
+    this.concurrentUploadsTimeoutMinutes = commonConfig.concurrentUploadsTimeoutMinutes();
+
+    // Initialize the semaphore for parallel processing
+    if (numConcurrentUploads > 1) {
+      this.concurrencyLimiter = new Semaphore(numConcurrentUploads);
+      LOGGER.info("Parallel uploads enabled with concurrency limit: {}", numConcurrentUploads);
+    }
+  }
+
+  @PreDestroy
+  void close() {
+    shutdownExecutors();
+  }
+
+  protected void shutdownExecutors() {
+    try {
+      LOGGER.info("Shutting down executor service.");
+      executor.shutdown();
+      if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+        LOGGER.warn("Executor service did not terminate in 30 seconds. Forcing shutdown.");
+        executor.shutdownNow();
+      }
+    } catch (InterruptedException e) {
+      LOGGER.warn("Interrupted while shutting down executor service.");
+      executor.shutdownNow();
+      Thread.currentThread().interrupt();
+    }
   }
 
   @Override
@@ -97,32 +140,16 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
     LOGGER.trace("Received {} events", records.size());
 
     Instant start = Instant.now();
-    Map<String, List<RecordConverter>> events = records.stream()
-        .map((ChangeEvent<Object, Object> e)
-            -> {
-          try {
-            return this.eventAsRecordConverter(e);
-          } catch (IOException ex) {
-            throw new DebeziumException(ex);
-          }
-        })
-        .collect(Collectors.groupingBy(RecordConverter::destination));
+    Map<String, List<ChangeEvent<Object, Object>>> events = records.stream()
+        .collect(Collectors.groupingBy(ChangeEvent<Object, Object>::destination));
 
-    long numUploadedEvents = 0;
-    for (Map.Entry<String, List<RecordConverter>> destinationEvents : events.entrySet()) {
-      // group list of events by their schema, if in the batch we have schema change events grouped by their schema
-      // so with this uniform schema is guaranteed for each batch
-      Map<JsonNode, List<RecordConverter>> eventsGroupedBySchema =
-          destinationEvents.getValue().stream()
-              .collect(Collectors.groupingBy(RecordConverter::valueSchema));
-      LOGGER.debug("Destination {} got {} records with {} different schema!!", destinationEvents.getKey(),
-          destinationEvents.getValue().size(),
-          eventsGroupedBySchema.keySet().size());
-
-      for (List<RecordConverter> schemaEvents : eventsGroupedBySchema.values()) {
-        numUploadedEvents += this.uploadDestination(destinationEvents.getKey(), schemaEvents);
-      }
+    // consume list of events for each destination table
+    if (numConcurrentUploads > 1) {
+      this.processTablesInParallel(events);
+    } else {
+      this.processTablesSequentially(events);
     }
+
     // workaround! somehow offset is not saved to file unless we call committer.markProcessed
     // even it's should be saved to file periodically
     for (ChangeEvent<Object, Object> record : records) {
@@ -130,11 +157,93 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
       committer.markProcessed(record);
     }
     committer.markBatchFinished();
+    long numUploadedEvents = records.size();
     this.logConsumerProgress(numUploadedEvents);
     LOGGER.debug("Received:{} Processed:{} events", records.size(), numUploadedEvents);
 
     batchSizeWait.waitMs(numUploadedEvents, (int) Duration.between(start, Instant.now()).toMillis());
 
+  }
+
+  private void processTablesSequentially(Map<String, List<ChangeEvent<Object, Object>>> events) {
+    for (Map.Entry<String, List<ChangeEvent<Object, Object>>> destinationEvents : events.entrySet()) {
+      this.addToTable(destinationEvents);
+    }
+  }
+
+  private void addToTable(Map.Entry<String, List<ChangeEvent<Object, Object>>> destinationEvents) {
+    // group list of events by their schema, if in the batch we have schema change events grouped by their schema
+    // so with this uniform schema is guaranteed for each batch
+    Map<JsonNode, List<RecordConverter>> eventsGroupedBySchema =
+        destinationEvents.getValue().stream()
+            .map((ChangeEvent<Object, Object> e) -> {
+              try {
+                return this.eventAsRecordConverter(e);
+              } catch (IOException ex) {
+                throw new DebeziumException(ex);
+              }
+            })
+            .collect(Collectors.groupingBy(RecordConverter::valueSchema));
+    LOGGER.debug("Destination {} got {} records with {} different schema!!", destinationEvents.getKey(),
+        destinationEvents.getValue().size(),
+        eventsGroupedBySchema.keySet().size());
+
+    for (List<RecordConverter> schemaEvents : eventsGroupedBySchema.values()) {
+      this.uploadDestination(destinationEvents.getKey(), schemaEvents);
+    }
+  }
+
+  private void processTablesInParallel(Map<String, List<ChangeEvent<Object, Object>>> events) {
+    List<Callable<Void>> tasks = new ArrayList<>();
+    for (Map.Entry<String, List<ChangeEvent<Object, Object>>> destinationEvents : events.entrySet()) {
+      tasks.add(() -> {
+        try {
+          // Acquire a permit from the Semaphore to enforce the concurrency limit.
+          LOGGER.trace("Task for destination '{}' waiting for permit. Available: {}", destinationEvents.getKey(), concurrencyLimiter.availablePermits());
+          concurrencyLimiter.acquire();
+          LOGGER.debug("Task for destination '{}' acquired permit. Starting processing.", destinationEvents.getKey());
+
+          this.addToTable(destinationEvents);
+          return null; // Callable must return a value
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt(); // Restore interrupted status
+          LOGGER.warn("Task for destination '{}' was interrupted.", destinationEvents.getKey(), e);
+          return null;
+        } catch (Exception e) {
+          // Log and rethrow. This will be wrapped in an ExecutionException by the Future.
+          LOGGER.error("Task for destination '{}' failed.", destinationEvents.getKey(), e);
+          throw e;
+        } finally {
+          // Always release the permit, even if an exception occurred.
+          concurrencyLimiter.release();
+          LOGGER.trace("Task for destination '{}' released permit. Available: {}", destinationEvents.getKey(), concurrencyLimiter.availablePermits());
+        }
+      });
+    }
+    // process
+    LOGGER.debug("Invoking {} parallel tasks and waiting for completion...", tasks.size());
+    try {
+      // Invoke all tasks and wait for them to complete, with a timeout.
+      List<Future<Void>> futures = executor.invokeAll(tasks, concurrentUploadsTimeoutMinutes, TimeUnit.MINUTES);
+
+      // Check the status of each task to log any exceptions
+      for (Future<Void> future : futures) {
+        try {
+          // future.get() will throw an exception if the task failed or was cancelled.
+          future.get();
+        } catch (CancellationException e) {
+          LOGGER.error("A task was cancelled, likely due to timeout.", e);
+        } catch (ExecutionException e) {
+          // The original exception from the Callable is wrapped in ExecutionException
+          LOGGER.error("A task failed with an exception: {}", e.getCause().getMessage(), e.getCause());
+        }
+      }
+      LOGGER.debug("All parallel tasks have been processed.");
+
+    } catch (InterruptedException e) {
+      LOGGER.warn("Main thread interrupted while waiting for tasks to complete.", e);
+      Thread.currentThread().interrupt();
+    }
   }
 
   protected void logConsumerProgress(long numUploadedEvents) {
