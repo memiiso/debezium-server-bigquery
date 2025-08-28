@@ -21,7 +21,7 @@
 | `debezium.transforms`                                         | `unwrap`                                                        |                                                                                                            |
 | `debezium.transforms.unwrap.type`                             | `io.debezium.transforms.ExtractNewRecordState`                  |                                                                                                            |
 | `debezium.transforms.unwrap.add.fields`                       | `op,table,source.ts_ms,db,ts_ms,ts_ns,source.ts_ns`             |                                                                                                            |
-| `debezium.transforms.unwrap.delete.handling.mode`             | `rewrite`                                                       |                                                                                                            |
+| `debezium.transforms.unwrap.delete.tombstone.handling.mode`   | `rewrite`                                                       |                                                                                                            |
 | `debezium.transforms.unwrap.drop.tombstones`                  | `true`                                                          |                                                                                                            |
 
 ## Data type mapping
@@ -78,7 +78,8 @@ debezium.transforms=unwrap
 debezium.transforms.unwrap.type=io.debezium.transforms.ExtractNewRecordState
 debezium.transforms.unwrap.add.fields=op,table,lsn,source.ts_ms,source.ts_ns
 debezium.transforms.unwrap.add.headers=db
-debezium.transforms.unwrap.delete.handling.mode=rewrite
+debezium.transforms.unwrap.delete.tombstone.handling.mode=rewrite
+debezium.transforms.unwrap.drop.tombstones=true
 ```
 
 ### Optimizing batch size (or commit interval)
