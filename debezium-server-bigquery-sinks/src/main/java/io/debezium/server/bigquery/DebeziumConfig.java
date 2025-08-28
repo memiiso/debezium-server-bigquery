@@ -71,7 +71,7 @@ public interface DebeziumConfig {
   @WithDefault("op,table,source.ts_ms,db,ts_ms,ts_ns,source.ts_ns")
   String unwrapAddFields();
 
-  @WithName("debezium.transforms.unwrap.delete.handling.mode")
+  @WithName("debezium.transforms.unwrap.delete.tombstone.handling.mode")
   @WithDefault("rewrite")
   String unwrapDeleteHandlingMode();
 
