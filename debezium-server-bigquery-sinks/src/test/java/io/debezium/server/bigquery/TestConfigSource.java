@@ -50,7 +50,7 @@ public class TestConfigSource implements ConfigSource {
     // debezium unwrap message
     config.put("debezium.transforms", "unwrap");
     config.put("debezium.transforms.unwrap.type", "io.debezium.transforms.ExtractNewRecordState");
-    config.put("debezium.transforms.unwrap.delete.handling.mode", "rewrite");
+    config.put("debezium.transforms.unwrap.delete.tombstone.handling.mode", "rewrite");
     config.put("debezium.transforms.unwrap.drop.tombstones", "true");
 
     // logging levels
