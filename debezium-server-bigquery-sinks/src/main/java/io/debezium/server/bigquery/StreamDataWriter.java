@@ -153,10 +153,10 @@ public class StreamDataWriter {
     return new DebeziumException(exceptionMessage.toString(), e);
   }
 
-  public void close(BigQueryWriteClient client) {
+  public void close() {
     if (streamWriter != null) {
       streamWriter.close();
-      client.finalizeWriteStream(streamWriter.getStreamName());
+      this.client.finalizeWriteStream(streamWriter.getStreamName());
     }
   }
 

@@ -56,9 +56,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Dependent
 @Beta
 public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
-  protected static final ConcurrentHashMap<String, StreamDataWriter> jsonStreamWriters = new ConcurrentHashMap<>();
-  static final ImmutableMap<String, Integer> cdcOperations = ImmutableMap.of("c", 1, "r", 2, "u", 3, "d", 4);
-  public static BigQueryWriteClient bigQueryWriteClient;
+  private static final ImmutableMap<String, Integer> cdcOperations = ImmutableMap.of("c", 1, "r", 2, "u", 3, "d", 4);
+  protected final ConcurrentHashMap<String, StreamDataWriter> jsonStreamWriters = new ConcurrentHashMap<>();
+  BigQueryWriteClient bigQueryWriteClient;
   TimePartitioning timePartitioning;
   BigQuery bqClient;
 
@@ -77,7 +77,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     }
     if (bigQueryWriteClient != null) {
       try {
-        bigQueryWriteClient.close();
+        this.bigQueryWriteClient.close();
       } catch (Exception e) {
         LOGGER.warn("Exception while closing BigQueryWriteClient", e);
       }
@@ -103,7 +103,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   private void closeStreamWriter(StreamDataWriter writer, String destination) {
     try {
       if (writer != null) {
-        writer.close(bigQueryWriteClient);
+        writer.close();
       }
     } catch (Exception e) {
       LOGGER.warn("Exception while closing bigquery stream, destination:" + destination, e);
@@ -325,4 +325,3 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
 }
-
