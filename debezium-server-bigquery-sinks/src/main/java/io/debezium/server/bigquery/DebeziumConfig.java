@@ -79,6 +79,14 @@ public interface DebeziumConfig {
   @WithDefault("true")
   String unwrapDeleteTombstoneHandlingMode();
 
+  @WithName("debezium.source.topic.heartbeat.prefix")
+  @WithDefault("__debezium-heartbeat")
+  String topicHeartbeatPrefix();
+
+  @WithName("debezium.source.topic.heartbeat.skip-consuming")
+  @WithDefault("ture")
+  boolean topicHeartbeatSkipConsuming();
+
   default boolean isIsoStringTemporalMode() {
     return temporalPrecisionMode() == TemporalPrecisionMode.ISOSTRING;
   }
