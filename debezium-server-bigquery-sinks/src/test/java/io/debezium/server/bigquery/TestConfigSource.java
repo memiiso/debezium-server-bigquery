@@ -47,6 +47,8 @@ public class TestConfigSource implements ConfigSource {
     config.put("debezium.sink.batch.objectkey-prefix", "debezium-cdc-");
     config.put("debezium.sink.batch.objectkey-partition", "true");
 
+    config.put("debezium.source.heartbeat.interval.ms", "2");
+
     // debezium unwrap message
     config.put("debezium.transforms", "unwrap");
     config.put("debezium.transforms.unwrap.type", "io.debezium.transforms.ExtractNewRecordState");

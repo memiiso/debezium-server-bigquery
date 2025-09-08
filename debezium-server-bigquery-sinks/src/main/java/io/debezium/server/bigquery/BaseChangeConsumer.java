@@ -167,6 +167,9 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
 
   private void processTablesSequentially(Map<String, List<ChangeEvent<Object, Object>>> events) {
     for (Map.Entry<String, List<ChangeEvent<Object, Object>>> destinationEvents : events.entrySet()) {
+      if (destinationEvents.getKey().startsWith(debeziumConfig.topicHeartbeatPrefix()) && debeziumConfig.topicHeartbeatSkipConsuming()) {
+        continue;
+      }
       this.addToTable(destinationEvents);
     }
   }
@@ -196,6 +199,10 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
   private void processTablesInParallel(Map<String, List<ChangeEvent<Object, Object>>> events) {
     List<Callable<Void>> tasks = new ArrayList<>();
     for (Map.Entry<String, List<ChangeEvent<Object, Object>>> destinationEvents : events.entrySet()) {
+      if (destinationEvents.getKey().startsWith(debeziumConfig.topicHeartbeatPrefix()) && debeziumConfig.topicHeartbeatSkipConsuming()) {
+        continue;
+      }
+
       tasks.add(() -> {
         try {
           // Acquire a permit from the Semaphore to enforce the concurrency limit.
