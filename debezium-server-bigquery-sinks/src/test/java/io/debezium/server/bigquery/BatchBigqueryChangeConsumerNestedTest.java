@@ -38,7 +38,6 @@ public class BatchBigqueryChangeConsumerNestedTest extends BaseBigqueryTest {
   @BeforeAll
   public static void setup() throws InterruptedException {
     bqClient = BigQueryGCP.bigQueryClient();
-    dropTables();
   }
 
   @Test
