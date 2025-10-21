@@ -8,7 +8,6 @@
 
 package io.debezium.server.bigquery.offset;
 
-import autovalue.shaded.com.google.common.collect.ImmutableList;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +17,7 @@ import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
+import com.google.common.collect.ImmutableList;
 import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
 import io.debezium.server.bigquery.ConsumerUtil;
