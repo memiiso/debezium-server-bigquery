@@ -56,6 +56,7 @@ public class BatchBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
             "VALUES  (1,1,'data'),(1,2,'data'),(1,3,'data'),(1,4,'data') ;";
     String sqlDelete = "DELETE FROM inventory.test_table where c_id = 1 ;";
     String dest = "testc.inventory.test_table";
+    SourceMysqlDB.runSQL(sqlInsert);
 
     Awaitility.await().atMost(Duration.ofSeconds(180)).until(() -> {
       try {
@@ -67,7 +68,6 @@ public class BatchBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
         return false;
       }
     });
-    SourceMysqlDB.runSQL(sqlInsert);
     SourceMysqlDB.runSQL(sqlDelete);
     SourceMysqlDB.runSQL(sqlInsert);
     SourceMysqlDB.runSQL(sqlDelete);
@@ -92,6 +92,7 @@ public class BatchBigqueryChangeConsumerMysqlTest extends BaseBigqueryTest {
       Map<String, String> config = new HashMap<>();
       config.put("debezium.sink.type", "bigquerybatch");
       config.put("debezium.source.table.include.list", "inventory.test_table");
+      config.put("debezium.source.offset.flush.interval.ms", "600");
       config.put("quarkus.log.level", "INFO");
       return config;
     }
