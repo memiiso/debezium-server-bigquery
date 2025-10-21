@@ -36,7 +36,6 @@ public class StreamBigqueryChangeConsumerNestedTest extends BaseBigqueryTest {
   @BeforeAll
   public static void setup() throws InterruptedException {
     bqClient = BigQueryDB.bigQueryClient();
-//    dropTables();
     Thread.sleep(5000);
   }
 

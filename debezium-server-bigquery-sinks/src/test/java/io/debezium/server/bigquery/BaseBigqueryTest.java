@@ -101,10 +101,12 @@ public class BaseBigqueryTest {
 
   public static void dropTables() {
     try {
-      TableResult result = simpleQuery("select \n" +
-          "concat(\"DROP TABLE \",table_schema,\".\",   table_name, \";\" ) AS DROP_TABLES_QUERY\n" +
-          "from testdataset.INFORMATION_SCHEMA.TABLES\n" +
-          "where table_schema = 'testdataset'\n");
+      TableResult result = simpleQuery("""
+          select
+          concat("DROP TABLE ",table_schema,".",   table_name, ";" ) AS DROP_TABLES_QUERY
+          from testdataset.INFORMATION_SCHEMA.TABLES
+          where table_schema = 'testdataset'
+          """);
       if (result == null) {
         return;
       }

@@ -10,6 +10,9 @@ package io.debezium.server.bigquery.shared;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.TableResult;
 import io.debezium.server.bigquery.BaseBigqueryTest;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
@@ -34,8 +37,40 @@ public class BigQueryGCP implements QuarkusTestResourceLifecycleManager {
     return options.getService();
   }
 
+  public static TableResult simpleQuery(String query) throws InterruptedException {
+    QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
+    try {
+      return bqClient.query(queryConfig);
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  public static void dropTables() {
+    try {
+      TableResult result = simpleQuery("select \n" +
+          "concat(\"DROP TABLE \",table_schema,\".\",   table_name, \";\" ) AS DROP_TABLES_QUERY\n" +
+          "from testdataset.INFORMATION_SCHEMA.TABLES\n" +
+          "where table_schema = 'testdataset'\n");
+
+      if (result == null) {
+        return;
+      }
+
+      for (FieldValueList row : result.iterateAll()) {
+        String sql = row.get("DROP_TABLES_QUERY").getStringValue();
+        LOGGER.warn("Running: " + sql);
+        simpleQuery(sql);
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   @Override
   public void stop() {
+    bqClient = bigQueryClient();
+    dropTables();
     return;
   }
 
