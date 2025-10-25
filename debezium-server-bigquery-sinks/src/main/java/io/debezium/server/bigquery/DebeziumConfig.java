@@ -87,6 +87,10 @@ public interface DebeziumConfig {
   @WithDefault("ture")
   boolean topicHeartbeatSkipConsuming();
 
+  @WithName("debezium.source.include.schema.changes")
+  @WithDefault("false")
+  boolean includeSchemaChanges();
+
   default boolean isIsoStringTemporalMode() {
     return temporalPrecisionMode() == TemporalPrecisionMode.ISOSTRING;
   }
