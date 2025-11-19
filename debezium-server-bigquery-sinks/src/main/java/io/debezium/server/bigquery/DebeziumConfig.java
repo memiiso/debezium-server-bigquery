@@ -84,7 +84,7 @@ public interface DebeziumConfig {
   String topicHeartbeatPrefix();
 
   @WithName("debezium.source.topic.heartbeat.skip-consuming")
-  @WithDefault("ture")
+  @WithDefault("true")
   boolean topicHeartbeatSkipConsuming();
 
   @WithName("debezium.source.include.schema.changes")
