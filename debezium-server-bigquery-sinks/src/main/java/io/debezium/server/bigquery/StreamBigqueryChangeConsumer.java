@@ -237,7 +237,11 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
    */
   private int compareByTsThenOp(JsonNode lhs, JsonNode rhs) {
 
-    int result = Long.compare(lhs.get(config.sourceTsColumn()).asLong(0), rhs.get(config.sourceTsColumn()).asLong(0));
+    if (config.sourceTsColumn().isEmpty() || config.sourceTsColumn().get().isBlank()) {
+      return -1;
+    }
+
+    int result = Long.compare(lhs.get(config.sourceTsColumn().get()).asLong(0), rhs.get(config.sourceTsColumn().get()).asLong(0));
 
     if (result == 0) {
       // return (x < y) ? -1 : ((x == y) ? 0 : 1);
