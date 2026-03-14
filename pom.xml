@@ -37,7 +37,7 @@
         <version.gcp.bigquerybom>2.61.0</version.gcp.bigquerybom>
         <!-- Plugin versions -->
         <version.assembly.plugin>3.7.1</version.assembly.plugin>
-        <version.maven-enforcer-plugin>3.5.0</version.maven-enforcer-plugin>
+        <version.maven-enforcer-plugin>3.6.2</version.maven-enforcer-plugin>
         <version.maven-failsafe-plugin>3.5.5</version.maven-failsafe-plugin>
         <version.maven-surefire-plugin>3.5.0</version.maven-surefire-plugin>
     </properties>
