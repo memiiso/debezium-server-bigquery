@@ -260,6 +260,9 @@ public abstract class BaseRecordConverter implements RecordConverter {
         }
         break;
       case GEOGRAPHY:
+        // TODO: BigQuery GEOGRAPHY type typically expects WKT (Well-Known Text) or GeoJSON for JSON ingestion.
+        // Current implementation uses Hex-encoded WKB, which might require ST_GEOGFROMWKB during post-processing
+        // or a different ingestion strategy (e.g., Avro/Parquet) for native GEOGRAPHY support.
         if (value.isBinary()) {
           try {
             String hexString = Hex.encodeHexString(value.binaryValue());

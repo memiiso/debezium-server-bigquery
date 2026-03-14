@@ -174,10 +174,7 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
   }
 
   TableId getTableId(String destination) {
-    final String tableName = destination
-        .replaceAll(this.config.common().destinationRegexp().orElse(""), this.config.common().destinationRegexpReplace().orElse(""))
-        .replace(".", "_");
-    return TableId.of(config.gcpProject().get(), config.bqDataset().get(), tableName);
+    return getTableId(destination, config.gcpProject().get(), config.bqDataset().get());
   }
 
   public RecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {

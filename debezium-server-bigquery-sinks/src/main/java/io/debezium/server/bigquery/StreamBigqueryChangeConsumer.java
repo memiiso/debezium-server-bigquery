@@ -42,6 +42,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Implementation of a Debezium change consumer that delivers events to BigQuery tables in a streaming manner.
@@ -61,6 +64,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   BigQueryWriteClient bigQueryWriteClient;
   TimePartitioning timePartitioning;
   BigQuery bqClient;
+  ScheduledExecutorService writerExecutor;
 
   @Inject
   StreamConsumerConfig config;
@@ -84,6 +88,16 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     }
 
     shutdownExecutors();
+    if (writerExecutor != null) {
+      writerExecutor.shutdown();
+      try {
+        if (!writerExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+          writerExecutor.shutdownNow();
+        }
+      } catch (InterruptedException e) {
+        writerExecutor.shutdownNow();
+      }
+    }
   }
 
   public void initialize() throws InterruptedException {
@@ -93,7 +107,16 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     timePartitioning =
         TimePartitioning.newBuilder(TimePartitioning.Type.valueOf(config.partitionType())).setField(config.partitionField()).build();
     try {
+      writerExecutor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors() * 2);
       BigQueryWriteSettings bigQueryWriteSettings = ConsumerUtil.bigQueryWriteSettings(config.isBigqueryDevEmulator(), bqClient, config.bigQueryCustomGRPCHost());
+      bigQueryWriteSettings = bigQueryWriteSettings.toBuilder()
+          .setTransportChannelProvider(
+              ConsumerUtil.bigQueryTransportChannelProvider(config.isBigqueryDevEmulator(), config.bigQueryCustomGRPCHost())
+                  .toBuilder()
+                  //.setExecutorProvider(FixedExecutorProvider.create(writerExecutor))
+                  .build()
+          )
+          .build();
       bigQueryWriteClient = BigQueryWriteClient.create(bigQueryWriteSettings);
     } catch (IOException e) {
       throw new DebeziumException("Failed to create BigQuery Write Client", e);
@@ -127,7 +150,8 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
           streamOrTableName,
           bigQueryWriteClient,
           config.ignoreUnknownFields(),
-          storageTableSchema
+          storageTableSchema,
+          writerExecutor
       );
       writer.initialize();
       return writer;
@@ -227,10 +251,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
   public TableId getTableId(String destination) {
-    final String tableName = destination
-        .replaceAll(config.common().destinationRegexp().orElse(""), config.common().destinationRegexpReplace().orElse(""))
-        .replace(".", "_");
-    return TableId.of(config.gcpProject().get(), config.bqDataset().get(), tableName);
+    return getTableId(destination, config.gcpProject().get(), config.bqDataset().get());
   }
 
   // create table if not exists
