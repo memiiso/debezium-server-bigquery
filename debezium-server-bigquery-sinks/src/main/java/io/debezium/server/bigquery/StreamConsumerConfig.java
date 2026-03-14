@@ -73,8 +73,7 @@ public interface StreamConsumerConfig {
   boolean upsertKeepDeletes();
 
   @WithName("debezium.sink.bigquerystream.upsert-dedup-column")
-  @WithDefault("__source_ts_ns")
-  String sourceTsColumn();
+  Optional<String> sourceTsColumn();
 
   @WithName("debezium.sink.bigquerystream.upsert-op-column")
   @WithDefault("__op")

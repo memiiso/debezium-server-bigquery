@@ -24,7 +24,7 @@
         <!-- NOTE: this is override by release process using CLI argument -->
         <revision>0.0.1-SNAPSHOT</revision>
         <!-- Debezium Version! NOTE: keep same as parent.version above! -->
-        <version.debezium>3.3.1.Final</version.debezium>
+        <version.debezium>3.4.2.Final</version.debezium>
 
         <!-- Instruct the build to use only UTF-8 encoding for source code -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -38,7 +38,7 @@
         <!-- Plugin versions -->
         <version.assembly.plugin>3.7.1</version.assembly.plugin>
         <version.maven-enforcer-plugin>3.5.0</version.maven-enforcer-plugin>
-        <version.maven-failsafe-plugin>3.5.3</version.maven-failsafe-plugin>
+        <version.maven-failsafe-plugin>3.5.5</version.maven-failsafe-plugin>
         <version.maven-surefire-plugin>3.5.5</version.maven-surefire-plugin>
     </properties>
     <dependencyManagement>

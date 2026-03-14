@@ -174,6 +174,7 @@ public class StreamBigqueryChangeConsumerMysqlUpsertTest extends BaseBigqueryTes
       config.put("debezium.source.table.include.list", "inventory.test_table");
       config.put("debezium.sink.bigquerystream.upsert", "true");
       config.put("debezium.sink.bigquerystream.upsert-keep-deletes", "true");
+      config.put("debezium.sink.bigquerystream.upsert-dedup-column", "__source_ts_ns");
       config.put("debezium.source.offset.storage", "org.apache.kafka.connect.storage.MemoryOffsetBackingStore");
       config.put("debezium.source.schema.history.internal", "io.debezium.relational.history.MemorySchemaHistory");
       return config;
