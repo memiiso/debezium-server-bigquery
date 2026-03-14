@@ -22,7 +22,7 @@ import org.threeten.bp.Duration;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -41,17 +41,20 @@ public class StreamDataWriter {
   JsonStreamWriter streamWriter;
   private AtomicInteger recreateCount = new AtomicInteger(0);
   private final TableSchema tableSchema;
+  private final ScheduledExecutorService executorService;
 
 
   public StreamDataWriter(String streamOrTableName,
                           BigQueryWriteClient client,
                           Boolean ignoreUnknownFields,
-                          TableSchema tableSchema)
+                          TableSchema tableSchema,
+                          ScheduledExecutorService executorService)
       throws DescriptorValidationException, IOException, InterruptedException {
     this.client = client;
     this.ignoreUnknownFields = ignoreUnknownFields;
     this.streamOrTableName = streamOrTableName;
     this.tableSchema = tableSchema;
+    this.executorService = executorService;
   }
 
   public void initialize()
@@ -81,7 +84,7 @@ public class StreamDataWriter {
 
     JsonStreamWriter streamWriter = JsonStreamWriter.newBuilder(this.streamOrTableName, this.tableSchema, client)
         .setIgnoreUnknownFields(ignoreUnknownFields)
-        .setExecutorProvider(FixedExecutorProvider.create(Executors.newScheduledThreadPool(100)))
+        .setExecutorProvider(FixedExecutorProvider.create(executorService))
         //.setEnableConnectionPool(true)
         // If value is missing in json and there is a default value configured on bigquery
         // column, apply the default value to the missing value field.

@@ -76,7 +76,7 @@ public class StreamRecordConverter extends BaseRecordConverter {
     // SET UPSERT meta field `_CHANGE_TYPE`! this additional field allows us to do deletes, updates in bigquery
     if (upsert) {
       // if its deleted row and upsertKeepDeletes = false, deleted records are deleted from target table
-      if (!upsertKeepDeletes && jsonMap.get("__op").equals("d")) {
+      if (!upsertKeepDeletes && "d".equals(jsonMap.get("__op"))) {
         jsonMap.put(CHANGE_TYPE_PSEUDO_COLUMN, "DELETE");
       } else {
         // if it's not deleted row or upsertKeepDeletes = true then add deleted record to target table

@@ -23,6 +23,7 @@
             <scope>runtime</scope>
             <useProjectArtifact>false</useProjectArtifact>
             <useTransitiveFiltering>true</useTransitiveFiltering>
+            <outputFileNameMapping>${artifact.groupId}.${artifact.artifactId}-${artifact.version}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
             <excludes>
                 <exclude>org.apache.kafka:kafka-tools:*</exclude>
                 <exclude>javax.ws.rs:javax.ws.rs-api:*</exclude>

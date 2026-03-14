@@ -11,6 +11,7 @@ package io.debezium.server.bigquery;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableId;
 import io.debezium.DebeziumException;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
@@ -93,11 +94,11 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
     keyDeserializer = keySerde.deserializer();
 
     if (!debeziumConfig.valueFormat().equalsIgnoreCase(Json.class.getSimpleName().toLowerCase())) {
-      throw new InterruptedException("debezium.format.value={" + debeziumConfig.valueFormat() + "} not supported! Supported (debezium.format.value=*) formats are {json,}!");
+      throw new DebeziumException("debezium.format.value={" + debeziumConfig.valueFormat() + "} not supported! Supported (debezium.format.value=*) formats are {json,}!");
     }
 
     if (!debeziumConfig.keyFormat().equalsIgnoreCase(Json.class.getSimpleName().toLowerCase())) {
-      throw new InterruptedException("debezium.format.key={" + debeziumConfig.valueFormat() + "} not supported! Supported (debezium.format.key=*) formats are {json,}!");
+      throw new DebeziumException("debezium.format.key={" + debeziumConfig.keyFormat() + "} not supported! Supported (debezium.format.key=*) formats are {json,}!");
     }
 
     batchSizeWait = ConsumerUtil.selectInstance(batchSizeWaitInstances, commonConfig.batchSizeWaitName());
@@ -174,25 +175,34 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
     }
   }
 
-  private void addToTable(Map.Entry<String, List<ChangeEvent<Object, Object>>> destinationEvents) {
-    // group list of events by their schema, if in the batch we have schema change events grouped by their schema
-    // so with this uniform schema is guaranteed for each batch
-    Map<JsonNode, List<RecordConverter>> eventsGroupedBySchema =
-        destinationEvents.getValue().stream()
-            .map((ChangeEvent<Object, Object> e) -> {
-              try {
-                return this.eventAsRecordConverter(e);
-              } catch (IOException ex) {
-                throw new DebeziumException(ex);
-              }
-            })
-            .collect(Collectors.groupingBy(RecordConverter::valueSchema));
-    LOGGER.debug("Destination {} got {} records with {} different schema!!", destinationEvents.getKey(),
-        destinationEvents.getValue().size(),
-        eventsGroupedBySchema.keySet().size());
+  protected TableId getTableId(String destination, String gcpProject, String bqDataset) {
+    final String tableName = destination
+        .replaceAll(this.commonConfig.destinationRegexp().orElse(""), this.commonConfig.destinationRegexpReplace().orElse(""))
+        .replace(".", "_");
+    return TableId.of(gcpProject, bqDataset, tableName);
+  }
 
-    for (List<RecordConverter> schemaEvents : eventsGroupedBySchema.values()) {
-      this.uploadDestination(destinationEvents.getKey(), schemaEvents);
+  private void addToTable(Map.Entry<String, List<ChangeEvent<Object, Object>>> destinationEvents) {
+    synchronized (uploadLock.computeIfAbsent(destinationEvents.getKey(), k -> new Object())) {
+      // group list of events by their schema, if in the batch we have schema change events grouped by their schema
+      // so with this uniform schema is guaranteed for each batch
+      Map<JsonNode, List<RecordConverter>> eventsGroupedBySchema =
+          destinationEvents.getValue().stream()
+              .map((ChangeEvent<Object, Object> e) -> {
+                try {
+                  return this.eventAsRecordConverter(e);
+                } catch (IOException ex) {
+                  throw new DebeziumException(ex);
+                }
+              })
+              .collect(Collectors.groupingBy(RecordConverter::valueSchema));
+      LOGGER.debug("Destination {} got {} records with {} different schema!!", destinationEvents.getKey(),
+          destinationEvents.getValue().size(),
+          eventsGroupedBySchema.keySet().size());
+
+      for (List<RecordConverter> schemaEvents : eventsGroupedBySchema.values()) {
+        this.uploadDestination(destinationEvents.getKey(), schemaEvents);
+      }
     }
   }
 
