@@ -31,8 +31,8 @@ public class BigQueryDB implements QuarkusTestResourceLifecycleManager {
           "--project=" + BQ_PROJECT,
           "--dataset=" + BQ_DATASET
       )
-      .waitingFor(Wait.forLogMessage(".*listening.*0.0.0.0:9060.*", 1))
-      .waitingFor(Wait.forLogMessage(".*listening.*0.0.0.0:9050.*", 1));
+      .waitingFor(Wait.forLogMessage(".*listening.*9060.*", 1))
+      .waitingFor(Wait.forLogMessage(".*listening.*9050.*", 1));
   public static String BQ_LOCATION = "EU";
   // "/path/to/application_credentials.json"
   public static String BQ_CRED_FILE = "bigquery-testing-emulator.json";

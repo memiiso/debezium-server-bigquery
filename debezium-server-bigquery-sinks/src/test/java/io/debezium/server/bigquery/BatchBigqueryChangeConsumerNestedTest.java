@@ -9,7 +9,7 @@
 package io.debezium.server.bigquery;
 
 import com.google.cloud.bigquery.LegacySQLTypeName;
-import io.debezium.server.bigquery.shared.BigQueryGCP;
+import io.debezium.server.bigquery.shared.BigQueryDB;
 import io.debezium.server.bigquery.shared.SourcePostgresqlDB;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -30,14 +30,14 @@ import java.util.Map;
  */
 @QuarkusTest
 @QuarkusTestResource(value = SourcePostgresqlDB.class, restrictToAnnotatedClass = true)
-@QuarkusTestResource(value = BigQueryGCP.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(value = BigQueryDB.class, restrictToAnnotatedClass = true)
 @TestProfile(BatchBigqueryChangeConsumerNestedTest.TestProfile.class)
 @DisabledIfEnvironmentVariable(named = "GITHUB_ACTIONS", matches = "true")
 public class BatchBigqueryChangeConsumerNestedTest extends BaseBigqueryTest {
 
   @BeforeAll
   public static void setup() throws InterruptedException {
-    bqClient = BigQueryGCP.bigQueryClient();
+    bqClient = BigQueryDB.bigQueryClient();
   }
 
   @Test
