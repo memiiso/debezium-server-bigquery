@@ -12,7 +12,7 @@
     <parent>
         <groupId>io.debezium</groupId>
         <artifactId>debezium-build-parent</artifactId>
-        <version>3.4.2.Final</version>
+        <version>3.6.0.Final</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>debezium-server-bigquery</artifactId>
@@ -24,8 +24,7 @@
         <!-- NOTE: this is override by release process using CLI argument -->
         <revision>0.0.1-SNAPSHOT</revision>
         <!-- Debezium Version! NOTE: keep same as parent.version above! -->
-        <version.debezium>3.4.2.Final</version.debezium>
-
+        <version.debezium>3.6.0.Final</version.debezium>
         <!-- Instruct the build to use only UTF-8 encoding for source code -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
@@ -33,8 +32,8 @@
         <maven.compiler.release>21</maven.compiler.release>
 
         <skipITs>true</skipITs>
-        <version.gcp.librariesbom>26.78.0</version.gcp.librariesbom>
-        <version.gcp.bigquerybom>2.61.0</version.gcp.bigquerybom>
+        <version.gcp.librariesbom>26.85.0</version.gcp.librariesbom>
+        <version.gcp.bigquerybom>2.68.0</version.gcp.bigquerybom>
         <!-- Plugin versions -->
         <version.assembly.plugin>3.8.0</version.assembly.plugin>
         <version.maven-enforcer-plugin>3.6.2</version.maven-enforcer-plugin>
