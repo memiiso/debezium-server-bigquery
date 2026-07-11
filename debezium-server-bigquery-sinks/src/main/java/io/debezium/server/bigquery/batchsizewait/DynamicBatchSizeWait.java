@@ -49,6 +49,9 @@ public class DynamicBatchSizeWait implements BatchSizeWait {
   }
 
   public long getWaitMs(long numRecords) {
+    if (numRecords <= 0) {
+      return sleepMsHistory.getLast();
+    }
     batchSizeHistory.add(numRecords);
     batchSizeHistory.removeFirst();
     long sleepMs = 1;

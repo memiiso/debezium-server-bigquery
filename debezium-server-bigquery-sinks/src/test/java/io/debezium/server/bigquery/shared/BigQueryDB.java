@@ -24,7 +24,7 @@ public class BigQueryDB implements QuarkusTestResourceLifecycleManager {
   public static final Logger LOGGER = LoggerFactory.getLogger(BigQueryDB.class);
   public static final String BQ_PROJECT = "test-project";
   public static final String BQ_DATASET = "testdataset";
-  public static final BigQueryEmulatorContainer container = new BigQueryEmulatorContainer("ghcr.io/goccy/bigquery-emulator:0.6")
+  public static final BigQueryEmulatorContainer container = new BigQueryEmulatorContainer("ghcr.io/goccy/bigquery-emulator:0.6.2")
       .withCommand(
           "--log-level=debug",
 //          "--location=" + BQ_LOCATION,

@@ -136,8 +136,8 @@ This implementation saves database history to a bigquery table, along the destin
 dependency required to manage the application.
 
 ```properties
-debezium.source.database.history=io.debezium.server.bigquery.history.BigquerySchemaHistory
-debezium.source.database.history.bigquery.table-name=__debezium_database_history_storage_test_table
+debezium.source.schema.history.internal=io.debezium.server.bigquery.history.BigquerySchemaHistory
+debezium.source.schema.history.internal.bigquery.table-name=__debezium_database_history_storage_test_table
 ```
 
 ## Configuring log levels
