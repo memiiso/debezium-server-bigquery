@@ -21,8 +21,8 @@ public abstract class BaseBigqueryStorageConfig {
   public BaseBigqueryStorageConfig(Configuration config) {
     String sinkType = ConsumerUtil.sinkType(config);
     // debezium is doing config filtering before passing it down to this class! so we are taking unfiltered configs!
-    Map<String, String> confIcebergSubset2 = ConsumerUtil.getConfigSubset("debezium.sink." + sinkType + ".");
-    confIcebergSubset2.forEach(configCombined::putIfAbsent);
+    Map<String, String> confBigquerySubset = ConsumerUtil.getConfigSubset("debezium.sink." + sinkType + ".");
+    confBigquerySubset.forEach(configCombined::putIfAbsent);
   }
 
 
