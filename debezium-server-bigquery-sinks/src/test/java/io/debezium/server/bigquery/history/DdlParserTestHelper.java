@@ -13,8 +13,8 @@ import io.debezium.relational.ddl.DdlChanges;
 /**
  * @author Ismail simsek
  */
-public class TestingAntlrDdlParser extends AbstractDdlParser {
-    public TestingAntlrDdlParser() {
+public class DdlParserTestHelper extends AbstractDdlParser {
+    public DdlParserTestHelper() {
         super(true, true);
     }
 
