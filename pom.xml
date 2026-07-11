@@ -118,11 +118,11 @@
                 <configuration>
                     <rules>
                         <requireJavaVersion>
-                            <message>You are running an incompatible version of Java. Debezium Quarkus supports JDK 11
+                            <message>You are running an incompatible version of Java. Debezium Quarkus supports JDK 21
                                 or
                                 later.
                             </message>
-                            <version>[11,)</version>
+                            <version>[21,)</version>
                         </requireJavaVersion>
                     </rules>
                 </configuration>
