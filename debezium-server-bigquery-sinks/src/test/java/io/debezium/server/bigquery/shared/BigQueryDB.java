@@ -24,15 +24,15 @@ public class BigQueryDB implements QuarkusTestResourceLifecycleManager {
   public static final Logger LOGGER = LoggerFactory.getLogger(BigQueryDB.class);
   public static final String BQ_PROJECT = "test-project";
   public static final String BQ_DATASET = "testdataset";
-  public static final BigQueryEmulatorContainer container = new BigQueryEmulatorContainer("ghcr.io/goccy/bigquery-emulator:0.6.2")
+  public static final BigQueryEmulatorContainer container = new BigQueryEmulatorContainer("ghcr.io/goccy/bigquery-emulator:0.8.1")
       .withCommand(
           "--log-level=debug",
 //          "--location=" + BQ_LOCATION,
           "--project=" + BQ_PROJECT,
           "--dataset=" + BQ_DATASET
       )
-      .waitingFor(Wait.forLogMessage(".*listening.*0.0.0.0:9060.*", 1))
-      .waitingFor(Wait.forLogMessage(".*listening.*0.0.0.0:9050.*", 1));
+      .waitingFor(Wait.forLogMessage(".*listening.*9060.*", 1))
+      .waitingFor(Wait.forLogMessage(".*listening.*9050.*", 1));
   public static String BQ_LOCATION = "EU";
   // "/path/to/application_credentials.json"
   public static String BQ_CRED_FILE = "bigquery-testing-emulator.json";
