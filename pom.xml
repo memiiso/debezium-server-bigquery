@@ -34,6 +34,7 @@
         <skipITs>true</skipITs>
         <version.gcp.librariesbom>26.89.0</version.gcp.librariesbom>
         <version.gcp.bigquerybom>2.72.0</version.gcp.bigquerybom>
+        <version.testcontainers>2.0.5</version.testcontainers>
         <!-- Plugin versions -->
         <version.assembly.plugin>3.8.0</version.assembly.plugin>
         <version.maven-enforcer-plugin>3.6.2</version.maven-enforcer-plugin>
@@ -42,6 +43,14 @@
     </properties>
     <dependencyManagement>
         <dependencies>
+            <!-- testcontainers -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${version.testcontainers}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- Google -->
             <dependency>
                 <groupId>com.google.cloud</groupId>
