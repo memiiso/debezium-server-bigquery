@@ -114,8 +114,8 @@ debezium.sink.batch.batch-size-wait=MaxBatchSizeWait
 debezium.sink.batch.metrics.snapshot-mbean=debezium.postgres:type=connector-metrics,context=snapshot,server=testc
 debezium.sink.batch.metrics.streaming-mbean=debezium.postgres:type=connector-metrics,context=streaming,server=testc
 debezium.source.connector.class=io.debezium.connector.postgresql.PostgresConnector
-debezium.source.max.batch.size=2048;
-debezium.source.max.queue.size=16000";
+debezium.source.max.batch.size=2048
+debezium.source.max.queue.size=16000
 debezium.sink.batch.batch-size-wait.max-wait-ms=30000
 debezium.sink.batch.batch-size-wait.wait-interval-ms=5000
 ```
