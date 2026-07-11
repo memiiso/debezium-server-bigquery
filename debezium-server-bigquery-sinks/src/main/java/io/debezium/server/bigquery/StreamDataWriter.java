@@ -113,6 +113,7 @@ public class StreamDataWriter {
       if (response.hasError()) {
         throw createDebeziumExceptionFromResponseError(response);
       }
+      recreateCount.set(0);
     } catch (InterruptedException | ExecutionException | Exceptions.AppendSerializationError e) {
       throw createDebeziumExceptionFromException(e);
     }
