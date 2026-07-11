@@ -49,7 +49,7 @@ public interface DebeziumConfig {
   @WithDefault("_debezium_offset_storage")
   String offsetStorageTable();
 
-  // Save schema history to iceberg table
+  // Save schema history to bigquery table
   @WithName("debezium.source.schema.history.internal")
   @WithDefault("io.debezium.server.bigquery.history.BigquerySchemaHistory")
   String schemaHistoryStorage();

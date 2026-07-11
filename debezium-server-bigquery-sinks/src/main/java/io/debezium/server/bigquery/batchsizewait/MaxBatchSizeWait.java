@@ -51,7 +51,7 @@ public class MaxBatchSizeWait implements BatchSizeWait {
             "snapshotRunning:{}",
         numRecordsProcessed,
         debeziumMetrics.streamingQueueCurrentSize(), debeziumMetrics.maxQueueSize(),
-        (debeziumMetrics.streamingQueueCurrentSize() / debeziumMetrics.maxQueueSize()) * 100,
+        (debeziumMetrics.streamingQueueCurrentSize() * 100) / debeziumMetrics.maxQueueSize(),
         debeziumMetrics.streamingMilliSecondsBehindSource(),
         debeziumMetrics.snapshotCompleted(), debeziumMetrics.snapshotRunning()
     );

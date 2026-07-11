@@ -4,3 +4,8 @@ Dockerfile
 .idea/
 .github/
 .run/
+.git/
+.vscode/
+docs/
+mkdocs.yml
+*.log

@@ -29,11 +29,11 @@ debezium.sink.bigquerybatch.credentials-file=/path/to/application_credentials.js
 
 # ==================== Misc ====================
 
-debezium.source.database.history.kafka.bootstrap.servers=kafka:9092
-debezium.source.database.history.kafka.topic=dbhistory.fullfillment
+debezium.source.schema.history.internal.kafka.bootstrap.servers=kafka:9092
+debezium.source.schema.history.internal.kafka.topic=dbhistory.fullfillment
 debezium.source.include.schema.changes=false
-debezium.source.database.history=io.debezium.relational.history.FileDatabaseHistory
-debezium.source.database.history.file.filename=data/dbhistory.txt
+debezium.source.schema.history.internal=io.debezium.storage.file.history.FileSchemaHistory
+debezium.source.schema.history.internal.file.filename=data/dbhistory.txt
 
 quarkus.http.port=8014
 

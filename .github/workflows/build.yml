@@ -8,13 +8,11 @@ on:
   push:
     branches: [ master, '*.*' ]
     paths-ignore:
-      - '.github/**'
       - '.idea/**'
       - '.run/**'
   pull_request:
     branches: [ master, '*.*' ]
     paths-ignore:
-      - '.github/**'
       - '.idea/**'
       - '.run/**'
 

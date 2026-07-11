@@ -114,8 +114,8 @@ debezium.sink.batch.batch-size-wait=MaxBatchSizeWait
 debezium.sink.batch.metrics.snapshot-mbean=debezium.postgres:type=connector-metrics,context=snapshot,server=testc
 debezium.sink.batch.metrics.streaming-mbean=debezium.postgres:type=connector-metrics,context=streaming,server=testc
 debezium.source.connector.class=io.debezium.connector.postgresql.PostgresConnector
-debezium.source.max.batch.size=2048;
-debezium.source.max.queue.size=16000";
+debezium.source.max.batch.size=2048
+debezium.source.max.queue.size=16000
 debezium.sink.batch.batch-size-wait.max-wait-ms=30000
 debezium.sink.batch.batch-size-wait.wait-interval-ms=5000
 ```
@@ -136,8 +136,8 @@ This implementation saves database history to a bigquery table, along the destin
 dependency required to manage the application.
 
 ```properties
-debezium.source.database.history=io.debezium.server.bigquery.history.BigquerySchemaHistory
-debezium.source.database.history.bigquery.table-name=__debezium_database_history_storage_test_table
+debezium.source.schema.history.internal=io.debezium.server.bigquery.history.BigquerySchemaHistory
+debezium.source.schema.history.internal.bigquery.table-name=__debezium_database_history_storage_test_table
 ```
 
 ## Configuring log levels

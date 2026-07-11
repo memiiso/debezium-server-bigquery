@@ -10,6 +10,7 @@ package io.debezium.server.bigquery;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.core.NoCredentialsProvider;
+import com.google.api.gax.grpc.ChannelPoolSettings;
 import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
@@ -185,11 +186,15 @@ public class ConsumerUtil {
       builder.setEndpoint(bigQueryCustomGRPCHost.get());
     }
 
+    ChannelPoolSettings poolSettings = ChannelPoolSettings.builder()
+        .setInitialChannelCount(Runtime.getRuntime().availableProcessors() * 2)
+        .build();
+
     builder
         .setKeepAliveTime(org.threeten.bp.Duration.ofMinutes(1))
         .setKeepAliveTimeout(org.threeten.bp.Duration.ofMinutes(1))
         .setKeepAliveWithoutCalls(true)
-        .setChannelsPerCpu(2)
+        .setChannelPoolSettings(poolSettings)
     ;
     return builder.build();
   }

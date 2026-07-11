@@ -9,7 +9,7 @@
 package io.debezium.server.bigquery.batchsizewait;
 
 /**
- * Implementation of the consumer that delivers the messages into Amazon S3 destination.
+ * Interface for wait strategies used to optimize and adjust batch sizes.
  *
  * @author Ismail Simsek
  */

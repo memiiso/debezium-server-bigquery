@@ -5,7 +5,6 @@
 /debezium-server-bigquery-sinks/cache/
 /debezium-server-cachedbatch-sinks/cache/
 /rocksdb/**
-deploy.sh
 
 activemq-data/
 .idea/
