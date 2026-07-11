@@ -18,10 +18,6 @@ import com.google.cloud.bigquery.Schema;
 import io.debezium.DebeziumException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -78,8 +74,6 @@ public class StreamRecordConverter extends BaseRecordConverter {
       }
     }
 
-    // convertBinaryNodesToBase64(value);
-
     Map<String, Object> jsonMap = mapper.convertValue(value, new TypeReference<>() {
     });
     // SET UPSERT meta field `_CHANGE_TYPE`! this additional field allows us to do
@@ -98,43 +92,5 @@ public class StreamRecordConverter extends BaseRecordConverter {
 
     return new JSONObject(jsonMap);
   }
-
-  // private void convertBinaryNodesToBase64(JsonNode node) {
-  //   if (node == null) {
-  //     return;
-  //   }
-  //   if (node.isObject()) {
-  //     ObjectNode objectNode = (ObjectNode) node;
-  //     List<String> fieldNames = new ArrayList<>();
-  //     objectNode.fieldNames().forEachRemaining(fieldNames::add);
-  //     for (String fieldName : fieldNames) {
-  //       JsonNode child = objectNode.get(fieldName);
-  //       if (child.isBinary()) {
-  //         try {
-  //           String base64 = Base64.getEncoder().encodeToString(child.binaryValue());
-  //           objectNode.replace(fieldName, TextNode.valueOf(base64));
-  //         } catch (IOException e) {
-  //           throw new DebeziumException(e);
-  //         }
-  //       } else {
-  //         convertBinaryNodesToBase64(child);
-  //       }
-  //     }
-  //   } else if (node.isArray()) {
-  //     for (int i = 0; i < node.size(); i++) {
-  //       JsonNode child = node.get(i);
-  //       if (child.isBinary()) {
-  //         try {
-  //           String base64 = Base64.getEncoder().encodeToString(child.binaryValue());
-  //           ((com.fasterxml.jackson.databind.node.ArrayNode) node).set(i, TextNode.valueOf(base64));
-  //         } catch (IOException e) {
-  //           throw new DebeziumException(e);
-  //         }
-  //       } else {
-  //         convertBinaryNodesToBase64(child);
-  //       }
-  //     }
-  //   }
-  // }
 
 }
