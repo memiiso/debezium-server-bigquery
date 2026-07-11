@@ -243,6 +243,7 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
       // Invoke all tasks and wait for them to complete, with a timeout.
       List<Future<Void>> futures = executor.invokeAll(tasks, concurrentUploadsTimeoutMinutes, TimeUnit.MINUTES);
 
+      List<Throwable> failures = new ArrayList<>();
       // Check the status of each task to log any exceptions
       for (Future<Void> future : futures) {
         try {
@@ -250,11 +251,20 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
           future.get();
         } catch (CancellationException e) {
           LOGGER.error("A task was cancelled, likely due to timeout.", e);
+          failures.add(e);
         } catch (ExecutionException e) {
           // The original exception from the Callable is wrapped in ExecutionException
           LOGGER.error("A task failed with an exception: {}", e.getCause().getMessage(), e.getCause());
+          failures.add(e.getCause());
         }
       }
+
+      if (!failures.isEmpty()) {
+        throw new DebeziumException("One or more parallel upload tasks failed: " +
+            failures.stream().map(Throwable::getMessage).collect(Collectors.joining(", ")),
+            failures.get(0));
+      }
+
       LOGGER.debug("All parallel tasks have been processed.");
 
     } catch (InterruptedException e) {
