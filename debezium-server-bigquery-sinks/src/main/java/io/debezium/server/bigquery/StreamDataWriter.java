@@ -107,6 +107,7 @@ public class StreamDataWriter {
       if (response.hasError()) {
         throw createDebeziumExceptionFromResponseError(response);
       }
+      recreateCount.set(0);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw createDebeziumExceptionFromException(e);
@@ -165,7 +166,10 @@ public class StreamDataWriter {
   public void close() {
     if (streamWriter != null) {
       streamWriter.close();
-      this.client.finalizeWriteStream(streamWriter.getStreamName());
+      String streamName = streamWriter.getStreamName();
+      if (streamName != null && !streamName.endsWith("_default") && streamName.contains("/streams/")) {
+        this.client.finalizeWriteStream(streamName);
+      }
     }
   }
 
@@ -176,7 +180,6 @@ public class StreamDataWriter {
 
     while (System.currentTimeMillis() < endTime) {
       try {
-        TimeUnit.SECONDS.sleep(retryIntervalSeconds);
         client.getWriteStream(streamName);
         LOGGER.info("Stream is available for writing {} ", streamName);
         return;
@@ -190,6 +193,12 @@ public class StreamDataWriter {
         LOGGER.warn("Error checking if stream exists for {}: {}", streamName, e.getMessage());
       }
       LOGGER.warn("Waiting {} seconds before checking again.", retryIntervalSeconds);
+      try {
+        TimeUnit.SECONDS.sleep(retryIntervalSeconds);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new DebeziumException("Interrupted while waiting for stream to exist", e);
+      }
     }
 
     throw new DebeziumException("Timed out waiting for stream " + streamName + " to exist.");

@@ -3,9 +3,10 @@
 debezium.source.connector.class=io.debezium.connector.mysql.MySqlConnector
 debezium.source.offset.storage=io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore
 debezium.source.offset.storage.bigquery.table-name=debezium_offset_storage_custom_table
-debezium.source.database.history=io.debezium.server.bigquery.history.BigquerySchemaHistory
-debezium.source.database.history.bigquery.table-name=__debezium_database_history_storage_test_table
-debezium.source.database.history.bigquery.migrate-history-file=data/dbhistory.txt
+debezium.source.schema.history.internal=io.debezium.server.bigquery.history.BigquerySchemaHistory
+debezium.source.schema.history.internal.bigquery.table-name=__debezium_database_history_storage_test_table
+debezium.source.schema.history.internal.bigquery.migrate-history-file=data/dbhistory.txt
+
 
 debezium.source.offset.flush.interval.ms=60000
 

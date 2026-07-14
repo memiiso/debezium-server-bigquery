@@ -348,8 +348,14 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       TableDefinition newDefinition = table.getDefinition().toBuilder().setSchema(newSchema).build();
       table = table.toBuilder().setDefinition(newDefinition).build().update();
       LOGGER.info("New fields successfully added to table {}", table.getGeneratedId());
-      closeStreamWriter(jsonStreamWriters.get(destination), destination);
-      jsonStreamWriters.replace(destination, getDataWriter(table));
+      StreamDataWriter oldWriter = jsonStreamWriters.remove(destination);
+      closeStreamWriter(oldWriter, destination);
+      try {
+        jsonStreamWriters.put(destination, getDataWriter(table));
+      } catch (Exception e) {
+        LOGGER.error("Failed to create new stream writer after schema update for {}", destination, e);
+        throw e;
+      }
       LOGGER.info("Stream writer of the table is updated with the new schema");
     }
 

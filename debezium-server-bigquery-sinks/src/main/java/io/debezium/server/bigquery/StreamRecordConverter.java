@@ -25,7 +25,8 @@ import java.util.Map;
  */
 public class StreamRecordConverter extends BaseRecordConverter {
 
-  public StreamRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema, JsonNode keySchema, DebeziumConfig debeziumConfig) {
+  public StreamRecordConverter(String destination, JsonNode value, JsonNode key, JsonNode valueSchema,
+      JsonNode keySchema, DebeziumConfig debeziumConfig) {
     super(destination, value, key, valueSchema, keySchema, debeziumConfig);
   }
 
@@ -33,7 +34,9 @@ public class StreamRecordConverter extends BaseRecordConverter {
    * Used by `bigquerystream` {@link StreamBigqueryChangeConsumer} consumer.
    * See https://cloud.google.com/bigquery/docs/write-api#data_type_conversions
    *
-   * @param upsert            when set to true it adds change type column `_CHANGE_TYPE`. Otherwise, all events are considered as insert/append
+   * @param upsert            when set to true it adds change type column
+   *                          `_CHANGE_TYPE`. Otherwise, all events are considered
+   *                          as insert/append
    * @param upsertKeepDeletes when set to true it retains last deleted data row
    * @return returns Debezium events as {@link JSONObject}
    */
@@ -73,13 +76,16 @@ public class StreamRecordConverter extends BaseRecordConverter {
 
     Map<String, Object> jsonMap = mapper.convertValue(value, new TypeReference<>() {
     });
-    // SET UPSERT meta field `_CHANGE_TYPE`! this additional field allows us to do deletes, updates in bigquery
+    // SET UPSERT meta field `_CHANGE_TYPE`! this additional field allows us to do
+    // deletes, updates in bigquery
     if (upsert) {
-      // if its deleted row and upsertKeepDeletes = false, deleted records are deleted from target table
+      // if its deleted row and upsertKeepDeletes = false, deleted records are deleted
+      // from target table
       if (!upsertKeepDeletes && "d".equals(jsonMap.get("__op"))) {
         jsonMap.put(CHANGE_TYPE_PSEUDO_COLUMN, "DELETE");
       } else {
-        // if it's not deleted row or upsertKeepDeletes = true then add deleted record to target table
+        // if it's not deleted row or upsertKeepDeletes = true then add deleted record
+        // to target table
         jsonMap.put(CHANGE_TYPE_PSEUDO_COLUMN, "UPSERT");
       }
     }

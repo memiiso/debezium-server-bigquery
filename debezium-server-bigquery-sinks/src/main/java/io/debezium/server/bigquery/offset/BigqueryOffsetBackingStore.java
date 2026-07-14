@@ -161,6 +161,7 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     }
   }
 
+  @SuppressWarnings("unchecked")
   private void loadFileOffset(File file) {
     if (!file.isFile() || !file.exists()) {
       LOG.warn("Offset file not found, skipping migration! " + file.toPath().toAbsolutePath());

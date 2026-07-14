@@ -12,7 +12,7 @@ import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Named;
 
 /**
- * Optimizes batch size around 85%-90% of max,batch.size using dynamically calculated sleep(ms)
+ * A no-op implementation of BatchSizeWait that does not introduce any wait time.
  *
  * @author Ismail Simsek
  */

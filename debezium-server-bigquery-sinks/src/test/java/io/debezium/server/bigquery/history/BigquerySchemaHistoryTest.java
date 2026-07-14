@@ -45,7 +45,7 @@ class BigquerySchemaHistoryTest {
   static Table table2;
   static TableChanges tableChanges2;
   static HistoryRecord historyRecord2;
-  static DdlParser ddlParser = new TestingAntlrDdlParser();
+  static DdlParser ddlParser = new DdlParserTestHelper();
 
   @BeforeEach
   public void beforeEach() {
