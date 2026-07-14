@@ -1,6 +1,5 @@
 package io.debezium.server.bigquery;
 
-import com.google.api.core.ApiFuture;
 import com.google.api.gax.core.FixedExecutorProvider;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigquery.BigQueryException;
@@ -22,6 +21,7 @@ import org.threeten.bp.Duration;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -102,24 +102,30 @@ public class StreamDataWriter {
 
   public void appendSync(JSONArray data) throws DescriptorValidationException, IOException {
     try {
-      synchronized (this.lock) {
-        if (!streamWriter.isUserClosed() && streamWriter.isClosed() && recreateCount.getAndIncrement() < MAX_RECREATE_COUNT) {
-          streamWriter = createStreamWriter();
-        }
-      }
-
-      ApiFuture<AppendRowsResponse> future = streamWriter.append(data);
+      Future<AppendRowsResponse> future = appendAsync(data);
       AppendRowsResponse response = future.get();
       if (response.hasError()) {
         throw createDebeziumExceptionFromResponseError(response);
       }
       recreateCount.set(0);
-    } catch (InterruptedException | ExecutionException | Exceptions.AppendSerializationError e) {
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw createDebeziumExceptionFromException(e);
+    } catch (ExecutionException | Exceptions.AppendSerializationError e) {
       throw createDebeziumExceptionFromException(e);
     }
   }
 
-  private DebeziumException createDebeziumExceptionFromResponseError(AppendRowsResponse response) {
+  Future<AppendRowsResponse> appendAsync(JSONArray data) throws DescriptorValidationException, IOException, InterruptedException {
+    synchronized (this.lock) {
+      if (!streamWriter.isUserClosed() && streamWriter.isClosed() && recreateCount.getAndIncrement() < MAX_RECREATE_COUNT) {
+        streamWriter = createStreamWriter();
+      }
+    }
+    return streamWriter.append(data);
+  }
+
+  static DebeziumException createDebeziumExceptionFromResponseError(AppendRowsResponse response) {
     StringBuilder errorMessageBuilder = new StringBuilder("Failed to append data to stream.\n");
 
     Status error = response.getError();
@@ -138,7 +144,7 @@ public class StreamDataWriter {
     return new DebeziumException(errorMessageBuilder.toString());
   }
 
-  private DebeziumException createDebeziumExceptionFromException(Exception e) {
+  static DebeziumException createDebeziumExceptionFromException(Exception e) {
     StringBuilder exceptionMessage = new StringBuilder("Failed to append data to stream due to an exception.\n");
     exceptionMessage.append("Exception: ").append(e.getClass().getName()).append("\n");
     exceptionMessage.append("Message: ").append(e.getMessage()).append("\n");

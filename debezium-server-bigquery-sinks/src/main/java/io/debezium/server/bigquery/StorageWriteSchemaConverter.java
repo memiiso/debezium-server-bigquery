@@ -12,6 +12,10 @@ import java.util.stream.Collectors;
 public class StorageWriteSchemaConverter {
 
   public static TableSchema toStorageTableSchema(Schema schema, boolean doUpsert) {
+    return toStorageTableSchema(schema, doUpsert, false);
+  }
+
+  public static TableSchema toStorageTableSchema(Schema schema, boolean doUpsert, boolean changeSequenceEnabled) {
     TableSchema.Builder builder = TableSchema.newBuilder();
     for (Field field : schema.getFields()) {
       builder.addFields(convertField(field));
@@ -22,6 +26,13 @@ public class StorageWriteSchemaConverter {
           .setType(TableFieldSchema.Type.STRING)
           .setMode(TableFieldSchema.Mode.NULLABLE)
           .build());
+      if (changeSequenceEnabled) {
+        builder.addFields(TableFieldSchema.newBuilder()
+            .setName(ChangeSequenceNumber.PSEUDO_COLUMN)
+            .setType(TableFieldSchema.Type.STRING)
+            .setMode(TableFieldSchema.Mode.NULLABLE)
+            .build());
+      }
     }
     return builder.build();
   }

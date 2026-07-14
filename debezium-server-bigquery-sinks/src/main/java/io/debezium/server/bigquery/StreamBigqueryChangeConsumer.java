@@ -101,6 +101,10 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
   public void initialize() throws InterruptedException {
+    if (config.maxInFlightAppends() < 1) {
+      throw new DebeziumException("debezium.sink.bigquerystream.max-in-flight-appends must be at least 1, but was "
+          + config.maxInFlightAppends());
+    }
     super.initialize();
 
     bqClient = ConsumerUtil.bigqueryClient(config.isBigqueryDevEmulator(), config.gcpProject(), config.bqDataset(), config.credentialsFile(), config.bqLocation(), config.bigQueryCustomHost());
@@ -145,7 +149,9 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
         TableName tableName = TableName.of(table.getTableId().getProject(), table.getTableId().getDataset(), table.getTableId().getTable());
         streamOrTableName = tableName.toString();
       }
-      TableSchema storageTableSchema = StorageWriteSchemaConverter.toStorageTableSchema(table.getDefinition().getSchema(), doUpsert(table));
+      boolean doUpsert = doUpsert(table);
+      TableSchema storageTableSchema = StorageWriteSchemaConverter.toStorageTableSchema(
+          table.getDefinition().getSchema(), doUpsert, doUpsert && config.changeSequenceEnabled());
       StreamDataWriter writer = new StreamDataWriter(
           streamOrTableName,
           bigQueryWriteClient,
@@ -190,12 +196,21 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
         data = deduplicateBatch(data);
       }
       // add data to JSONArray
-      JSONArray jsonArr = new JSONArray();
+      List<JSONObject> rows = new ArrayList<>(data.size());
       data.forEach(e -> {
-        JSONObject val = e.convert(table.getDefinition().getSchema(), doUpsert, config.upsertKeepDeletes());
-        jsonArr.put(val);
+        JSONObject val = e instanceof StreamRecordConverter streamRecord
+            ? streamRecord.convert(table.getDefinition().getSchema(), doUpsert, config.upsertKeepDeletes(), config.changeSequenceEnabled())
+            : e.convert(table.getDefinition().getSchema(), doUpsert, config.upsertKeepDeletes());
+        if (doUpsert && config.changeSequenceEnabled() && !val.has(ChangeSequenceNumber.PSEUDO_COLUMN)) {
+          val.put(ChangeSequenceNumber.PSEUDO_COLUMN, ChangeSequenceNumber.from(e.value()).toString());
+        }
+        rows.add(val);
       });
-      writer.appendSync(jsonArr);
+      if (config.maxInFlightAppends() == 1) {
+        writer.appendSync(new JSONArray(rows));
+      } else {
+        BoundedAppendPipeline.append(rows, config.maxInFlightAppends(), writer::appendAsync);
+      }
     } catch (DescriptorValidationException | IOException e) {
       throw new DebeziumException("Failed to append data to stream " + writer.streamWriter.getStreamName(), e);
     }
@@ -211,7 +226,10 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     events.forEach(e ->
         // deduplicate using key(PK)
         deduplicatedEvents.merge(e.key(), e, (oldValue, newValue) -> {
-          if (this.compareByTsThenOp(oldValue.value(), newValue.value()) <= 0) {
+          int comparison = config.changeSequenceEnabled()
+              ? ChangeSequenceNumber.from(oldValue.value()).compareTo(ChangeSequenceNumber.from(newValue.value()))
+              : this.compareByTsThenOp(oldValue.value(), newValue.value());
+          if (comparison <= 0) {
             return newValue;
           } else {
             return oldValue;

@@ -44,3 +44,6 @@ quarkus.log.level=INFO
 quarkus.log.console.json=false
 # Ignore messages below warning level from Jetty, because it's a bit verbose
 quarkus.log.category."org.eclipse.jetty".level=WARN
+# Optional BigQuery CDC custom ordering and per-destination append pipelining
+#debezium.sink.bigquerystream.change-sequence.enabled=false
+#debezium.sink.bigquerystream.max-in-flight-appends=1
