@@ -38,10 +38,21 @@ class ChangeSequenceNumberTest {
   }
 
   @Test
+  void postgresUsesLsnAndTransactionIdCoordinates() throws Exception {
+    ChangeSequenceNumber first = ChangeSequenceNumber.from(postgresValue(10, 255, 41));
+    ChangeSequenceNumber laterLsn = ChangeSequenceNumber.from(postgresValue(10, 256, 1));
+    ChangeSequenceNumber laterTransaction = ChangeSequenceNumber.from(postgresValue(10, 255, 42));
+    assertEquals("000000000000000A/00000000000000FF/0000000000000029/0000000000000000",
+        first.toString());
+    assertTrue(first.compareTo(laterLsn) < 0);
+    assertTrue(first.compareTo(laterTransaction) < 0);
+  }
+
+  @Test
   void missingAndMalformedFieldsFailFast() throws Exception {
     JsonNode missing = MAPPER.readTree("{\"__source_ts_ns\":1}");
     assertTrue(assertThrows(DebeziumException.class, () -> ChangeSequenceNumber.from(missing))
-        .getMessage().contains("__source_file"));
+        .getMessage().contains("no supported source coordinates"));
     assertTrue(assertThrows(DebeziumException.class,
         () -> ChangeSequenceNumber.from(value(1, "mysql-bin.current", 2, 3))).getMessage().contains("numeric component"));
     JsonNode negative = MAPPER.readTree("{\"__source_ts_ns\":-1,\"__source_file\":\"bin.1\",\"__source_pos\":2,\"__source_row\":3}");
@@ -53,5 +64,11 @@ class ChangeSequenceNumberTest {
     return MAPPER.readTree(String.format(
         "{\"__source_ts_ns\":%d,\"__source_file\":\"%s\",\"__source_pos\":%d,\"__source_row\":%d}",
         timestamp, file, position, row));
+  }
+
+  private static JsonNode postgresValue(long timestamp, long lsn, long transactionId) throws Exception {
+    return MAPPER.readTree(String.format(
+        "{\"__source_ts_ns\":%d,\"__source_lsn\":%d,\"__source_txId\":%d}",
+        timestamp, lsn, transactionId));
   }
 }

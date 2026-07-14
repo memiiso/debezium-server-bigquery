@@ -15,7 +15,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -58,6 +62,37 @@ class BoundedAppendPipelineTest {
     }
   }
 
+  @Test
+  void interruptionCancelsOutstandingAppendsWithoutWaitingIndefinitely() throws Exception {
+    NeverCompletingFuture stuck = new NeverCompletingFuture();
+    CompletableFuture<AppendRowsResponse> other = new CompletableFuture<>();
+    AtomicInteger submitted = new AtomicInteger();
+    AtomicReference<Throwable> thrown = new AtomicReference<>();
+    AtomicBoolean interruptPreserved = new AtomicBoolean();
+    CountDownLatch finished = new CountDownLatch(1);
+    Thread caller = new Thread(() -> {
+      try {
+        BoundedAppendPipeline.append(rows(2), 2,
+            payload -> submitted.getAndIncrement() == 0 ? stuck : other);
+      } catch (Throwable e) {
+        thrown.set(e);
+        interruptPreserved.set(Thread.currentThread().isInterrupted());
+      } finally {
+        finished.countDown();
+      }
+    });
+
+    caller.start();
+    stuck.getStarted.await();
+    caller.interrupt();
+
+    assertTrue(finished.await(5, TimeUnit.SECONDS));
+    assertTrue(thrown.get() instanceof DebeziumException);
+    assertTrue(interruptPreserved.get());
+    assertTrue(stuck.cancelAttempted.get());
+    assertTrue(other.isCancelled());
+  }
+
   private static void assertBoundAndReorderedCompletion(int bound) throws Exception {
     int expected = Math.min(bound, 16);
     List<CompletableFuture<AppendRowsResponse>> completions = new CopyOnWriteArrayList<>();
@@ -93,5 +128,38 @@ class BoundedAppendPipelineTest {
       rows.add(new JSONObject().put("id", i));
     }
     return rows;
+  }
+
+  private static class NeverCompletingFuture implements Future<AppendRowsResponse> {
+    private final CountDownLatch getStarted = new CountDownLatch(1);
+    private final AtomicBoolean cancelAttempted = new AtomicBoolean();
+
+    @Override
+    public boolean cancel(boolean mayInterruptIfRunning) {
+      cancelAttempted.set(true);
+      return false;
+    }
+
+    @Override
+    public boolean isCancelled() {
+      return false;
+    }
+
+    @Override
+    public boolean isDone() {
+      return false;
+    }
+
+    @Override
+    public AppendRowsResponse get() throws InterruptedException {
+      getStarted.countDown();
+      new CountDownLatch(1).await();
+      throw new AssertionError("unreachable");
+    }
+
+    @Override
+    public AppendRowsResponse get(long timeout, TimeUnit unit) throws TimeoutException {
+      throw new TimeoutException();
+    }
   }
 }

@@ -74,6 +74,17 @@ class StreamCdcSequencingTest {
     assertEquals(firstAttempt.getString("_CHANGE_TYPE"), replay.getString("_CHANGE_TYPE"));
   }
 
+  @Test
+  void postgresCdcMutationReceivesSequence() throws Exception {
+    JsonNode value = MAPPER.readTree(
+        "{\"id\":1,\"__op\":\"u\",\"__source_ts_ns\":100,\"__source_lsn\":200,\"__source_txId\":300}");
+    JsonNode key = MAPPER.readTree("{\"id\":1}");
+    JSONObject converted = new StreamRecordConverter("test", value, key, null, null, null)
+        .convert(null, true, false, true);
+    assertEquals("0000000000000064/00000000000000C8/000000000000012C/0000000000000000",
+        converted.getString(ChangeSequenceNumber.PSEUDO_COLUMN));
+  }
+
   private static boolean hasField(TableSchema schema, String name) {
     return schema.getFieldsList().stream().anyMatch(field -> field.getName().equals(name));
   }

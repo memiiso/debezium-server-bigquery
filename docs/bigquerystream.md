@@ -57,22 +57,33 @@ UPSERT and DELETE mutation receives the Storage Write API pseudocolumn `_CHANGE_
 (`upsert-keep-deletes=true`) receive both an UPSERT change type and a sequence. The pseudocolumn is included in the
 Storage Write protobuf schema but is never created as a physical BigQuery table column.
 
-Configure the Debezium unwrap transform to expose all required source fields:
+Configure the Debezium unwrap transform to expose all required source fields for the source connector.
+
+For MySQL:
 
 ```properties
 debezium.transforms.unwrap.add.fields=op,source.ts_ms,source.ts_ns,source.file,source.pos,source.row
 debezium.sink.bigquerystream.change-sequence.enabled=true
 ```
 
-The sequence format is four uppercase, zero-padded, 16-character hexadecimal sections:
+For PostgreSQL:
+
+```properties
+debezium.transforms.unwrap.add.fields=op,source.ts_ms,source.ts_ns,source.lsn,source.txId
+debezium.sink.bigquerystream.change-sequence.enabled=true
+```
+
+Sequences use four uppercase, zero-padded, 16-character hexadecimal sections. The source-specific section order is:
 
 ```text
-source.ts_ns/binlog-file-index/source.pos/source.row
+MySQL:      source.ts_ns/binlog-file-index/source.pos/source.row
+PostgreSQL: source.ts_ns/source.lsn/source.txId/0
 %016X/%016X/%016X/%016X
 ```
 
 The binlog file index is the trailing numeric component of `__source_file` (for example, `mysql-bin.001234` becomes
-`1234`). `__source_ts_ns`, `__source_file`, `__source_pos`, and `__source_row` must be present and valid on every CDC
+`1234`). MySQL requires `__source_ts_ns`, `__source_file`, `__source_pos`, and `__source_row`; PostgreSQL requires
+`__source_ts_ns`, `__source_lsn`, and `__source_txId`. The appropriate fields must be present and valid on every CDC
 mutation. Missing, malformed, negative, or larger-than-64-bit components fail the complete Debezium batch; the connector
 does not silently emit an unsequenced mutation.
 
@@ -84,10 +95,10 @@ of `1` preserves the synchronous single-append behavior. Values above 1 split a 
 balanced chunks, submit them to the BigQuery default stream, and wait for every response even when completions arrive out
 of order.
 
-An append response error, exception, cancellation, timeout, or interruption fails the whole batch. Already-submitted
-futures are observed before failure is reported, and Debezium offsets are not marked processed or batch-finished unless
-every destination and every append succeeds. Replaying a failed sequenced batch is safe because source coordinates produce
-the same ordering values.
+An append response error, exception, cancellation, timeout, or interruption fails the whole batch. On interruption,
+outstanding append futures are cancelled and the interrupt status is restored without waiting indefinitely for an
+unresponsive request. Debezium offsets are not marked processed or batch-finished unless every destination and every
+append succeeds. Replaying a failed sequenced batch is safe because source coordinates produce the same ordering values.
 
 Benchmark values above 1 for the workload. For upsert destinations, use change sequencing when enabling append
 pipelining so out-of-order append completion cannot change the final CDC state.

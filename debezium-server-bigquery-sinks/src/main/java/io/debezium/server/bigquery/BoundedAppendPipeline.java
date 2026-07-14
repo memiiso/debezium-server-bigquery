@@ -13,6 +13,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -53,6 +54,11 @@ final class BoundedAppendPipeline {
 
     boolean interrupted = false;
     for (Future<AppendRowsResponse> future : futures) {
+      if (interrupted && !future.isDone()) {
+        failure = combine(failure, new DebeziumException(
+            "A BigQuery append request did not terminate after cancellation"));
+        continue;
+      }
       boolean observed = false;
       while (!observed) {
         try {
@@ -63,9 +69,16 @@ final class BoundedAppendPipeline {
           }
         } catch (InterruptedException e) {
           interrupted = true;
-          // Clear temporarily and retry this future so no append remains unobserved.
-          Thread.interrupted();
           failure = combine(failure, new DebeziumException("Interrupted while waiting for BigQuery append requests", e));
+          cancelOutstanding(futures, failure);
+          if (!future.isDone()) {
+            failure = combine(failure, new DebeziumException(
+                "A BigQuery append request did not terminate after cancellation"));
+          }
+          observed = true;
+        } catch (CancellationException e) {
+          observed = true;
+          failure = combine(failure, new DebeziumException("A BigQuery append request was cancelled", e));
         } catch (ExecutionException | RuntimeException e) {
           observed = true;
           failure = combine(failure, StreamDataWriter.createDebeziumExceptionFromException(e));
@@ -77,6 +90,18 @@ final class BoundedAppendPipeline {
     }
     if (failure != null) {
       throw failure;
+    }
+  }
+
+  private static void cancelOutstanding(List<? extends Future<?>> futures, DebeziumException failure) {
+    for (Future<?> future : futures) {
+      if (!future.isDone()) {
+        try {
+          future.cancel(true);
+        } catch (RuntimeException e) {
+          failure.addSuppressed(new DebeziumException("Failed to cancel a BigQuery append request", e));
+        }
+      }
     }
   }
 
