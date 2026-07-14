@@ -72,6 +72,14 @@ public interface StreamConsumerConfig {
   @WithDefault("true")
   boolean upsertKeepDeletes();
 
+  @WithName("debezium.sink.bigquerystream.change-sequence.enabled")
+  @WithDefault("false")
+  boolean changeSequenceEnabled();
+
+  @WithName("debezium.sink.bigquerystream.max-in-flight-appends")
+  @WithDefault("1")
+  int maxInFlightAppends();
+
   @WithName("debezium.sink.bigquerystream.upsert-dedup-column")
   Optional<String> sourceTsColumn();
 

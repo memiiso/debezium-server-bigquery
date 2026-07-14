@@ -24,6 +24,8 @@ the [Storage Write API](https://cloud.google.com/bigquery/docs/write-api-streami
 | `debezium.sink.bigquerystream.upsert-keep-deletes`       | `true`           | With upsert mode, keeps deleted rows in bigquery table.                                                                                |
 | `debezium.sink.bigquerystream.upsert-dedup-column`       | `__source_ts_ns` | With upsert mode used to deduplicate data. row with highest `__source_ts_ns` is kept.                                                  |
 | `debezium.sink.bigquerystream.upsert-op-column`          | `__op`           | Used with upsert mode to deduplicate data when `__source_ts_ns` of rows are same.                                                      |
+| `debezium.sink.bigquerystream.change-sequence.enabled`   | `false`          | Add BigQuery `_CHANGE_SEQUENCE_NUMBER` custom CDC ordering values to every CDC mutation.                                              |
+| `debezium.sink.bigquerystream.max-in-flight-appends`     | `1`              | Maximum append requests pipelined within one destination batch. Values below 1 are rejected.                                         |
 | `debezium.sink.bigquerystream.cast-deleted-field`        | `false`          | Cast deleted field to boolean type(by default it is string type)                                                                       |
 
 ### Upsert
@@ -45,3 +47,47 @@ Operation type priorities are `{"c":1, "r":2, "u":3, "d":4}`. When two records w
 values received then the record with higher `__op` priority is kept and added to destination table and duplicate record
 is dropped from stream.
 
+When `debezium.sink.bigquerystream.change-sequence.enabled=true`, deduplication instead compares the complete source
+coordinate described below. This resolves ties across binlog files, positions, and rows at the same nanosecond.
+
+### Custom CDC ordering
+
+Change sequencing is optional and only applies to tables that actually use BigQuery CDC/upsert mode. When enabled, every
+UPSERT and DELETE mutation receives the Storage Write API pseudocolumn `_CHANGE_SEQUENCE_NUMBER`; retained delete rows
+(`upsert-keep-deletes=true`) receive both an UPSERT change type and a sequence. The pseudocolumn is included in the
+Storage Write protobuf schema but is never created as a physical BigQuery table column.
+
+Configure the Debezium unwrap transform to expose all required source fields:
+
+```properties
+debezium.transforms.unwrap.add.fields=op,source.ts_ms,source.ts_ns,source.file,source.pos,source.row
+debezium.sink.bigquerystream.change-sequence.enabled=true
+```
+
+The sequence format is four uppercase, zero-padded, 16-character hexadecimal sections:
+
+```text
+source.ts_ns/binlog-file-index/source.pos/source.row
+%016X/%016X/%016X/%016X
+```
+
+The binlog file index is the trailing numeric component of `__source_file` (for example, `mysql-bin.001234` becomes
+`1234`). `__source_ts_ns`, `__source_file`, `__source_pos`, and `__source_row` must be present and valid on every CDC
+mutation. Missing, malformed, negative, or larger-than-64-bit components fail the complete Debezium batch; the connector
+does not silently emit an unsequenced mutation.
+
+### Append and destination concurrency
+
+`debezium.sink.batch.concurrent-uploads` processes different destination tables concurrently.
+`debezium.sink.bigquerystream.max-in-flight-appends` pipelines append requests within one destination. The default value
+of `1` preserves the synchronous single-append behavior. Values above 1 split a destination batch into at most that many
+balanced chunks, submit them to the BigQuery default stream, and wait for every response even when completions arrive out
+of order.
+
+An append response error, exception, cancellation, timeout, or interruption fails the whole batch. Already-submitted
+futures are observed before failure is reported, and Debezium offsets are not marked processed or batch-finished unless
+every destination and every append succeeds. Replaying a failed sequenced batch is safe because source coordinates produce
+the same ordering values.
+
+Benchmark values above 1 for the workload. For upsert destinations, use change sequencing when enabling append
+pipelining so out-of-order append completion cannot change the final CDC state.

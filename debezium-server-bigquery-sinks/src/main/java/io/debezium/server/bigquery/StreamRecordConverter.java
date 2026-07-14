@@ -87,4 +87,14 @@ public class StreamRecordConverter extends BaseRecordConverter {
     return new JSONObject(jsonMap);
   }
 
+  /** Converts a CDC row and adds the custom ordering pseudocolumn when requested. */
+  public JSONObject convert(Schema schema, boolean upsert, boolean upsertKeepDeletes, boolean changeSequenceEnabled)
+      throws DebeziumException {
+    JSONObject converted = convert(schema, upsert, upsertKeepDeletes);
+    if (upsert && changeSequenceEnabled) {
+      converted.put(ChangeSequenceNumber.PSEUDO_COLUMN, ChangeSequenceNumber.from(value).toString());
+    }
+    return converted;
+  }
+
 }

@@ -46,6 +46,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -206,7 +207,7 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
     }
   }
 
-  private void processTablesInParallel(Map<String, List<ChangeEvent<Object, Object>>> events) {
+  protected void processTablesInParallel(Map<String, List<ChangeEvent<Object, Object>>> events) {
     List<Callable<Void>> tasks = new ArrayList<>();
     for (Map.Entry<String, List<ChangeEvent<Object, Object>>> destinationEvents : events.entrySet()) {
       if (destinationEvents.getKey().startsWith(debeziumConfig.topicHeartbeatPrefix()) && debeziumConfig.topicHeartbeatSkipConsuming()) {
@@ -214,10 +215,12 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
       }
 
       tasks.add(() -> {
+        boolean acquired = false;
         try {
           // Acquire a permit from the Semaphore to enforce the concurrency limit.
           LOGGER.trace("Task for destination '{}' waiting for permit. Available: {}", destinationEvents.getKey(), concurrencyLimiter.availablePermits());
           concurrencyLimiter.acquire();
+          acquired = true;
           LOGGER.debug("Task for destination '{}' acquired permit. Starting processing.", destinationEvents.getKey());
 
           this.addToTable(destinationEvents);
@@ -225,40 +228,100 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt(); // Restore interrupted status
           LOGGER.warn("Task for destination '{}' was interrupted.", destinationEvents.getKey(), e);
-          return null;
+          throw new DebeziumException("Interrupted while acquiring an upload permit for destination '"
+              + destinationEvents.getKey() + "'", e);
         } catch (Exception e) {
           // Log and rethrow. This will be wrapped in an ExecutionException by the Future.
           LOGGER.error("Task for destination '{}' failed.", destinationEvents.getKey(), e);
           throw e;
         } finally {
-          // Always release the permit, even if an exception occurred.
-          concurrencyLimiter.release();
-          LOGGER.trace("Task for destination '{}' released permit. Available: {}", destinationEvents.getKey(), concurrencyLimiter.availablePermits());
+          if (acquired) {
+            concurrencyLimiter.release();
+            LOGGER.trace("Task for destination '{}' released permit. Available: {}", destinationEvents.getKey(), concurrencyLimiter.availablePermits());
+          }
         }
       });
     }
-    // process
     LOGGER.debug("Invoking {} parallel tasks and waiting for completion...", tasks.size());
+    List<Future<Void>> futures = new ArrayList<>(tasks.size());
     try {
-      // Invoke all tasks and wait for them to complete, with a timeout.
-      List<Future<Void>> futures = executor.invokeAll(tasks, concurrentUploadsTimeoutMinutes, TimeUnit.MINUTES);
+      for (Callable<Void> task : tasks) {
+        futures.add(executor.submit(task));
+      }
+    } catch (RuntimeException e) {
+      cancelAndDrain(futures);
+      throw new DebeziumException("Failed to submit parallel destination uploads", e);
+    }
 
-      // Check the status of each task to log any exceptions
-      for (Future<Void> future : futures) {
-        try {
-          // future.get() will throw an exception if the task failed or was cancelled.
+    long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(concurrentUploadsTimeoutMinutes);
+    DebeziumException failure = null;
+    boolean interrupted = false;
+    boolean timedOut = false;
+    for (Future<Void> future : futures) {
+      try {
+        long remaining = deadline - System.nanoTime();
+        if (timedOut || remaining <= 0) {
+          if (!timedOut) {
+            timedOut = true;
+            futures.forEach(submitted -> submitted.cancel(true));
+            failure = combineFailures(failure, new DebeziumException("Timed out waiting for parallel destination uploads after "
+                + concurrentUploadsTimeoutMinutes + " minute(s)"));
+          }
           future.get();
-        } catch (CancellationException e) {
-          LOGGER.error("A task was cancelled, likely due to timeout.", e);
-        } catch (ExecutionException e) {
-          // The original exception from the Callable is wrapped in ExecutionException
-          LOGGER.error("A task failed with an exception: {}", e.getCause().getMessage(), e.getCause());
+        } else {
+          future.get(remaining, TimeUnit.NANOSECONDS);
+        }
+      } catch (InterruptedException e) {
+        interrupted = true;
+        Thread.interrupted();
+        futures.forEach(submitted -> submitted.cancel(true));
+        failure = combineFailures(failure, new DebeziumException("Interrupted while waiting for parallel destination uploads", e));
+      } catch (TimeoutException e) {
+        timedOut = true;
+        futures.forEach(submitted -> submitted.cancel(true));
+        failure = combineFailures(failure, new DebeziumException("Timed out waiting for parallel destination uploads after "
+            + concurrentUploadsTimeoutMinutes + " minute(s)", e));
+      } catch (CancellationException e) {
+        failure = combineFailures(failure, new DebeziumException("A parallel destination upload was cancelled", e));
+      } catch (ExecutionException e) {
+        failure = combineFailures(failure, new DebeziumException("A parallel destination upload failed", e.getCause()));
+      }
+    }
+    if (interrupted) {
+      Thread.currentThread().interrupt();
+    }
+    if (failure != null) {
+      throw failure;
+    }
+    LOGGER.debug("All parallel tasks completed successfully.");
+  }
+
+  private static DebeziumException combineFailures(DebeziumException existing, DebeziumException additional) {
+    if (existing == null) {
+      return additional;
+    }
+    existing.addSuppressed(additional);
+    return existing;
+  }
+
+  private static void cancelAndDrain(List<? extends Future<?>> futures) {
+    futures.forEach(future -> future.cancel(true));
+    boolean interrupted = false;
+    for (Future<?> future : futures) {
+      boolean observed = false;
+      while (!observed) {
+        try {
+          future.get();
+          observed = true;
+        } catch (InterruptedException e) {
+          interrupted = true;
+          Thread.interrupted();
+        } catch (CancellationException | ExecutionException e) {
+          observed = true;
         }
       }
-      LOGGER.debug("All parallel tasks have been processed.");
-
-    } catch (InterruptedException e) {
-      LOGGER.warn("Main thread interrupted while waiting for tasks to complete.", e);
+    }
+    if (interrupted) {
       Thread.currentThread().interrupt();
     }
   }
