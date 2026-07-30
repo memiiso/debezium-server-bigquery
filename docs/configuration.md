@@ -1,34 +1,43 @@
-# Shared Configs for both consumers
+# Configuration Guide
+
+This page details shared configuration settings, data type mappings, batch optimization strategies, and internal state storage mechanisms for Debezium BigQuery consumers.
+
+## Shared Consumer Configurations
 
 | Config                                                        | Default                                                         | Description                                                                                                |
 |---------------------------------------------------------------|-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| `debezium.sink.batch.destination-regexp`                      | ``                                                              | Regexp to modify destination. With this its possible to map `table_ptt1`,`table_ptt2` to `table_combined`. |
-| `debezium.sink.batch.destination-regexp-replace`              | ``                                                              | Regexp Replace part to modify destination                                                                  |
-| `debezium.sink.batch.batch-size-wait`                         | `NoBatchSizeWait`                                               | Batch size wait strategy to optimize data files and upload interval. explained below.                      |
-| `debezium.sink.batch.batch-size-wait.max-wait-ms`             | `300000`                                                        |                                                                                                            |
-| `debezium.sink.batch.batch-size-wait.wait-interval-ms`        | `10000`                                                         |                                                                                                            |
-| `debezium.source.max.batch.size`                              | `2048`                                                          |                                                                                                            |
-| `debezium.format.value`                                       | `json`                                                          |                                                                                                            |
-| `debezium.format.key`                                         | `json`                                                          |                                                                                                            |
-| `debezium.source.time.precision.mode`                         | `isostring`                                                     |                                                                                                            |
-| `debezium.source.decimal.handling.mode`                       | `double`                                                        |                                                                                                            |
-| `debezium.format.value.schemas.enable`                        | `true`                                                          |                                                                                                            |
-| `debezium.format.key.schemas.enable`                          | `true`                                                          |                                                                                                            |
-| `debezium.source.offset.storage`                              | `io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore` |                                                                                                            |
-| `debezium.source.offset.storage.bigquery.table-name`          | `_debezium_offset_storage`                                      |                                                                                                            |
-| `debezium.source.schema.history.internal`                     | `io.debezium.server.bigquery.history.BigquerySchemaHistory`     |                                                                                                            |
-| `debezium.source.schema.history.internal.bigquery.table-name` | `_debezium_database_history_storage`                            |                                                                                                            |
-| `debezium.transforms`                                         | `unwrap`                                                        |                                                                                                            |
-| `debezium.transforms.unwrap.type`                             | `io.debezium.transforms.ExtractNewRecordState`                  |                                                                                                            |
-| `debezium.transforms.unwrap.add.fields`                       | `op,table,source.ts_ms,db,ts_ms,ts_ns,source.ts_ns`             |                                                                                                            |
-| `debezium.transforms.unwrap.delete.tombstone.handling.mode`   | `rewrite`                                                       |                                                                                                            |
-| `debezium.transforms.unwrap.drop.tombstones`                  | `true`                                                          |                                                                                                            |
+| `debezium.sink.batch.destination-regexp`                      |                                                                 | Regex pattern to modify target table names. Allows mapping tables like `table_p1`, `table_p2` to `table_combined`. |
+| `debezium.sink.batch.destination-regexp-replace`              |                                                                 | Replacement string for `destination-regexp`.                                                               |
+| `debezium.sink.batch.batch-size-wait`                         | `NoBatchSizeWait`                                               | Strategy to wait for bigger batches before committing (`NoBatchSizeWait`, `MaxBatchSizeWait`, `DynamicBatchSizeWait`). |
+| `debezium.sink.batch.batch-size-wait.max-wait-ms`             | `300000`                                                        | Maximum wait duration (ms) before committing a batch when using batch size wait strategies.                |
+| `debezium.sink.batch.batch-size-wait.wait-interval-ms`        | `10000`                                                         | Interval (ms) to check queue size during batch wait.                                                       |
+| `debezium.sink.batch.nested-as-json`                          | `false`                                                         | Serialize nested struct/map fields as JSON strings rather than expanded BigQuery STRUCTs.                  |
+| `debezium.sink.batch.concurrent-uploads`                      | `1`                                                             | Number of concurrent threads for uploading files/data to destination tables.                               |
+| `debezium.sink.batch.concurrent-uploads.timeout-minutes`      | `60`                                                            | Timeout (minutes) for concurrent table uploads.                                                            |
+| `debezium.source.max.batch.size`                              | `2048`                                                          | Maximum number of records consumed in a single batch.                                                      |
+| `debezium.format.value`                                       | `json`                                                          | Value format produced by Debezium (must be `json`).                                                        |
+| `debezium.format.key`                                         | `json`                                                          | Key format produced by Debezium (must be `json`).                                                          |
+| `debezium.source.time.precision.mode`                         | `isostring`                                                     | Time precision mode for Debezium events (`isostring`, `adaptive`, `adaptive_time_microseconds`).            |
+| `debezium.source.decimal.handling.mode`                       | `double`                                                        | Decimal handling mode (`double`, `string`, `precise`).                                                      |
+| `debezium.format.value.schemas.enable`                        | `true`                                                          | Enables inline schemas in JSON event values.                                                               |
+| `debezium.format.key.schemas.enable`                          | `true`                                                          | Enables inline schemas in JSON event keys.                                                                 |
+| `debezium.source.offset.storage`                              | `io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore` | Class for storing CDC offset state in BigQuery.                                                            |
+| `debezium.source.offset.storage.bigquery.table-name`          | `_debezium_offset_storage`                                      | BigQuery table name used for offset storage.                                                               |
+| `debezium.source.schema.history.internal`                     | `io.debezium.server.bigquery.history.BigquerySchemaHistory`     | Class for storing database schema history in BigQuery.                                                     |
+| `debezium.source.schema.history.internal.bigquery.table-name` | `_debezium_database_history_storage`                            | BigQuery table name used for schema history storage.                                                       |
+| `debezium.transforms`                                         | `unwrap`                                                        | Event transformation alias.                                                                                |
+| `debezium.transforms.unwrap.type`                             | `io.debezium.transforms.ExtractNewRecordState`                  | Event flattening transform type.                                                                           |
+| `debezium.transforms.unwrap.add.fields`                       | `op,table,source.ts_ms,db,ts_ms,ts_ns,source.ts_ns`             | Metadata fields added to flattened event payload.                                                          |
+| `debezium.transforms.unwrap.delete.tombstone.handling.mode`   | `rewrite`                                                       | Handling mode for deleted records (`rewrite` adds `__deleted` field).                                      |
+| `debezium.transforms.unwrap.drop.tombstones`                  | `true`                                                          | Whether to drop tombstone records.                                                                         |
 
-## Data type mapping
+---
 
-Data type mapping listed below.
+## Data Type Mapping
 
-| Debezium Semantic Type             | Debezium Field Type | Bigquery Batch                    | Bigquery Stream                   | Notes                           |
+The table below maps Debezium field types to target BigQuery column types:
+
+| Debezium Semantic Type             | Debezium Field Type | BigQuery Batch                    | BigQuery Stream                   | Notes                           |
 |------------------------------------|---------------------|-----------------------------------|-----------------------------------|---------------------------------|
 |                                    | int8-int64          | INT64                             | INT64                             |                                 |
 | io.debezium.time.Date              | int32               | DATE                              | DATE                              |                                 |
@@ -39,75 +48,61 @@ Data type mapping listed below.
 | io.debezium.time.IsoTimestamp      | string              | DATETIME                          | DATETIME                          |                                 |
 | io.debezium.time.IsoTime           | string              | TIME                              | TIME                              |                                 |
 | io.debezium.time.ZonedTimestamp    | string              | TIMESTAMP                         | TIMESTAMP                         |                                 |
-| io.debezium.time.ZonedTime         | string              | TIME (STRING before<0.8.0.Beta)   | TIME (STRING before <0.8.0.Beta)  |                                 |
+| io.debezium.time.ZonedTime         | string              | TIME                              | TIME                              |                                 |
 | io.debezium.data.Json              | string              | JSON                              | JSON                              |                                 |
-| io.debezium.data.geometry.Geometry | struct              | STRUCT(srid:INT64, wkb:GEOGRAPHY) | STRUCT(srid:INT64, wkb:GEOGRAPHY) | version `0.8.0.Beta` and above. |
+| io.debezium.data.geometry.Geometry | struct              | STRUCT(srid:INT64, wkb:GEOGRAPHY) | STRUCT(srid:INT64, wkb:GEOGRAPHY) | Supported in `0.8.0.Beta`+.     |
 |                                    | string              | STRING                            | STRING                            |                                 |
 |                                    | double              | FLOAT64                           | FLOAT64                           |                                 |
 |                                    | float8-float64      | FLOAT64                           | FLOAT64                           |                                 |
 |                                    | boolean             | BOOL                              | BOOL                              |                                 |
-|                                    | bytes               | BYTES                             | BYTES (STRING before <0.8.0.Beta) |                                 |
-|                                    | array               | ARRAY                             | ARRAY                             |                                 |
-|                                    | map                 | STRUCT                            | STRUCT                            |                                 |
-|                                    | struct              | STRUCT                            | STRUCT                            |                                 |
+|                                    | bytes               | BYTES                             | BYTES                             |                                 |
+|                                    | array               | ARRAY                             | ARRAY                             | Expanded unless `nested-as-json=true` |
+|                                    | map                 | STRUCT                            | STRUCT                            | Expanded unless `nested-as-json=true` |
+|                                    | struct              | STRUCT                            | STRUCT                            | Expanded unless `nested-as-json=true` |
 
-Handling of special fields:
+### Special Field Mappings
 
-| Field Name                  | Debezium Semantic Type | Debezium Field Type | Bigquery Batch | Bigquery Stream | Notes |
-|-----------------------------|------------------------|---------------------|----------------|-----------------|-------|
-| `__ts_ms`, `__source_ts_ms` |                        | int64               | TIMESTAMP      | TIMESTAMP       |       |
-| `__deleted`                 |                        | string              | BOOL           | BOOL            |       |
+| Field Name                  | Debezium Field Type | BigQuery Target Type | Description                                                    |
+|-----------------------------|---------------------|----------------------|----------------------------------------------------------------|
+| `__ts_ms`, `__source_ts_ms` | int64               | TIMESTAMP            | Event timestamp in milliseconds converted to BigQuery TIMESTAMP|
+| `__deleted`                 | string / boolean    | BOOL                 | Indicates if record was soft-deleted (`true`/`false`)           |
 
-### Mandatory config
+---
 
-#### Debezium Event format and schema
+## Required Baseline Configuration
+
+### 1. Debezium Event Format & Schema
 
 ```properties
 debezium.format.value=json
 debezium.format.key=json
 debezium.format.schemas.enable=true
+debezium.format.key.schemas.enable=true
 ```
 
-#### Flattening Event Data
+### 2. Flattening Event Data
 
-Bigquery consumers requires event flattening, please
-see [debezium feature](https://debezium.io/documentation/reference/configuration/event-flattening.html#_configuration)
+Debezium BigQuery consumers require event flattening via `ExtractNewRecordState`:
 
 ```properties
 debezium.transforms=unwrap
 debezium.transforms.unwrap.type=io.debezium.transforms.ExtractNewRecordState
-debezium.transforms.unwrap.add.fields=op,table,lsn,source.ts_ms,source.ts_ns
-debezium.transforms.unwrap.add.headers=db
+debezium.transforms.unwrap.add.fields=op,table,source.ts_ms,db,ts_ms,ts_ns,source.ts_ns
 debezium.transforms.unwrap.delete.tombstone.handling.mode=rewrite
 debezium.transforms.unwrap.drop.tombstones=true
 ```
 
-### Optimizing batch size (or commit interval)
+---
 
-Debezium extracts database events in real time and this could cause too frequent commits or too many small files
-which is not optimal for batch processing especially when near realtime data feed is sufficient.
-To avoid this problem following batch-size-wait classes are used.
+## Optimizing Batch Size & Commit Intervals
 
-Batch size wait adds delay between consumer calls to increase total number of events received per call and meanwhile
-events are collected in memory.
-This setting should be configured together with `debezium.source.max.queue.size` and `debezium.source.max.batch.size`
-debezium properties
+When consuming real-time CDC events, frequent small commits can lead to rate limits or small data files. You can configure batch wait strategies to group events in memory before writing.
 
-#### NoBatchSizeWait
+### 1. `NoBatchSizeWait` (Default)
+Consumes events immediately as they arrive without introducing additional wait time.
 
-This is default configuration, by default consumer will not use any wait. All the events are consumed immediately.
-
-#### MaxBatchSizeWait
-
-MaxBatchSizeWait uses debezium metrics to optimize batch size.
-MaxBatchSizeWait periodically reads streaming queue current size and waits until number of events reaches
-to `max.batch.size` or until `debezium.sink.batch.batch-size-wait.max-wait-ms`.
-
-Maximum wait and check intervals are controlled by `debezium.sink.batch.batch-size-wait.max-wait-ms`
-, `debezium.sink.batch.batch-size-wait.wait-interval-ms` properties.
-
-example setup to receive ~2048 events per commit. maximum wait is set to 30 seconds, streaming queue current size
-checked every 5 seconds
+### 2. `MaxBatchSizeWait`
+Uses Debezium metrics to monitor queue size and delays writing until the batch size reaches `debezium.source.max.batch.size` or `debezium.sink.batch.batch-size-wait.max-wait-ms` expires.
 
 ```properties
 debezium.sink.batch.batch-size-wait=MaxBatchSizeWait
@@ -120,31 +115,45 @@ debezium.sink.batch.batch-size-wait.max-wait-ms=30000
 debezium.sink.batch.batch-size-wait.wait-interval-ms=5000
 ```
 
-## Bigquery Offset Storage
+### 3. `DynamicBatchSizeWait`
+Dynamically adapts sleep times based on historical batch sizes to target 85%-90% capacity of `debezium.source.max.batch.size`.
 
-This implementation saves CDC offset to a bigquery table, along the destination data. With this no additional dependency
-required to manage the application.
-
+```properties
+debezium.sink.batch.batch-size-wait=DynamicBatchSizeWait
+debezium.source.max.batch.size=2048
+debezium.sink.batch.batch-size-wait.max-wait-ms=300000
 ```
+
+---
+
+## BigQuery Offset Storage
+
+`BigqueryOffsetBackingStore` persists Debezium offsets directly into a BigQuery table in your dataset, eliminating the need for external Kafka/Zookeeper state stores.
+
+```properties
 debezium.source.offset.storage=io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore
-debezium.source.offset.storage.bigquery.table-name=debezium_offset_storage_custom_table
+debezium.source.offset.storage.bigquery.table-name=_debezium_offset_storage
 ```
 
-## Bigquery Database History Storage
+---
 
-This implementation saves database history to a bigquery table, along the destination data. With this no additional
-dependency required to manage the application.
+## BigQuery Schema History Storage
+
+`BigquerySchemaHistory` stores database schema history directly in BigQuery.
 
 ```properties
 debezium.source.schema.history.internal=io.debezium.server.bigquery.history.BigquerySchemaHistory
-debezium.source.schema.history.internal.bigquery.table-name=__debezium_database_history_storage_test_table
+debezium.source.schema.history.internal.bigquery.table-name=_debezium_database_history_storage
 ```
 
-## Configuring log levels
+---
+
+## Logging Configuration
+
+Log levels are configured via Quarkus application properties:
 
 ```properties
 quarkus.log.level=INFO
-# Ignore messages below warning level from Jetty, because it's a bit verbose
 quarkus.log.category."org.eclipse.jetty".level=WARN
-#
+quarkus.log.category."com.google.cloud.bigquery".level=INFO
 ```

@@ -1,4 +1,4 @@
-site_name: Debezium Server Bigquery Consumer
+site_name: Debezium Server BigQuery Consumer
 site_url: http://memiiso.github.io/debezium-server-bigquery
 repo_url: https://github.com/memiiso/debezium-server-bigquery
 theme:
