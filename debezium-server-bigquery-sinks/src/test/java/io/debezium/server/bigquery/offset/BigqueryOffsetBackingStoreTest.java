@@ -19,6 +19,7 @@ import org.apache.kafka.connect.util.Callback;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
@@ -33,6 +34,7 @@ import static io.debezium.server.bigquery.shared.BigQueryDB.BQ_DATASET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
+@Tag("integration")
 @TestProfile(BigqueryOffsetBackingStoreTest.TestProfile.class)
 @QuarkusTestResource(value = BigQueryDB.class, restrictToAnnotatedClass = true)
 public class BigqueryOffsetBackingStoreTest {

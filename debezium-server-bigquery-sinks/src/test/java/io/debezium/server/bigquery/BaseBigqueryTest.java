@@ -19,7 +19,7 @@ import io.debezium.server.bigquery.shared.BigQueryTableResultPrinter;
 import io.debezium.server.bigquery.shared.RecordConverterBuilder;
 import jakarta.inject.Inject;
 import org.awaitility.Awaitility;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,7 +156,7 @@ public class BaseBigqueryTest {
 
   public static void assertTableRowsMatch(String dest, long expectedRows, String filter) throws InterruptedException {
     TableResult tableResult = getTableData(dest, filter);
-    Assert.assertEquals("Total rows didn't match! filter:" + filter, expectedRows, tableResult.getTotalRows());
+    Assertions.assertEquals(expectedRows, tableResult.getTotalRows(), "Total rows didn't match! filter:" + filter);
   }
 
   public static void assertTableRowsAboveEqual(String dest, long expectedRows) throws InterruptedException {
@@ -165,7 +165,7 @@ public class BaseBigqueryTest {
 
   public static void assertTableRowsAboveEqual(String dest, long expectedRows, String filter) throws InterruptedException {
     TableResult tableResult = getTableData(dest, filter);
-    Assert.assertTrue("Total rows:" + tableResult.getTotalRows() + " expected:" + expectedRows + " didn't match! filter:" + filter, tableResult.getTotalRows() >= expectedRows);
+    Assertions.assertTrue(tableResult.getTotalRows() >= expectedRows, "Total rows:" + tableResult.getTotalRows() + " expected:" + expectedRows + " didn't match! filter:" + filter);
   }
 
 

@@ -16,8 +16,9 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.awaitility.Awaitility;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -28,6 +29,7 @@ import java.util.Map;
  * @author Ismail Simsek
  */
 @QuarkusTest
+@Tag("integration")
 @QuarkusTestResource(value = SourcePostgresqlDB.class, restrictToAnnotatedClass = true)
 @TestProfile(StreamBigqueryChangeConsumerNestedTest.TestProfile.class)
 @QuarkusTestResource(value = BigQueryDB.class, restrictToAnnotatedClass = true)
@@ -46,13 +48,13 @@ public class StreamBigqueryChangeConsumerNestedTest extends BaseBigqueryTest {
       try {
         prettyPrint(dest);
         assertTableRowsAboveEqual(dest, 4);
-        Assert.assertEquals(getTableField(dest, "before").getType(), LegacySQLTypeName.JSON);
-        Assert.assertEquals(getTableField(dest, "after").getType(), LegacySQLTypeName.JSON);
-        Assert.assertEquals(getTableField(dest, "source").getType(), LegacySQLTypeName.JSON);
-        Assert.assertEquals(getTableField(dest, "transaction").getType(), LegacySQLTypeName.JSON);
-        Assert.assertEquals(getTableField(dest, "op").getType(), LegacySQLTypeName.STRING);
-        Assert.assertEquals(getTableField(dest, "ts_ms").getType(), LegacySQLTypeName.INTEGER);
-        Assert.assertEquals(getTableField(dest, "ts_ns").getType(), LegacySQLTypeName.INTEGER);
+        Assertions.assertEquals(LegacySQLTypeName.JSON, getTableField(dest, "before").getType());
+        Assertions.assertEquals(LegacySQLTypeName.JSON, getTableField(dest, "after").getType());
+        Assertions.assertEquals(LegacySQLTypeName.JSON, getTableField(dest, "source").getType());
+        Assertions.assertEquals(LegacySQLTypeName.JSON, getTableField(dest, "transaction").getType());
+        Assertions.assertEquals(LegacySQLTypeName.STRING, getTableField(dest, "op").getType());
+        Assertions.assertEquals(LegacySQLTypeName.INTEGER, getTableField(dest, "ts_ms").getType());
+        Assertions.assertEquals(LegacySQLTypeName.INTEGER, getTableField(dest, "ts_ns").getType());
         return true;
       } catch (AssertionError | Exception e) {
         LOGGER.error("Error: {}", e.getMessage());

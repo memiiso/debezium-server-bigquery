@@ -2,6 +2,7 @@ package io.debezium.server.bigquery;
 
 import io.debezium.DebeziumException;
 import io.smallrye.config.WithDefault;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -9,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@Tag("unit")
 class StreamConsumerConfigTest {
   @Test
   void sequencingAndAppendDefaultsAreBackwardCompatible() throws Exception {

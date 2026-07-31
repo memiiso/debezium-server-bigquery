@@ -16,6 +16,7 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
@@ -28,6 +29,8 @@ import java.util.Map;
  * @author Ismail Simsek
  */
 @QuarkusTest
+@Tag("integration")
+@Tag("gcp")
 @QuarkusTestResource(value = SourceMysqlDB.class, restrictToAnnotatedClass = true)
 @QuarkusTestResource(value = BigQueryGCP.class, restrictToAnnotatedClass = true)
 @TestProfile(BatchBigqueryChangeConsumerMysqlTest.TestProfile.class)

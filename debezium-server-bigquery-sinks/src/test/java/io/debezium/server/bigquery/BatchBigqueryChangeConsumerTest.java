@@ -16,8 +16,9 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.awaitility.Awaitility;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
@@ -29,6 +30,8 @@ import java.util.Map;
  * @author Ismail Simsek
  */
 @QuarkusTest
+@Tag("integration")
+@Tag("gcp")
 @QuarkusTestResource(value = SourcePostgresqlDB.class, restrictToAnnotatedClass = true)
 @QuarkusTestResource(value = BigQueryGCP.class, restrictToAnnotatedClass = true)
 @TestProfile(BatchBigqueryChangeConsumerTest.TestProfile.class)
@@ -49,9 +52,9 @@ public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
         assertTableRowsAboveEqual(dest, 4);
         assertTableRowsAboveEqual(dest, 4, "DATE(__source_ts_ms) = CURRENT_DATE");
         assertTableRowsAboveEqual(dest, 4, "DATE(__ts_ms) = CURRENT_DATE");
-        Assert.assertEquals(getTableField(dest, "__source_ts_ms").getType(), LegacySQLTypeName.TIMESTAMP);
-        Assert.assertEquals(getTableField(dest, "__ts_ms").getType(), LegacySQLTypeName.TIMESTAMP);
-        Assert.assertEquals(getTableField(dest, "__deleted").getType(), LegacySQLTypeName.BOOLEAN);
+        Assertions.assertEquals(LegacySQLTypeName.TIMESTAMP, getTableField(dest, "__source_ts_ms").getType());
+        Assertions.assertEquals(LegacySQLTypeName.TIMESTAMP, getTableField(dest, "__ts_ms").getType());
+        Assertions.assertEquals(LegacySQLTypeName.BOOLEAN, getTableField(dest, "__deleted").getType());
         return true;
       } catch (AssertionError | Exception e) {
         return false;
@@ -84,19 +87,19 @@ public class BatchBigqueryChangeConsumerTest extends BaseBigqueryTest {
         // '2019-07-09 02:28:20.666666+01' --> hour is UTC in BQ
 //        assertTableRowsMatch(dest, 1, "c_timestamptz = TIMESTAMP('2019-07-09 02:28:57.666666+01')");
         assertTableRowsAboveEqual(dest, 2, "DATE(c_timestamptz) = DATE('2019-07-09')");
-        Assert.assertEquals(getTableField(dest, "c_timestamptz").getType(), LegacySQLTypeName.TIMESTAMP);
-        Assert.assertEquals(getTableField(dest, "c_timestamp5").getType(), LegacySQLTypeName.DATETIME);
-        Assert.assertEquals(getTableField(dest, "c_date").getType(), LegacySQLTypeName.DATE);
-        Assert.assertEquals(getTableField(dest, "c_time").getType(), LegacySQLTypeName.TIME);
-        Assert.assertEquals(getTableField(dest, "c_time_whtz").getType(), LegacySQLTypeName.TIME);
+        Assertions.assertEquals(LegacySQLTypeName.TIMESTAMP, getTableField(dest, "c_timestamptz").getType());
+        Assertions.assertEquals(LegacySQLTypeName.DATETIME, getTableField(dest, "c_timestamp5").getType());
+        Assertions.assertEquals(LegacySQLTypeName.DATE, getTableField(dest, "c_date").getType());
+        Assertions.assertEquals(LegacySQLTypeName.TIME, getTableField(dest, "c_time").getType());
+        Assertions.assertEquals(LegacySQLTypeName.TIME, getTableField(dest, "c_time_whtz").getType());
         // TODO disabled because emulator has problem with DATE values
 //        assertTableRowsMatch(dest, 1, "c_date = DATE('2017-09-15')");
 //        assertTableRowsMatch(dest, 1, "c_date = DATE('2017-02-10')");
 //        assertTableRowsMatch(dest, 1, "int64(c_json.jfield) = 111 AND int64(c_jsonb.jfield) = 211");
 //        assertTableRowsMatch(dest, 1, "int64(c_json.jfield) = 222 AND int64(c_jsonb.jfield) = 222");
-        Assert.assertEquals(getTableField(dest, "c_json").getType(), LegacySQLTypeName.JSON);
-        Assert.assertEquals(getTableField(dest, "c_jsonb").getType(), LegacySQLTypeName.JSON);
-        Assert.assertEquals(getTableField(dest, "c_binary").getType(), LegacySQLTypeName.BYTES);
+        Assertions.assertEquals(LegacySQLTypeName.JSON, getTableField(dest, "c_json").getType());
+        Assertions.assertEquals(LegacySQLTypeName.JSON, getTableField(dest, "c_jsonb").getType());
+        Assertions.assertEquals(LegacySQLTypeName.BYTES, getTableField(dest, "c_binary").getType());
         return true;
       } catch (AssertionError | Exception e) {
         return false;

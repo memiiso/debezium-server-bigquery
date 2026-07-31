@@ -28,6 +28,7 @@ import java.util.Map;
 import static io.debezium.server.bigquery.shared.BigQueryDB.*;
 
 
+@Tag("integration")
 class BigquerySchemaHistoryTest {
 
   protected BigquerySchemaHistory history;

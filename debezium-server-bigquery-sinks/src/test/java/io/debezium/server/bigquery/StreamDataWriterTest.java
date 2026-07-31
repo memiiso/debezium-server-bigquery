@@ -11,6 +11,7 @@ import com.google.rpc.Status;
 import io.debezium.DebeziumException;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -22,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@Tag("unit")
 class StreamDataWriterTest {
   @Test
   void successfulPipelinedAppendResetsRecreationBudget() throws Exception {

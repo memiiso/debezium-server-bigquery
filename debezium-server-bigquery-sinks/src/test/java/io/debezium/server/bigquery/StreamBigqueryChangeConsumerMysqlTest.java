@@ -16,6 +16,7 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -27,6 +28,7 @@ import java.util.Map;
  * @author Ismail Simsek
  */
 @QuarkusTest
+@Tag("integration")
 @QuarkusTestResource(value = SourceMysqlDB.class, restrictToAnnotatedClass = true)
 @QuarkusTestResource(value = BigQueryDB.class, restrictToAnnotatedClass = true)
 @TestProfile(StreamBigqueryChangeConsumerMysqlTest.TestProfile.class)
