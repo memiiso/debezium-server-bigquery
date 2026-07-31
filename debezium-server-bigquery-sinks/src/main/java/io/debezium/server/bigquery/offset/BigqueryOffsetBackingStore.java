@@ -37,12 +37,11 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Future;
 
 /**
@@ -56,11 +55,15 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
       "record_insert_ts TIMESTAMP NOT NULL " +
       ")";
 
-  public static final String OFFSET_STORAGE_TABLE_SELECT = "SELECT id, offset_data FROM %s ";
+  public static final String OFFSET_STORAGE_TABLE_SELECT = "SELECT offset_data FROM %s ORDER BY record_insert_ts DESC LIMIT 1";
 
-  public static final String OFFSET_STORAGE_TABLE_INSERT = "INSERT INTO %s (id, offset_data, record_insert_ts) VALUES ( ?, ?, ? )";
-
-  public static final String OFFSET_STORAGE_TABLE_DELETE = "DELETE FROM %s WHERE 1=1";
+  public static final String OFFSET_STORAGE_TABLE_MERGE = "MERGE INTO %s T " +
+      "USING (SELECT ? AS id, ? AS offset_data, ? AS record_insert_ts) S " +
+      "ON T.id = S.id " +
+      "WHEN MATCHED THEN " +
+      "  UPDATE SET offset_data = S.offset_data, record_insert_ts = S.record_insert_ts " +
+      "WHEN NOT MATCHED THEN " +
+      "  INSERT (id, offset_data, record_insert_ts) VALUES (S.id, S.offset_data, S.record_insert_ts)";
 
   private static final Logger LOG = LoggerFactory.getLogger(BigqueryOffsetBackingStore.class);
   BigQuery bqClient;
@@ -122,16 +125,14 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   protected void save() {
     LOG.debug("Saving offset data to bigquery table...");
     try {
-      ConsumerUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DELETE, tableFullName));
       String dataJson = mapper.writeValueAsString(data);
       LOG.debug("Saving offset data {}", dataJson);
-      Timestamp currentTs = new Timestamp(System.currentTimeMillis());
       ConsumerUtil.executeQuery(bqClient,
-          String.format(OFFSET_STORAGE_TABLE_INSERT, tableFullName),
+          String.format(OFFSET_STORAGE_TABLE_MERGE, tableFullName),
           ImmutableList.of(
-              QueryParameterValue.string(UUID.randomUUID().toString()),
+              QueryParameterValue.string("offset-01"),
               QueryParameterValue.string(dataJson),
-              QueryParameterValue.timestamp(String.valueOf(currentTs))
+              QueryParameterValue.timestamp(Instant.now().toString())
           )
       );
       LOG.debug("Successfully saved offset data to bigquery table");
