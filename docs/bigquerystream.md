@@ -1,63 +1,52 @@
 # `bigquerystream` Consumer
 
-Streams debezium events to Bigquery using
-the [Storage Write API](https://cloud.google.com/bigquery/docs/write-api-streaming).
+Streams Debezium events to BigQuery using the [Storage Write API](https://cloud.google.com/bigquery/docs/write-api-streaming).
 
 ## Configuration
 
 | Config                                                   | Default          | Description                                                                                                                            |
 |----------------------------------------------------------|------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `debezium.sink.bigquerystream.dataset`                   |                  | Destination Bigquery dataset name                                                                                                      |
-| `debezium.sink.bigquerystream.location`                  | `US`             | Bigquery table location                                                                                                                |
-| `debezium.sink.bigquerystream.project`                   |                  | Bigquery project                                                                                                                       |
-| `debezium.sink.bigquerystream.ignore-unknown-fields`     | `true`           | if true, unknown Json fields to BigQuery will be ignored instead of error out.                                                         |
-| `debezium.sink.bigquerystream.create-if-needed`          | `true`           | Creates Bigquery table if not found                                                                                                    |
-| `debezium.sink.bigquerystream.partition-field`           | `__ts_ms`        | Partition target tables by `__ts_ms` field                                                                                             |
-| `debezium.sink.bigquerystream.clustering-field`          | `__source_ts_ms` | Cluster target tables by `PK + __source_ts_ms` field                                                                                   |
-| `debezium.sink.bigquerystream.partition-type`            | `MONTH`          | Partitioning type                                                                                                                      |
-| `debezium.sink.bigquerystream.allow-field-addition`      | `false`          | Allow field addition to target tables                                                                                                  |
-| `debezium.sink.bigquerystream.credentials-file`          |                  | GCP service account credentialsFile                                                                                                    |
-| `debezium.sink.bigquerystream.bigquery-custom-host`      |                  | Custom endpoint for BigQuery API. Useful for testing against a local BigQuery emulator like `bq-emulator`.                             |
-| `debezium.sink.bigquerystream.bigquery-custom-grpc-host` |                  | Custom endpoint for BigQuery GRPC API. Useful for testing against a local BigQuery emulator like `bq-emulator`.                        |
-| `debezium.sink.bigquerystream.bigquery-dev-emulator`     | `false`          | Whether or not Debezium should connect to `bq-emulator` instance.                                                                      |
-| `debezium.sink.bigquerystream.upsert`                    | `false`          | Running upsert mode overwriting updated rows. Using [Bigquery CDC feature](https://cloud.google.com/bigquery/docs/change-data-capture) |
-| `debezium.sink.bigquerystream.upsert-keep-deletes`       | `true`           | With upsert mode, keeps deleted rows in bigquery table.                                                                                |
-| `debezium.sink.bigquerystream.upsert-dedup-column`       | `__source_ts_ns` | With upsert mode used to deduplicate data. row with highest `__source_ts_ns` is kept.                                                  |
-| `debezium.sink.bigquerystream.upsert-op-column`          | `__op`           | Used with upsert mode to deduplicate data when `__source_ts_ns` of rows are same.                                                      |
-| `debezium.sink.bigquerystream.change-sequence.enabled`   | `false`          | Add BigQuery `_CHANGE_SEQUENCE_NUMBER` custom CDC ordering values to every CDC mutation.                                              |
-| `debezium.sink.bigquerystream.max-in-flight-appends`     | `1`              | Maximum append requests pipelined within one destination batch. Values below 1 are rejected.                                         |
-| `debezium.sink.bigquerystream.cast-deleted-field`        | `false`          | Cast deleted field to boolean type(by default it is string type)                                                                       |
+| `debezium.sink.bigquerystream.dataset`                   |                  | Destination BigQuery dataset name                                                                                                      |
+| `debezium.sink.bigquerystream.location`                  | `US`             | BigQuery table location (e.g. `US`, `EU`)                                                                                              |
+| `debezium.sink.bigquerystream.project`                   |                  | Destination GCP BigQuery project ID                                                                                                    |
+| `debezium.sink.bigquerystream.ignore-unknown-fields`     | `true`           | If `true`, unknown JSON fields sent to BigQuery will be ignored instead of causing an error                                            |
+| `debezium.sink.bigquerystream.create-if-needed`          | `true`           | Creates target BigQuery table automatically if not found                                                                               |
+| `debezium.sink.bigquerystream.partition-field`           | `__ts_ms`        | Field used to partition target BigQuery tables                                                                                         |
+| `debezium.sink.bigquerystream.clustering-field`          | `__source_ts_ms` | Field used to cluster target BigQuery tables (combined with primary key fields)                                                        |
+| `debezium.sink.bigquerystream.partition-type`            | `MONTH`          | Table partitioning type (`DAY`, `MONTH`, `YEAR`, `HOUR`)                                                                               |
+| `debezium.sink.bigquerystream.allow-field-addition`      | `false`          | Allow schema expansion (adding new columns to target BigQuery table)                                                                   |
+| `debezium.sink.bigquerystream.credentials-file`          |                  | Path to GCP service account JSON credentials file                                                                                       |
+| `debezium.sink.bigquerystream.bigquery-custom-host`      |                  | Custom HTTP endpoint for BigQuery API. Useful for testing against a local emulator like `bq-emulator`.                                 |
+| `debezium.sink.bigquerystream.bigquery-custom-grpc-host` |                  | Custom gRPC endpoint for BigQuery API. Useful for testing against a local emulator like `bq-emulator`.                                 |
+| `debezium.sink.bigquerystream.bigquery-dev-emulator`     | `false`          | Whether to connect to a local `bq-emulator` instance                                                                                   |
+| `debezium.sink.bigquerystream.upsert`                    | `false`          | Enables UPSERT mode using [BigQuery CDC](https://cloud.google.com/bigquery/docs/change-data-capture)                                   |
+| `debezium.sink.bigquerystream.upsert-keep-deletes`       | `true`           | Retains deleted rows in target table when UPSERT mode is active                                                                        |
+| `debezium.sink.bigquerystream.upsert-dedup-column`       | `__source_ts_ns` | Timestamp column used for UPSERT deduplication (row with highest value is retained)                                                   |
+| `debezium.sink.bigquerystream.upsert-op-column`          | `__op`           | Operation type column used for tie-breaking when deduplication timestamp values are identical                                          |
+| `debezium.sink.bigquerystream.change-sequence.enabled`   | `false`          | Enables fine-grained `_CHANGE_SEQUENCE_NUMBER` generation for precise BigQuery CDC ordering                                            |
+| `debezium.sink.bigquerystream.max-in-flight-appends`     | `1`              | Maximum concurrent append requests pipelined within one destination batch                                                              |
 
 ### Upsert
 
-By default, Bigquery Streaming consumer is running with append mode
-`debezium.sink.bigquerystream.upsert=false`.
-Upsert mode uses source Primary Key and does upsert on target table(delete followed by insert). For the tables without
-Primary Key consumer falls back to append mode.
+By default, the `bigquerystream` consumer runs in append-only mode (`debezium.sink.bigquerystream.upsert=false`).
+
+When `debezium.sink.bigquerystream.upsert=true`, the consumer uses primary key fields to perform UPSERT (overwrite/delete followed by insert) on the destination table via BigQuery CDC. Tables without a primary key automatically fall back to append mode.
 
 ### Upsert Mode Data Deduplication
 
-With upsert mode data deduplication is done. Deduplication is done based on `__source_ts_ns` value and event type `__op`
-.
-its is possible to change this field using `debezium.sink.bigquerystream.upsert-dedup-column=__source_ts_ns` (Currently
-only
-Long field type supported.)
+In UPSERT mode, in-memory event deduplication is performed prior to streaming. By default, deduplication compares the event timestamp (`__source_ts_ns`) and event operation type (`__op`).
 
-Operation type priorities are `{"c":1, "r":2, "u":3, "d":4}`. When two records with same key and same `__source_ts_ns`
-values received then the record with higher `__op` priority is kept and added to destination table and duplicate record
-is dropped from stream.
+You can customize the timestamp field via `debezium.sink.bigquerystream.upsert-dedup-column` (currently Long integer timestamps are supported).
 
-When `debezium.sink.bigquerystream.change-sequence.enabled=true`, deduplication instead compares the complete source
-coordinate described below. This resolves ties across binlog files, positions, and rows at the same nanosecond.
+Operation type priorities are: `{"c": 1, "r": 2, "u": 3, "d": 4}`. When two records with the same primary key share identical `__source_ts_ns` values, the record with higher `__op` priority is kept and written to BigQuery, while the duplicate is dropped.
 
-### Custom CDC ordering
+When `debezium.sink.bigquerystream.change-sequence.enabled=true`, deduplication compares full source coordinates (LSN, binlog position, row offset) to resolve ties across transaction logs occurring within the exact same nanosecond.
 
-Change sequencing is optional and only applies to tables that actually use BigQuery CDC/upsert mode. When enabled, every
-UPSERT and DELETE mutation receives the Storage Write API pseudocolumn `_CHANGE_SEQUENCE_NUMBER`; retained delete rows
-(`upsert-keep-deletes=true`) receive both an UPSERT change type and a sequence. The pseudocolumn is included in the
-Storage Write protobuf schema but is never created as a physical BigQuery table column.
+### Custom CDC Ordering
 
-Configure the Debezium unwrap transform to expose all required source fields for the source connector.
+Change sequencing is optional and applies to tables utilizing BigQuery CDC/UPSERT mode. When enabled (`debezium.sink.bigquerystream.change-sequence.enabled=true`), every UPSERT and DELETE mutation receives the Storage Write API pseudocolumn `_CHANGE_SEQUENCE_NUMBER`. Retained delete records (`debezium.sink.bigquerystream.upsert-keep-deletes=true`) receive both an UPSERT change type and a sequence value. The pseudocolumn is embedded in the Storage Write Protobuf payload but is not written as a physical table column.
+
+Configure the Debezium `unwrap` SMT to expose all required source metadata fields:
 
 For MySQL:
 
@@ -74,34 +63,22 @@ debezium.transforms.unwrap.add.fields=op,source.ts_ms,source.ts_ns,source.lsn,so
 debezium.sink.bigquerystream.change-sequence.enabled=true
 ```
 
-Sequences use four uppercase, zero-padded, 16-character hexadecimal sections. The source-specific section order is:
+Sequences use four uppercase, zero-padded, 16-character hexadecimal sections formatted as:
 
 ```text
 MySQL:      source.ts_ns/binlog-file-index/source.pos/source.row
 PostgreSQL: source.ts_ns/source.lsn/source.txId/transaction.total_order
-%016X/%016X/%016X/%016X
+Format:     %016X/%016X/%016X/%016X
 ```
 
-The binlog file index is the trailing numeric component of `__source_file` (for example, `mysql-bin.001234` becomes
-`1234`). MySQL requires `__source_ts_ns`, `__source_file`, `__source_pos`, and `__source_row`; PostgreSQL requires
-`__source_ts_ns`, `__source_lsn`, `__source_txId`, and `__transaction_total_order`. PostgreSQL transaction metadata must
-be enabled so multiple row changes at the same LSN receive distinct ordering values. PostgreSQL LSN values can be
-Debezium's standard decimal integer or the conventional hexadecimal `X/Y` format. The appropriate fields must be present
-and valid on every CDC mutation. Missing, malformed, negative, or larger-than-64-bit components fail the complete
-Debezium batch; the connector does not silently emit an unsequenced mutation.
+The binlog file index is parsed from the trailing numeric component of `__source_file` (e.g., `mysql-bin.001234` becomes `1234`). MySQL requires `__source_ts_ns`, `__source_file`, `__source_pos`, and `__source_row`. PostgreSQL requires `__source_ts_ns`, `__source_lsn`, `__source_txId`, and `__transaction_total_order`. PostgreSQL transaction metadata must be enabled (`debezium.source.provide.transaction.metadata=true`) to ensure distinct sequence numbers for multiple row updates within the same transaction/LSN.
 
-### Append and destination concurrency
+### Append and Destination Concurrency
 
-`debezium.sink.batch.concurrent-uploads` processes different destination tables concurrently.
-`debezium.sink.bigquerystream.max-in-flight-appends` pipelines append requests within one destination. The default value
-of `1` preserves the synchronous single-append behavior. Values above 1 split a destination batch into at most that many
-balanced chunks, submit them to the BigQuery default stream, and wait for every response even when completions arrive out
-of order.
+`debezium.sink.batch.concurrent-uploads` processes multiple destination tables concurrently.
+`debezium.sink.bigquerystream.max-in-flight-appends` pipelines append requests within a single destination table. The default value (`1`) maintains synchronous single-append execution. Values greater than `1` split destination batches into balanced chunks, sending them concurrently via the BigQuery Storage Write API and waiting for all completions.
 
-An append response error, exception, cancellation, timeout, or interruption fails the whole batch. On interruption,
-outstanding append futures are cancelled and the interrupt status is restored without waiting indefinitely for an
-unresponsive request. Debezium offsets are not marked processed or batch-finished unless every destination and every
-append succeeds. Replaying a failed sequenced batch is safe because source coordinates produce the same ordering values.
+If any append request fails, times out, or encounters an exception, the entire batch fails without marking offsets as committed. Retrying a failed sequenced batch is safe and idempotent because deterministic source coordinates generate identical sequence numbers.
 
-Benchmark values above 1 for the workload. For upsert destinations, use change sequencing when enabling append
-pipelining so out-of-order append completion cannot change the final CDC state.
+When setting `max-in-flight-appends` above 1 for UPSERT tables, ensure `debezium.sink.bigquerystream.change-sequence.enabled=true` so out-of-order response completions do not alter final CDC state in BigQuery.
+

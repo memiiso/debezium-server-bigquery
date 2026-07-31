@@ -23,8 +23,13 @@ This page details shared configuration settings, data type mappings, batch optim
 | `debezium.format.key.schemas.enable`                          | `true`                                                          | Enables inline schemas in JSON event keys.                                                                 |
 | `debezium.source.offset.storage`                              | `io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore` | Class for storing CDC offset state in BigQuery.                                                            |
 | `debezium.source.offset.storage.bigquery.table-name`          | `_debezium_offset_storage`                                      | BigQuery table name used for offset storage.                                                               |
+| `debezium.source.offset.storage.bigquery.migrate-offset-file` |                                                                 | Path to a legacy file-based offset store (e.g. `data/offsets.dat`) to migrate into BigQuery upon table creation. |
 | `debezium.source.schema.history.internal`                     | `io.debezium.server.bigquery.history.BigquerySchemaHistory`     | Class for storing database schema history in BigQuery.                                                     |
 | `debezium.source.schema.history.internal.bigquery.table-name` | `_debezium_database_history_storage`                            | BigQuery table name used for schema history storage.                                                       |
+| `debezium.source.schema.history.internal.bigquery.migrate-history-file` |                                                       | Path to a legacy file-based schema history store (e.g. `data/dbhistory.txt`) to migrate into BigQuery upon table creation. |
+| `debezium.source.topic.heartbeat.prefix`                      | `__debezium-heartbeat`                                          | Topic name prefix for Debezium heartbeat messages (automatically skipped by consumer).                     |
+| `debezium.source.topic.heartbeat.skip-consuming`              | `true`                                                          | Controls whether to skip processing heartbeat topics.                                                      |
+| `debezium.source.include.schema.changes`                      | `false`                                                         | Controls whether to include schema change (DDL) events.                                                     |
 | `debezium.transforms`                                         | `unwrap`                                                        | Event transformation alias.                                                                                |
 | `debezium.transforms.unwrap.type`                             | `io.debezium.transforms.ExtractNewRecordState`                  | Event flattening transform type.                                                                           |
 | `debezium.transforms.unwrap.add.fields`                       | `op,table,source.ts_ms,db,ts_ms,ts_ns,source.ts_ns`             | Metadata fields added to flattened event payload.                                                          |
@@ -102,12 +107,10 @@ When consuming real-time CDC events, frequent small commits can lead to rate lim
 Consumes events immediately as they arrive without introducing additional wait time.
 
 ### 2. `MaxBatchSizeWait`
-Uses Debezium metrics to monitor queue size and delays writing until the batch size reaches `debezium.source.max.batch.size` or `debezium.sink.batch.batch-size-wait.max-wait-ms` expires.
+Monitors internal queue metrics and delays commits until the batch size reaches `debezium.source.max.batch.size` or `debezium.sink.batch.batch-size-wait.max-wait-ms` expires.
 
 ```properties
 debezium.sink.batch.batch-size-wait=MaxBatchSizeWait
-debezium.sink.batch.metrics.snapshot-mbean=debezium.postgres:type=connector-metrics,context=snapshot,server=testc
-debezium.sink.batch.metrics.streaming-mbean=debezium.postgres:type=connector-metrics,context=streaming,server=testc
 debezium.source.connector.class=io.debezium.connector.postgresql.PostgresConnector
 debezium.source.max.batch.size=2048
 debezium.source.max.queue.size=16000
@@ -135,6 +138,16 @@ debezium.source.offset.storage=io.debezium.server.bigquery.offset.BigqueryOffset
 debezium.source.offset.storage.bigquery.table-name=_debezium_offset_storage
 ```
 
+### Migrating Existing Offsets
+
+To migrate existing offset state from a local file store (e.g. `data/offsets.dat`) to BigQuery, configure:
+
+```properties
+debezium.source.offset.storage.bigquery.migrate-offset-file=data/offsets.dat
+```
+
+When the BigQuery offset storage table is created for the first time, existing offset records will automatically be read from the specified file and written into BigQuery.
+
 ---
 
 ## BigQuery Schema History Storage
@@ -145,6 +158,16 @@ debezium.source.offset.storage.bigquery.table-name=_debezium_offset_storage
 debezium.source.schema.history.internal=io.debezium.server.bigquery.history.BigquerySchemaHistory
 debezium.source.schema.history.internal.bigquery.table-name=_debezium_database_history_storage
 ```
+
+### Migrating Existing Schema History
+
+To migrate existing schema history state from a local file store (e.g. `data/dbhistory.txt`) to BigQuery, configure:
+
+```properties
+debezium.source.schema.history.internal.bigquery.migrate-history-file=data/dbhistory.txt
+```
+
+When the BigQuery schema history storage table is created for the first time, existing schema history records will automatically be read from the specified file and populated into BigQuery.
 
 ---
 
