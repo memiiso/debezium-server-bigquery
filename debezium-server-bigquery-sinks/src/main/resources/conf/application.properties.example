@@ -1,9 +1,18 @@
 # ==================== SOURCE DB == MYSQL ====================
 
 debezium.source.connector.class=io.debezium.connector.mysql.MySqlConnector
+
+# --- Offset Storage Options ---
+# File-based offset storage:
 debezium.source.offset.storage=org.apache.kafka.connect.storage.FileOffsetBackingStore
 debezium.source.offset.storage.file.filename=data/offsets.dat
 debezium.source.offset.flush.interval.ms=60000
+
+# BigQuery-native offset storage (recommended for production):
+#debezium.source.offset.storage=io.debezium.server.bigquery.offset.BigqueryOffsetBackingStore
+#debezium.source.offset.storage.bigquery.table-name=_debezium_offset_storage
+# Optional: Migrate existing offsets from a local file store into BigQuery:
+#debezium.source.offset.storage.bigquery.migrate-offset-file=data/offsets.dat
 
 debezium.source.database.hostname=127.0.0.1
 debezium.source.database.port=3306
@@ -19,7 +28,7 @@ debezium.source.snapshot.events.as.inserts=false
 # all DECIMAL and NUMERIC values as Java double values and encodes them as follows:
 debezium.source.decimal.handling.mode=double
 
-# ==================== SINK ====================
+# ==================== SINK CONFIGURATION ====================
 
 debezium.sink.type=bigquerybatch
 debezium.sink.bigquerybatch.project=test
@@ -27,21 +36,38 @@ debezium.sink.bigquerybatch.dataset=test
 debezium.sink.bigquerybatch.location=EU
 debezium.sink.bigquerybatch.credentials-file=/path/to/application_credentials.json
 
-# ==================== Misc ====================
+# Optional: Serialize nested struct/map fields as JSON strings rather than expanded STRUCTs
+#debezium.sink.batch.nested-as-json=false
 
-debezium.source.schema.history.internal.kafka.bootstrap.servers=kafka:9092
-debezium.source.schema.history.internal.kafka.topic=dbhistory.fullfillment
+# Optional: Batch wait strategy (NoBatchSizeWait, MaxBatchSizeWait, DynamicBatchSizeWait)
+#debezium.sink.batch.batch-size-wait=MaxBatchSizeWait
+#debezium.sink.batch.batch-size-wait.max-wait-ms=300000
+#debezium.sink.batch.batch-size-wait.wait-interval-ms=10000
+
+# ==================== SCHEMA HISTORY & MISC ====================
+
 debezium.source.include.schema.changes=false
+
+# File-based schema history:
 debezium.source.schema.history.internal=io.debezium.storage.file.history.FileSchemaHistory
 debezium.source.schema.history.internal.file.filename=data/dbhistory.txt
 
+# BigQuery-native schema history (recommended for production):
+#debezium.source.schema.history.internal=io.debezium.server.bigquery.history.BigquerySchemaHistory
+#debezium.source.schema.history.internal.bigquery.table-name=_debezium_database_history_storage
+# Optional: Migrate existing schema history from a local file store into BigQuery:
+#debezium.source.schema.history.internal.bigquery.migrate-history-file=data/dbhistory.txt
+
 quarkus.http.port=8014
 
-# ==================== LOG LEVELS ====================
+# ==================== LOG LEVELS & STREAM OPTIONS ====================
+
 quarkus.log.level=INFO
 quarkus.log.console.json=false
 # Ignore messages below warning level from Jetty, because it's a bit verbose
 quarkus.log.category."org.eclipse.jetty".level=WARN
-# Optional BigQuery CDC custom ordering and per-destination append pipelining
+
+# Optional BigQuery CDC custom ordering and per-destination append pipelining (bigquerystream sink)
 #debezium.sink.bigquerystream.change-sequence.enabled=false
 #debezium.sink.bigquerystream.max-in-flight-appends=1
+

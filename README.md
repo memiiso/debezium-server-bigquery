@@ -51,6 +51,22 @@ This project adds BigQuery sink consumers to [Debezium Server](https://debezium.
    bash run.sh
    ```
 
+### Running via Docker
+
+Build and run using the provided multi-stage `Dockerfile`:
+
+```bash
+# Build the container image
+docker build -t debezium-server-bigquery .
+
+# Run with custom configuration and data volumes
+docker run -d --name debezium-bigquery \
+  -v $(pwd)/conf:/app/conf \
+  -v $(pwd)/data:/app/data \
+  debezium-server-bigquery
+```
+
+
 ## Contributing
 
 We welcome contributions of any kind! Feel free to report issues, suggest improvements, or submit pull requests.
