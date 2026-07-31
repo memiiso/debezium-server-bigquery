@@ -131,19 +131,19 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
           }
         }
         Job job = writer.getJob().waitFor();
+        BigQueryError error = (job != null && job.getStatus() != null) ? job.getStatus().getError() : null;
+
+        if (job == null || !job.isDone() || error != null) {
+          JobStatistics.LoadStatistics stats = (job != null) ? job.getStatistics() : null;
+          throw new DebeziumException(String.format(
+              "Failed to load table %s! Error: %s, BadRecords: %s, Statistics: %s",
+              tableId, error, (stats != null ? stats.getBadRecords() : "N/A"), stats
+          ));
+        }
+
         JobStatistics.LoadStatistics jobStatistics = job.getStatistics();
         numRecords = jobStatistics.getOutputRows();
-
-        if (job.isDone()) {
-          LOGGER.debug("Data successfully loaded to {}. rows: {}, jobStatistics: {}", tableId, numRecords,
-              jobStatistics);
-        } else {
-          throw new DebeziumException("Failed to load table: " + tableId + "!" +
-              " Error:" + job.getStatus().getError() +
-              ", JobStatistics:" + jobStatistics +
-              ", BadRecords:" + jobStatistics.getBadRecords() +
-              ", JobStatistics:" + jobStatistics);
-        }
+        LOGGER.debug("Data successfully loaded to {}. rows: {}, jobStatistics: {}", tableId, numRecords, jobStatistics);
       }
 
       LOGGER.debug("Uploaded {} rows to:{}, upload time:{}, clusteredFields:{}",
