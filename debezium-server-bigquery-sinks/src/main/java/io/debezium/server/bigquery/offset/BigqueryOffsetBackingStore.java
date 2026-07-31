@@ -37,7 +37,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.SQLException;
-import java.time.Instant;
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -127,12 +127,13 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
     try {
       String dataJson = mapper.writeValueAsString(data);
       LOG.debug("Saving offset data {}", dataJson);
+      Timestamp currentTs = new Timestamp(System.currentTimeMillis());
       ConsumerUtil.executeQuery(bqClient,
           String.format(OFFSET_STORAGE_TABLE_MERGE, tableFullName),
           ImmutableList.of(
               QueryParameterValue.string("offset-01"),
               QueryParameterValue.string(dataJson),
-              QueryParameterValue.timestamp(Instant.now().toString())
+              QueryParameterValue.timestamp(String.valueOf(currentTs))
           )
       );
       LOG.debug("Successfully saved offset data to bigquery table");

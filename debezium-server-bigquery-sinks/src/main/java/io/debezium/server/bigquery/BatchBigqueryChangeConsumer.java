@@ -8,7 +8,6 @@
 
 package io.debezium.server.bigquery;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
@@ -183,17 +182,11 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
   }
 
   public RecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
-    final JsonNode valNode = valDeserializer.deserialize(e.destination(), getBytes(e.value()));
-    final JsonNode keyNode = (e.key() == null) ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key()));
-    final JsonNode valSchema = (valNode != null) ? valNode.get("schema") : null;
-    final JsonNode keySchema = (keyNode != null) ? keyNode.get("schema") : null;
-
-    return new BatchRecordConverter(
-        e.destination(),
-        valNode,
-        keyNode,
-        valSchema,
-        keySchema,
+    return new BatchRecordConverter(e.destination(),
+        valDeserializer.deserialize(e.destination(), getBytes(e.value())),
+        e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
+        mapper.readTree(getBytes(e.value())).get("schema"),
+        e.key() == null ? null : mapper.readTree(getBytes(e.key())).get("schema"),
         debeziumConfig
     );
   }
