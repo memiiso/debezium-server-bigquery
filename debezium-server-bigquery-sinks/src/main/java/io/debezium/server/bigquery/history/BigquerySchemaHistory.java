@@ -39,7 +39,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -131,7 +130,7 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
             ImmutableList.of(
                 QueryParameterValue.string(UUID.randomUUID().toString()),
                 QueryParameterValue.string(recordDocString),
-                QueryParameterValue.timestamp(currentTs.toInstant().toString())
+                QueryParameterValue.timestamp(String.valueOf(currentTs))
             )
         );
         LOG.trace("Successfully saved history data to bigquery table");
