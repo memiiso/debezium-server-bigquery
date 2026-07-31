@@ -42,6 +42,9 @@ public class MaxBatchSizeWait implements BatchSizeWait {
       return;
     }
 
+    final long maxQueue = debeziumMetrics.maxQueueSize();
+    final long queueUtil = (maxQueue > 0) ? (debeziumMetrics.streamingQueueCurrentSize() * 100) / maxQueue : 0;
+
     LOGGER.info("Processed {}, " +
             "QueueCurrentSize:{}, " +
             "QueueTotalCapacity:{}, " +
@@ -50,8 +53,8 @@ public class MaxBatchSizeWait implements BatchSizeWait {
             "SnapshotCompleted:{}, " +
             "snapshotRunning:{}",
         numRecordsProcessed,
-        debeziumMetrics.streamingQueueCurrentSize(), debeziumMetrics.maxQueueSize(),
-        (debeziumMetrics.streamingQueueCurrentSize() * 100) / debeziumMetrics.maxQueueSize(),
+        debeziumMetrics.streamingQueueCurrentSize(), maxQueue,
+        queueUtil,
         debeziumMetrics.streamingMilliSecondsBehindSource(),
         debeziumMetrics.snapshotCompleted(), debeziumMetrics.snapshotRunning()
     );
