@@ -18,6 +18,7 @@ import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDataWriteChannel;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
@@ -90,7 +91,10 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
       RecordConverter sampleEvent = data.get(0);
       Schema schema = sampleEvent.tableSchema();
       if (schema == null) {
-        schema = bqClient.getTable(tableId).getDefinition().getSchema();
+        Table table = bqClient.getTable(tableId);
+        if (table != null && table.getDefinition() != null) {
+          schema = table.getDefinition().getSchema();
+        }
       }
 
       Clustering clustering = sampleEvent.tableClustering(config.clusteringField());
