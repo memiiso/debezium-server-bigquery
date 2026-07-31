@@ -104,7 +104,7 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
 
     batchSizeWait = ConsumerUtil.selectInstance(batchSizeWaitInstances, commonConfig.batchSizeWaitName());
     LOGGER.info("Using {} to optimize batch size", batchSizeWait.getClass().getSimpleName());
-    batchSizeWait.initizalize();
+    batchSizeWait.initialize();
 
     this.numConcurrentUploads = commonConfig.concurrentUploads();
     this.concurrentUploadsTimeoutMinutes = commonConfig.concurrentUploadsTimeoutMinutes();

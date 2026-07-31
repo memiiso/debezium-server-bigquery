@@ -31,7 +31,7 @@ public class MaxBatchSizeWait implements BatchSizeWait {
   BatchSizeWaitConfig config;
 
   @Override
-  public void initizalize() throws DebeziumException {
+  public void initialize() throws DebeziumException {
     assert config.waitIntervalMs() < config.maxWaitMs() : "`wait-interval-ms` cannot be bigger than `max-wait-ms`";
   }
 

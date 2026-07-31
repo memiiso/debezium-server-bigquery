@@ -16,7 +16,7 @@ package io.debezium.server.bigquery.batchsizewait;
 
 public interface BatchSizeWait {
 
-  default void initizalize() {
+  default void initialize() {
   }
 
   void waitMs(long numRecordsProcessed, Integer processingTimeMs) throws InterruptedException;
