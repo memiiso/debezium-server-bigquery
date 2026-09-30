@@ -219,7 +219,7 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
     }
   }
 
-  private void loadFileSchemaHistory(File file) {
+  void loadFileSchemaHistory(File file) {
     LOG.warn(String.format("Migrating file database history from:'%s' to Bigquery database history storage: %s",
         file.toPath(), tableFullName));
     AtomicInteger numRecords = new AtomicInteger();
@@ -237,6 +237,7 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
         }
       } catch (IOException e) {
         logger.error("Failed to migrate history record from history file at {}", file.toPath(), e);
+        throw new DebeziumException("Failed to migrate history record from history file at " + file.toPath(), e);
       }
     });
     LOG.warn("Migrated {} database history record. " +

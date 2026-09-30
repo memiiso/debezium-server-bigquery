@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -223,19 +224,27 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
     ConcurrentHashMap<JsonNode, RecordConverter> deduplicatedEvents = new ConcurrentHashMap<>();
 
-    events.forEach(e ->
-        // deduplicate using key(PK)
-        deduplicatedEvents.merge(e.key(), e, (oldValue, newValue) -> {
-          int comparison = config.changeSequenceEnabled()
-              ? ChangeSequenceNumber.from(oldValue.value()).compareTo(ChangeSequenceNumber.from(newValue.value()))
-              : this.compareByTsThenOp(oldValue.value(), newValue.value());
-          if (comparison <= 0) {
-            return newValue;
-          } else {
-            return oldValue;
-          }
-        })
-    );
+    events.forEach(e -> {
+      if (e.key() == null) {
+        throw new DebeziumException(
+            "Cannot deduplicate data with null key! destination:'"
+                + e.destination()
+                + "' event: '"
+                + (e.value() == null ? "null" : e.value().toString())
+                + "'");
+      }
+      // deduplicate using key(PK)
+      deduplicatedEvents.merge(e.key(), e, (oldValue, newValue) -> {
+        int comparison = config.changeSequenceEnabled()
+            ? ChangeSequenceNumber.from(oldValue.value()).compareTo(ChangeSequenceNumber.from(newValue.value()))
+            : this.compareByTsThenOp(oldValue.value(), newValue.value());
+        if (comparison <= 0) {
+          return newValue;
+        } else {
+          return oldValue;
+        }
+      });
+    });
 
     return new ArrayList<>(deduplicatedEvents.values());
   }
@@ -259,17 +268,46 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       return -1;
     }
 
-    int result = Long.compare(lhs.get(config.sourceTsColumn().get()).asLong(0), rhs.get(config.sourceTsColumn().get()).asLong(0));
+    Long lhsTs = extractTs(lhs, config.sourceTsColumn().get());
+    Long rhsTs = extractTs(rhs, config.sourceTsColumn().get());
+    int result;
+    if (lhsTs == null && rhsTs == null) {
+      result = 0;
+    } else if (lhsTs == null) {
+      result = -1;
+    } else if (rhsTs == null) {
+      result = 1;
+    } else {
+      result = Long.compare(lhsTs, rhsTs);
+    }
 
     if (result == 0) {
       // return (x < y) ? -1 : ((x == y) ? 0 : 1);
-      result = cdcOperations.getOrDefault(lhs.get(config.opColumn()).asText("c"), -1)
+      String lhsOp = extractOp(lhs, config.opColumn());
+      String rhsOp = extractOp(rhs, config.opColumn());
+      result = cdcOperations.getOrDefault(lhsOp, -1)
           .compareTo(
-              cdcOperations.getOrDefault(rhs.get(config.opColumn()).asText("c"), -1)
+              cdcOperations.getOrDefault(rhsOp, -1)
           );
     }
 
     return result;
+  }
+
+  private Long extractTs(JsonNode node, String tsColumn) {
+    if (node == null || tsColumn == null || tsColumn.isBlank()) {
+      return null;
+    }
+    JsonNode tsNode = node.get(tsColumn);
+    return (tsNode != null && !tsNode.isNull() && tsNode.isNumber()) ? tsNode.asLong() : null;
+  }
+
+  private String extractOp(JsonNode node, String opColumn) {
+    if (node == null || opColumn == null || opColumn.isBlank()) {
+      return "c";
+    }
+    JsonNode opNode = node.get(opColumn);
+    return (opNode != null && !opNode.isNull()) ? opNode.asText("c") : "c";
   }
 
   public TableId getTableId(String destination) {

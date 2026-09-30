@@ -88,6 +88,51 @@ class StreamCdcSequencingTest {
         converted.getString(ChangeSequenceNumber.PSEUDO_COLUMN));
   }
 
+  @Test
+  void deduplicationHandlesNullAndMissingTimestampsWithoutNpe() throws Exception {
+    StreamBigqueryChangeConsumer consumer = new StreamBigqueryChangeConsumer();
+    consumer.config = mock(StreamConsumerConfig.class);
+    when(consumer.config.changeSequenceEnabled()).thenReturn(false);
+    when(consumer.config.sourceTsColumn()).thenReturn(java.util.Optional.of("__source_ts_ns"));
+    when(consumer.config.opColumn()).thenReturn("__op");
+
+    // e1 has no timestamp, e2 has timestamp 10L -> e2 wins
+    JsonNode v1 = MAPPER.readTree("{\"id\":1,\"__op\":\"c\"}");
+    JsonNode v2 = MAPPER.readTree("{\"id\":1,\"__op\":\"u\",\"__source_ts_ns\":10}");
+    JsonNode key = MAPPER.readTree("{\"id\":1}");
+    StreamRecordConverter e1 = new StreamRecordConverter("test", v1, key, null, null, null);
+    StreamRecordConverter e2 = new StreamRecordConverter("test", v2, key, null, null, null);
+
+    List<RecordConverter> result = consumer.deduplicateBatch(List.of(e1, e2));
+    assertEquals(1, result.size());
+    assertEquals("u", result.get(0).value().get("__op").asText());
+
+    // both have no timestamps -> op priority wins (u > c)
+    JsonNode v3 = MAPPER.readTree("{\"id\":1,\"__op\":\"c\"}");
+    JsonNode v4 = MAPPER.readTree("{\"id\":1,\"__op\":\"u\"}");
+    StreamRecordConverter e3 = new StreamRecordConverter("test", v3, key, null, null, null);
+    StreamRecordConverter e4 = new StreamRecordConverter("test", v4, key, null, null, null);
+
+    List<RecordConverter> result2 = consumer.deduplicateBatch(List.of(e3, e4));
+    assertEquals(1, result2.size());
+    assertEquals("u", result2.get(0).value().get("__op").asText());
+  }
+
+  @Test
+  void deduplicationWithNullKeyThrowsDebeziumException() throws Exception {
+    StreamBigqueryChangeConsumer consumer = new StreamBigqueryChangeConsumer();
+    consumer.config = mock(StreamConsumerConfig.class);
+
+    JsonNode value = MAPPER.readTree("{\"id\":1,\"__op\":\"c\"}");
+    StreamRecordConverter e = new StreamRecordConverter("dest", value, null, null, null, null);
+
+    io.debezium.DebeziumException thrown = org.junit.jupiter.api.Assertions.assertThrows(
+        io.debezium.DebeziumException.class,
+        () -> consumer.deduplicateBatch(List.of(e))
+    );
+    assertTrue(thrown.getMessage().contains("Cannot deduplicate data with null key!"));
+  }
+
   private static boolean hasField(TableSchema schema, String name) {
     return schema.getFieldsList().stream().anyMatch(field -> field.getName().equals(name));
   }
