@@ -100,6 +100,21 @@ class BaseChangeConsumerParallelTest {
     assertEquals(0, semaphore.availablePermits());
   }
 
+  @Test
+  @SuppressWarnings("unchecked")
+  void tombstoneRecordsAreSkippedWithoutUpload() throws Exception {
+    consumer = configuredConsumer(1, 1);
+    ChangeEvent<Object, Object> tombstone = mock(ChangeEvent.class);
+    when(tombstone.destination()).thenReturn("dest1");
+    when(tombstone.value()).thenReturn(null);
+
+    DebeziumEngine.RecordCommitter<ChangeEvent<Object, Object>> committer = mock(DebeziumEngine.RecordCommitter.class);
+    consumer.handleBatch(List.of(tombstone), committer);
+
+    verify(committer, times(1)).markProcessed(tombstone);
+    verify(committer, times(1)).markBatchFinished();
+  }
+
   private static TestConsumer configuredConsumer(int concurrency, int timeoutMinutes) throws Exception {
     TestConsumer result = new TestConsumer();
     result.debeziumConfig = mock(DebeziumConfig.class);
@@ -122,6 +137,7 @@ class BaseChangeConsumerParallelTest {
   private static ChangeEvent<Object, Object> event(String destination) {
     ChangeEvent<Object, Object> event = mock(ChangeEvent.class);
     when(event.destination()).thenReturn(destination);
+    when(event.value()).thenReturn("payload");
     return event;
   }
 

@@ -9,6 +9,7 @@
 package io.debezium.server.bigquery.history;
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Table;
@@ -153,13 +154,15 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
         if (exists()) {
           TableResult rs = ConsumerUtil.executeQuery(bqClient, String.format(DATABASE_HISTORY_STORAGE_TABLE_SELECT, tableFullName));
           for (FieldValueList row : rs.getValues()) {
-            String line = row.get("history_data").getStringValue();
-            if (line == null) {
-              break;
+            FieldValue historyData = row.get("history_data");
+            if (historyData == null || historyData.isNull()) {
+              continue;
             }
-            if (!line.isEmpty()) {
-              records.accept(new HistoryRecord(reader.read(line)));
+            String line = historyData.getStringValue();
+            if (line == null || line.isBlank()) {
+              continue;
             }
+            records.accept(new HistoryRecord(reader.read(line)));
           }
         }
       } catch (IOException | SQLException e) {
@@ -220,6 +223,10 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
   }
 
   private void loadFileSchemaHistory(File file) {
+    if (!file.isFile() || !file.exists()) {
+      LOG.warn("Database history file not found, skipping migration! " + file.toPath().toAbsolutePath());
+      return;
+    }
     LOG.warn(String.format("Migrating file database history from:'%s' to Bigquery database history storage: %s",
         file.toPath(), tableFullName));
     AtomicInteger numRecords = new AtomicInteger();
@@ -236,7 +243,8 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
           }
         }
       } catch (IOException e) {
-        logger.error("Failed to migrate history record from history file at {}", file.toPath(), e);
+        LOG.error("Failed to migrate history record from history file at {}", file.toPath(), e);
+        throw new SchemaHistoryException("Failed to migrate history record from history file at " + file.toPath(), e);
       }
     });
     LOG.warn("Migrated {} database history record. " +
