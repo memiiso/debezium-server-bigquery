@@ -3,7 +3,7 @@ name: Create Release
 on:
   workflow_dispatch:
   push:
-    tags: [ '*.*.*', '*.*.*.*', '*.*.*.*.*', 'v*.*.*' ]
+    tags: [ '*.*.*', '*.*.*.*', '*.*.*.*.*', 'v*' ]
     branches: [ master ]
 
 concurrency:
@@ -45,16 +45,19 @@ jobs:
               echo "DOCKER_TAGS=ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${RELEASE_NAME}" >> $GITHUB_ENV
             else
               echo "IS_PRERELEASE=false" >> $GITHUB_ENV
-              TAGS="ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${RELEASE_NAME}"
-              if [[ "${RELEASE_NAME}" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)\. ]]; then
-                MAJOR="${BASH_REMATCH[1]}"
-                MINOR="${BASH_REMATCH[2]}"
-                PATCH="${BASH_REMATCH[3]}"
-                TAGS="${TAGS},ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${MAJOR}.${MINOR}.${PATCH}"
-                TAGS="${TAGS},ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${MAJOR}.${MINOR}"
-                TAGS="${TAGS},ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:latest"
-              fi
-              echo "DOCKER_TAGS=${TAGS}" >> $GITHUB_ENV
+              {
+                echo "DOCKER_TAGS<<EOF"
+                echo "ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${RELEASE_NAME}"
+                if [[ "${RELEASE_NAME}" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)\. ]]; then
+                  MAJOR="${BASH_REMATCH[1]}"
+                  MINOR="${BASH_REMATCH[2]}"
+                  PATCH="${BASH_REMATCH[3]}"
+                  echo "ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${MAJOR}.${MINOR}.${PATCH}"
+                  echo "ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${MAJOR}.${MINOR}"
+                  echo "ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:latest"
+                fi
+                echo "EOF"
+              } >> $GITHUB_ENV
             fi
           fi
         shell: bash # Explicitly set shell to bash
