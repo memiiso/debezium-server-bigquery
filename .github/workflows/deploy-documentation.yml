@@ -1,12 +1,23 @@
 name: deploy-mkdocs-documentation
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
       - main
       - docs
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/deploy-documentation.yml'
+
+concurrency:
+  group: mkdocs-deploy
+  cancel-in-progress: false
+
 permissions:
   contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -19,6 +30,6 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: 3.x
-      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
-      - run: pip install mkdocs-material
+          cache: 'pip'
+      - run: pip install --upgrade pip mkdocs-material
       - run: mkdocs gh-deploy --force
