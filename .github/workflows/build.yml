@@ -10,11 +10,21 @@ on:
     paths-ignore:
       - '.idea/**'
       - '.run/**'
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '*.md'
   pull_request:
     branches: [ master, '*.*' ]
     paths-ignore:
       - '.idea/**'
       - '.run/**'
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '*.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -33,4 +43,4 @@ jobs:
           cache: 'maven'
 
       - name: Build with Maven
-        run: mvn -B --no-transfer-progress clean package --file pom.xml
+        run: mvn -B --no-transfer-progress clean package -Passembly --file pom.xml

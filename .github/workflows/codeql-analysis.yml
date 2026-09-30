@@ -14,11 +14,27 @@ name: "CodeQL"
 on:
   push:
     branches: [ "master" ]
+    paths-ignore:
+      - '.idea/**'
+      - '.run/**'
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '*.md'
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ "master" ]
+    paths-ignore:
+      - '.idea/**'
+      - '.run/**'
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '*.md'
   schedule:
     - cron: '28 3 * * 6'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
