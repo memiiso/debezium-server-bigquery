@@ -18,6 +18,37 @@ This project adds BigQuery sink consumers to [Debezium Server](https://debezium.
 - **Dynamic Batch Optimization:** Configurable batch size wait strategies (`MaxBatchSizeWait`, `DynamicBatchSizeWait`) to optimize file sizes and upload intervals.
 - **Nested JSON Serialization:** Configurable handling of nested record structures as JSON strings (`debezium.sink.batch.nested-as-json`).
 
+## Versioning Policy
+
+`debezium-server-bigquery` follows an upstream-anchored versioning scheme:
+
+```
+<debezium-major>.<debezium-minor>.<debezium-patch>.<sink-revision>.<qualifier>
+Example: 3.6.3.0.Final
+```
+
+- **Debezium Version** (`3.6.3`): Matches the exact upstream Debezium release bundled in the server distribution and container.
+- **Sink Revision** (`0`, `1`, `2`): Incremented for BigQuery sink bug fixes, improvements, or features independent of Debezium version updates.
+- **Qualifier** (`Beta`, `Final`): Indicates testing (`Beta`, `Beta2`) or production-ready general availability (`Final`).
+
+### Version Compatibility Matrix
+
+| Release | Upstream Debezium | Java Baseline | Quarkus Version | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `3.6.3.0.Final` | `3.6.3.Final` | Java 21 | 3.15.x | Debezium 3.6 baseline, safe CDC sequencing & append pipelining |
+| `0.12.0.Final` | `3.1.3.Final` | Java 21 | 3.15.x | BigQuery CDC sequencing & pipeline |
+| `0.9.3.Final` | `3.1.3.Final` | Java 21 | 3.8.x | Debezium 3.1 upgrade |
+| `0.6.0.Final` | `2.7.3.Final` | Java 17 | 3.2.x | Debezium 2.7 upgrade |
+
+Container images are published to GitHub Container Registry:
+```bash
+docker pull ghcr.io/memiiso/debezium-server-bigquery:3.6.3.0.Final
+# Floating convenience tags for the latest patch and minor versions:
+docker pull ghcr.io/memiiso/debezium-server-bigquery:3.6.3
+docker pull ghcr.io/memiiso/debezium-server-bigquery:3.6
+docker pull ghcr.io/memiiso/debezium-server-bigquery:latest
+```
+
 ## Build and Install from Source
 
 ### Prerequisites
