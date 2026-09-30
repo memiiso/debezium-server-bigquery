@@ -9,6 +9,7 @@
 package io.debezium.server.bigquery.history;
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Table;
