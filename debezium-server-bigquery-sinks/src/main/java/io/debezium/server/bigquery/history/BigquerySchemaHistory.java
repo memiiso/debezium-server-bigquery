@@ -153,13 +153,15 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
         if (exists()) {
           TableResult rs = ConsumerUtil.executeQuery(bqClient, String.format(DATABASE_HISTORY_STORAGE_TABLE_SELECT, tableFullName));
           for (FieldValueList row : rs.getValues()) {
-            String line = row.get("history_data").getStringValue();
-            if (line == null) {
-              break;
+            FieldValue historyData = row.get("history_data");
+            if (historyData == null || historyData.isNull()) {
+              continue;
             }
-            if (!line.isEmpty()) {
-              records.accept(new HistoryRecord(reader.read(line)));
+            String line = historyData.getStringValue();
+            if (line == null || line.isBlank()) {
+              continue;
             }
+            records.accept(new HistoryRecord(reader.read(line)));
           }
         }
       } catch (IOException | SQLException e) {
@@ -236,7 +238,8 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
           }
         }
       } catch (IOException e) {
-        logger.error("Failed to migrate history record from history file at {}", file.toPath(), e);
+        LOG.error("Failed to migrate history record from history file at {}", file.toPath(), e);
+        throw new SchemaHistoryException("Failed to migrate history record from history file at " + file.toPath(), e);
       }
     });
     LOG.warn("Migrated {} database history record. " +

@@ -103,11 +103,11 @@ public class ConsumerUtil {
   public static BigQuery bigqueryClient(Boolean isBigqueryDevEmulator, Optional<String> gcpProject, Optional<String> bqDataset, Optional<String> credentialsFile, String bqLocation, Optional<String> hostUrl) throws InterruptedException {
 
     if (gcpProject.isEmpty()) {
-      throw new InterruptedException("Please provide a value for `debezium.sink.{bigquerybatch|bigquerystream}.project`");
+      throw new DebeziumException("Please provide a value for `debezium.sink.{bigquerybatch|bigquerystream}.project`");
     }
 
     if (bqDataset.isEmpty()) {
-      throw new InterruptedException("Please provide a value for `debezium.sink.{bigquerybatch|bigquerystream}.dataset`");
+      throw new DebeziumException("Please provide a value for `debezium.sink.{bigquerybatch|bigquerystream}.dataset`");
     }
 
     Credentials credentials;
@@ -167,6 +167,9 @@ public class ConsumerUtil {
           .build();
       return bqClient.query(queryConfig);
     } catch (BigQueryException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new SQLException(e);
     }
   }
