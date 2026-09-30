@@ -223,6 +223,10 @@ public final class BigquerySchemaHistory extends AbstractSchemaHistory {
   }
 
   private void loadFileSchemaHistory(File file) {
+    if (!file.isFile() || !file.exists()) {
+      LOG.warn("Database history file not found, skipping migration! " + file.toPath().toAbsolutePath());
+      return;
+    }
     LOG.warn(String.format("Migrating file database history from:'%s' to Bigquery database history storage: %s",
         file.toPath(), tableFullName));
     AtomicInteger numRecords = new AtomicInteger();
