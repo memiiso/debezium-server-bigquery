@@ -14,7 +14,7 @@ import com.google.cloud.bigquery.BigQueryOptions;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.BigQueryEmulatorContainer;
+import org.testcontainers.gcloud.BigQueryEmulatorContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.util.Map;
