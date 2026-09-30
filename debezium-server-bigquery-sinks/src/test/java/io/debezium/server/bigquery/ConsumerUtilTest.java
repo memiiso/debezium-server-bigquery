@@ -9,6 +9,7 @@
 package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.debezium.DebeziumException;
 import io.debezium.serde.DebeziumSerdes;
 import org.apache.kafka.common.serialization.Serde;
 import org.junit.jupiter.api.Tag;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -45,6 +47,22 @@ class ConsumerUtilTest {
     valueSerde.configure(Collections.singletonMap("from.field", "schema"), false);
     JsonNode deserializedSchema = valueSerde.deserializer().deserialize("xx", serdeWithSchema.getBytes());
     assertFalse(deserializedSchema.has("schema"));
+  }
+
+  @Test
+  public void testBigqueryClientThrowsDebeziumExceptionOnMissingProject() {
+    DebeziumException ex = assertThrows(DebeziumException.class, () ->
+        ConsumerUtil.bigqueryClient(false, Optional.empty(), Optional.of("test_dataset"), Optional.empty(), "US")
+    );
+    assertTrue(ex.getMessage().contains("project"));
+  }
+
+  @Test
+  public void testBigqueryClientThrowsDebeziumExceptionOnMissingDataset() {
+    DebeziumException ex = assertThrows(DebeziumException.class, () ->
+        ConsumerUtil.bigqueryClient(false, Optional.of("test_project"), Optional.empty(), Optional.empty(), "US")
+    );
+    assertTrue(ex.getMessage().contains("dataset"));
   }
 
 }
