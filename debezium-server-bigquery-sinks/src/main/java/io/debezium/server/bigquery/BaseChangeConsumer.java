@@ -143,6 +143,7 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
 
     Instant start = Instant.now();
     Map<String, List<ChangeEvent<Object, Object>>> events = records.stream()
+        .filter(r -> r.value() != null)
         .collect(Collectors.groupingBy(ChangeEvent<Object, Object>::destination));
 
     // consume list of events for each destination table
