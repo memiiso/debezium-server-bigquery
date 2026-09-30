@@ -62,7 +62,6 @@ jobs:
           prerelease: false
           files: |
             debezium-server-bigquery-dist/target/debezium-server-bigquery-dist-${{ env.RELEASE_NAME }}.zip
-            debezium-server-bigquery-dist/target/debezium-server-bigquery-dist-${{ env.RELEASE_NAME }}.tar.gz
 
       - name: Login to GHCR
         uses: docker/login-action@v4
