@@ -32,8 +32,8 @@
         <maven.compiler.release>21</maven.compiler.release>
 
         <skipITs>true</skipITs>
-        <version.gcp.librariesbom>26.85.0</version.gcp.librariesbom>
-        <version.gcp.bigquerybom>2.68.0</version.gcp.bigquerybom>
+        <version.gcp.librariesbom>26.89.0</version.gcp.librariesbom>
+        <version.gcp.bigquerybom>2.72.0</version.gcp.bigquerybom>
         <!-- Plugin versions -->
         <version.assembly.plugin>3.8.0</version.assembly.plugin>
         <version.maven-enforcer-plugin>3.6.2</version.maven-enforcer-plugin>
