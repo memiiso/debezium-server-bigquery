@@ -50,17 +50,15 @@ import java.util.concurrent.Future;
  */
 public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore implements OffsetBackingStore {
 
-  public static final String OFFSET_STORAGE_TABLE_DDL = "CREATE TABLE %s " +
+  public static final String OFFSET_STORAGE_TABLE_DDL = "CREATE TABLE IF NOT EXISTS %s " +
       "(id STRING NOT NULL, " +
       "offset_data STRING, " +
       "record_insert_ts TIMESTAMP NOT NULL " +
       ")";
 
-  public static final String OFFSET_STORAGE_TABLE_SELECT = "SELECT id, offset_data FROM %s ";
+  public static final String OFFSET_STORAGE_TABLE_SELECT = "SELECT id, offset_data FROM %s ORDER BY record_insert_ts DESC LIMIT 1";
 
   public static final String OFFSET_STORAGE_TABLE_INSERT = "INSERT INTO %s (id, offset_data, record_insert_ts) VALUES ( ?, ?, ? )";
-
-  public static final String OFFSET_STORAGE_TABLE_DELETE = "DELETE FROM %s WHERE 1=1";
 
   private static final Logger LOG = LoggerFactory.getLogger(BigqueryOffsetBackingStore.class);
   BigQuery bqClient;
@@ -122,7 +120,6 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   protected void save() {
     LOG.debug("Saving offset data to bigquery table...");
     try {
-      ConsumerUtil.executeQuery(bqClient, String.format(OFFSET_STORAGE_TABLE_DELETE, tableFullName));
       String dataJson = mapper.writeValueAsString(data);
       LOG.debug("Saving offset data {}", dataJson);
       Timestamp currentTs = new Timestamp(System.currentTimeMillis());
@@ -191,17 +188,24 @@ public class BigqueryOffsetBackingStore extends MemoryOffsetBackingStore impleme
   public Future<Void> set(final Map<ByteBuffer, ByteBuffer> values,
                           final Callback<Void> callback) {
     return executor.submit(() -> {
-      for (Map.Entry<ByteBuffer, ByteBuffer> entry : values.entrySet()) {
-        if (entry.getKey() == null) {
-          continue;
+      Throwable error = null;
+      try {
+        for (Map.Entry<ByteBuffer, ByteBuffer> entry : values.entrySet()) {
+          if (entry.getKey() == null) {
+            continue;
+          }
+          data.put(fromByteBuffer(entry.getKey()), fromByteBuffer(entry.getValue()));
         }
-        data.put(fromByteBuffer(entry.getKey()), fromByteBuffer(entry.getValue()));
+        save();
+        return null;
+      } catch (Throwable t) {
+        error = t;
+        throw t;
+      } finally {
+        if (callback != null) {
+          callback.onCompletion(error, null);
+        }
       }
-      save();
-      if (callback != null) {
-        callback.onCompletion(null, null);
-      }
-      return null;
     });
   }
 

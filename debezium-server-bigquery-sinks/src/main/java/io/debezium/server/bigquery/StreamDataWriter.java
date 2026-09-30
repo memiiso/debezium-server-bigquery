@@ -2,6 +2,8 @@ package io.debezium.server.bigquery;
 
 import com.google.api.gax.core.FixedExecutorProvider;
 import com.google.api.gax.retrying.RetrySettings;
+import com.google.api.gax.rpc.ApiException;
+import com.google.api.gax.rpc.StatusCode;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.storage.v1.AppendRowsRequest;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
@@ -193,6 +195,12 @@ public class StreamDataWriter {
         client.getWriteStream(streamName);
         LOGGER.info("Stream is available for writing {} ", streamName);
         return;
+      } catch (ApiException e) {
+        if (e.getStatusCode().getCode() == StatusCode.Code.NOT_FOUND) {
+          LOGGER.warn("Stream {} does not exist", streamName);
+        } else {
+          LOGGER.warn("Error checking if stream exists for {}: {}", streamName, e.getMessage());
+        }
       } catch (BigQueryException e) {
         if (e.getCode() == 404) {
           LOGGER.warn("Stream {} does not exist", streamName);
