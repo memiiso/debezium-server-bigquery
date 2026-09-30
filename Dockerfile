@@ -16,20 +16,20 @@ RUN unzip /app/debezium-server-bigquery-dist/target/debezium-server-bigquery-dis
 
 FROM eclipse-temurin:21-jre
 
-# Create non-root user
-RUN groupadd -r debezium && useradd -r -g debezium -d /app debezium
+# Create non-root user and app directory skeleton
+RUN groupadd -r debezium && useradd -r -g debezium -d /app debezium && \
+    mkdir -p /app/conf /app/data && \
+    chown -R debezium:debezium /app
 
 # Copy distribution files and set ownership
 COPY --from=builder --chown=debezium:debezium /app/appdist/debezium-server-bigquery/ /app/
 
-# Ensure run.sh is executable and create conf and data directories
-RUN chmod +x /app/run.sh && \
-    mkdir -p /app/conf /app/data && \
-    chown -R debezium:debezium /app
+# Ensure run.sh is executable
+RUN chmod +x /app/run.sh
 
 USER debezium
 WORKDIR /app
-EXPOSE 8080 8083
+EXPOSE 8080
 VOLUME ["/app/conf", "/app/data"] 
 
 ENTRYPOINT ["/app/run.sh"]

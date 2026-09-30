@@ -48,6 +48,7 @@
                 <artifactId>google-cloud-bigquery-bom</artifactId>
                 <version>${version.gcp.bigquerybom}</version>
                 <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
