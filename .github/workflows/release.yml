@@ -3,7 +3,7 @@ name: Create Release
 on:
   workflow_dispatch:
   push:
-    tags: [ '*.*.*.*', '*.*.*', 'v*.*.*' ]
+    tags: [ '*.*.*', '*.*.*.*', '*.*.*.*.*', 'v*' ]
     branches: [ master ]
 
 concurrency:
@@ -35,8 +35,30 @@ jobs:
         run: |
           if [[ "${{ github.ref_name }}" == "master" ]]; then
             echo "RELEASE_NAME=latest" >> $GITHUB_ENV
+            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
+            echo "DOCKER_TAGS=ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:latest" >> $GITHUB_ENV
           else
-            echo "RELEASE_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+            RELEASE_NAME="${{ github.ref_name }}"
+            echo "RELEASE_NAME=${RELEASE_NAME}" >> $GITHUB_ENV
+            if [[ "${RELEASE_NAME}" =~ (Alpha|Beta|CR|RC) ]]; then
+              echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+              echo "DOCKER_TAGS=ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${RELEASE_NAME}" >> $GITHUB_ENV
+            else
+              echo "IS_PRERELEASE=false" >> $GITHUB_ENV
+              {
+                echo "DOCKER_TAGS<<EOF"
+                echo "ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${RELEASE_NAME}"
+                if [[ "${RELEASE_NAME}" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)\. ]]; then
+                  MAJOR="${BASH_REMATCH[1]}"
+                  MINOR="${BASH_REMATCH[2]}"
+                  PATCH="${BASH_REMATCH[3]}"
+                  echo "ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${MAJOR}.${MINOR}.${PATCH}"
+                  echo "ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${MAJOR}.${MINOR}"
+                  echo "ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:latest"
+                fi
+                echo "EOF"
+              } >> $GITHUB_ENV
+            fi
           fi
         shell: bash # Explicitly set shell to bash
 
@@ -59,7 +81,7 @@ jobs:
           tag_name: ${{ env.RELEASE_NAME }}
           body: Release ${{ env.RELEASE_NAME }}
           draft: false
-          prerelease: false
+          prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           files: |
             debezium-server-bigquery-dist/target/debezium-server-bigquery-dist-${{ env.RELEASE_NAME }}.zip
 
@@ -80,7 +102,7 @@ jobs:
           sbom: false
           build-args: |
             RELEASE_VERSION=${{ env.RELEASE_NAME }}
-          tags: ghcr.io/${{ github.repository_owner }}/debezium-server-bigquery:${{ env.RELEASE_NAME }}
+          tags: ${{ env.DOCKER_TAGS }}
 
       - name: Delete Untagged Docker Images
         uses: dylanratcliffe/delete-untagged-containers@v1.2.3
