@@ -27,6 +27,8 @@ import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
 import io.debezium.config.Field;
 import io.grpc.ManagedChannelBuilder;
+import io.quarkus.arc.Arc;
+import io.quarkus.arc.InstanceHandle;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.literal.NamedLiteral;
 import org.eclipse.microprofile.config.Config;
@@ -84,7 +86,6 @@ public class ConsumerUtil {
   }
 
   public static <T> T selectInstance(Instance<T> instances, String name) {
-
     Instance<T> instance = instances.select(NamedLiteral.of(name));
     if (instance.isAmbiguous()) {
       throw new DebeziumException("Multiple batch size wait class named '" + name + "' were found");
@@ -94,6 +95,52 @@ public class ConsumerUtil {
 
     LOGGER.info("Using {}", instance.getClass().getName());
     return instance.get();
+  }
+
+  public static <T> T loadInstance(String nameOrClass, Class<T> targetType) {
+    if (nameOrClass == null || nameOrClass.isBlank()) {
+      throw new DebeziumException("Name or class for " + targetType.getSimpleName() + " cannot be null or blank");
+    }
+
+    String trimmedName = nameOrClass.trim();
+
+    // 1. Try Arc CDI container if available (supports @Named beans)
+    try {
+      if (Arc.container() != null) {
+        InstanceHandle<Object> handle = Arc.container().instance(trimmedName);
+        if (handle != null && handle.isAvailable() && targetType.isInstance(handle.get())) {
+          LOGGER.info("Resolved {} via Arc.container(): {}", targetType.getSimpleName(), handle.get().getClass().getName());
+          return targetType.cast(handle.get());
+        }
+      }
+    } catch (Throwable ignored) {
+      // Arc may not be initialized in non-Quarkus tests
+    }
+
+    // 2. Try Class.forName reflection
+    try {
+      Class<?> clazz = Class.forName(trimmedName, true, Thread.currentThread().getContextClassLoader());
+      if (!targetType.isAssignableFrom(clazz)) {
+        throw new DebeziumException("Configured class '" + trimmedName + "' does not implement " + targetType.getName());
+      }
+      try {
+        if (Arc.container() != null) {
+          InstanceHandle<?> handle = Arc.container().instance(clazz);
+          if (handle != null && handle.isAvailable()) {
+            return targetType.cast(handle.get());
+          }
+        }
+      } catch (Throwable ignored) {
+      }
+      return targetType.cast(clazz.getDeclaredConstructor().newInstance());
+    } catch (ClassNotFoundException ignored) {
+    } catch (DebeziumException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new DebeziumException("Failed to instantiate " + targetType.getSimpleName() + " class: '" + trimmedName + "'", e);
+    }
+
+    throw new DebeziumException("Could not resolve " + targetType.getSimpleName() + " for name or class: '" + trimmedName + "'");
   }
 
   public static BigQuery bigqueryClient(Boolean isBigqueryDevEmulator, Optional<String> gcpProject, Optional<String> bqDataset, Optional<String> credentialsFile, String bqLocation) throws InterruptedException {

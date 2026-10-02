@@ -21,9 +21,11 @@ Streams Debezium events to BigQuery using the [Storage Write API](https://cloud.
 | `debezium.sink.bigquerystream.bigquery-dev-emulator`     | `false`          | Whether to connect to a local `bq-emulator` instance                                                                                   |
 | `debezium.sink.bigquerystream.upsert`                    | `false`          | Enables UPSERT mode using [BigQuery CDC](https://cloud.google.com/bigquery/docs/change-data-capture)                                   |
 | `debezium.sink.bigquerystream.upsert-keep-deletes`       | `true`           | Retains deleted rows in target table when UPSERT mode is active                                                                        |
-| `debezium.sink.bigquerystream.upsert-dedup-column`       | `__source_ts_ns` | Timestamp column used for UPSERT deduplication (row with highest value is retained)                                                   |
+| `debezium.sink.bigquerystream.deduplicator`              | `RetainLast`     | Deduplication strategy before streaming: `RetainLast`, `TimestampAndOp`, `ChangeSequence`, or custom FQCN class name           |
+| `debezium.sink.bigquerystream.upsert-dedup-column`       | `__source_ts_ns` | Timestamp column used for UPSERT deduplication (row with highest value is retained when using `TimestampAndOp` deduplicator)          |
 | `debezium.sink.bigquerystream.upsert-op-column`          | `__op`           | Operation type column used for tie-breaking when deduplication timestamp values are identical                                          |
 | `debezium.sink.bigquerystream.change-sequence.enabled`   | `false`          | Enables fine-grained `_CHANGE_SEQUENCE_NUMBER` generation for precise BigQuery CDC ordering                                            |
+| `debezium.sink.bigquerystream.change-sequence.strategy`  |                  | Strategy to extract CDC coordinates: `mysql`, `postgres`, or custom FQCN class name (inferred from connector class if omitted)          |
 | `debezium.sink.bigquerystream.max-in-flight-appends`     | `1`              | Maximum concurrent append requests pipelined within one destination batch                                                              |
 
 ### Upsert
@@ -34,13 +36,14 @@ When `debezium.sink.bigquerystream.upsert=true`, the consumer uses primary key f
 
 ### Upsert Mode Data Deduplication
 
-In UPSERT mode, in-memory event deduplication is performed prior to streaming. By default, deduplication compares the event timestamp (`__source_ts_ns`) and event operation type (`__op`).
+In UPSERT mode, in-memory event deduplication is performed prior to streaming to eliminate duplicate mutations within the same batch.
 
-You can customize the timestamp field via `debezium.sink.bigquerystream.upsert-dedup-column` (currently Long integer timestamps are supported).
+The deduplication strategy is configurable via `debezium.sink.bigquerystream.deduplicator` (default: `RetainLast`):
 
-Operation type priorities are: `{"c": 1, "r": 2, "u": 3, "d": 4}`. When two records with the same primary key share identical `__source_ts_ns` values, the record with higher `__op` priority is kept and written to BigQuery, while the duplicate is dropped.
-
-When `debezium.sink.bigquerystream.change-sequence.enabled=true`, deduplication compares full source coordinates (LSN, binlog position, row offset) to resolve ties across transaction logs occurring within the exact same nanosecond.
+- **`RetainLast` (Default)**: Retains the latest event in arrival order for each primary key. Because Debezium delivers events in database commit order, this approach guarantees that subsequent updates or deletes cleanly overwrite prior operations without parsing overhead.
+- **`TimestampAndOp`**: Retains the event with the highest timestamp (configured via `debezium.sink.bigquerystream.upsert-dedup-column`). Operation type priorities (`{"c": 1, "r": 2, "u": 3, "d": 4}`) break ties when timestamps match.
+- **`ChangeSequence`**: Compares fine-grained source coordinates (LSN, binlog offset) extracted by the configured `ChangeSequenceStrategy`. Recommended when CDC change sequencing is enabled.
+- **Custom Deduplicator**: You can provide a custom deduplicator implementing `io.debezium.server.bigquery.deduplication.BatchDeduplicator`. Configure either the fully qualified class name or `@Named` CDI bean name.
 
 ### Custom CDC Ordering
 
@@ -72,6 +75,23 @@ Format:     %016X/%016X/%016X/%016X
 ```
 
 The binlog file index is parsed from the trailing numeric component of `__source_file` (e.g., `mysql-bin.001234` becomes `1234`). MySQL requires `__source_ts_ns`, `__source_file`, `__source_pos`, and `__source_row`. PostgreSQL requires `__source_ts_ns`, `__source_lsn`, `__source_txId`, and `__transaction_total_order`. PostgreSQL transaction metadata must be enabled (`debezium.source.provide.transaction.metadata=true`) to ensure distinct sequence numbers for multiple row updates within the same transaction/LSN.
+
+#### Strategy Resolution & Extensibility
+
+When `debezium.sink.bigquerystream.change-sequence.strategy` is omitted, the sequence extraction strategy is automatically inferred based on the configured source connector (`debezium.source.connector.class`):
+- `io.debezium.connector.mysql.MySqlConnector` -> `mysql` strategy
+- `io.debezium.connector.postgresql.PostgresConnector` -> `postgres` strategy
+
+You can also explicitly specify the strategy or provide a custom strategy class:
+```properties
+# Explicitly choose built-in strategy
+debezium.sink.bigquerystream.change-sequence.strategy=postgres
+
+# Or use a custom strategy implementing ChangeSequenceStrategy
+debezium.sink.bigquerystream.change-sequence.strategy=com.example.MyCustomSequenceStrategy
+```
+
+If an unsupported connector is configured when `change-sequence.enabled=true`, the consumer fails fast during startup with an informative configuration exception.
 
 ### Append and Destination Concurrency
 

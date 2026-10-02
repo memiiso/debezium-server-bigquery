@@ -28,11 +28,10 @@ import com.google.common.annotations.Beta;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import io.debezium.DebeziumException;
 import io.debezium.engine.ChangeEvent;
+import io.debezium.server.bigquery.changesequence.ChangeSequenceFactory;
 import io.debezium.server.bigquery.changesequence.ChangeSequenceStrategy;
-import io.debezium.server.bigquery.changesequence.DefaultChangeSequenceStrategy;
 import io.debezium.server.bigquery.deduplication.BatchDeduplicator;
-import io.debezium.server.bigquery.deduplication.ChangeSequenceDeduplicator;
-import io.debezium.server.bigquery.deduplication.TimestampAndOpDeduplicator;
+import io.debezium.server.bigquery.deduplication.DeduplicatorFactory;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.Dependent;
@@ -45,6 +44,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -73,7 +73,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   StreamConsumerConfig config;
 
   BatchDeduplicator deduplicator;
-  ChangeSequenceStrategy sequenceStrategy = new DefaultChangeSequenceStrategy();
+  ChangeSequenceStrategy sequenceStrategy;
 
   @PostConstruct
   void connect() throws InterruptedException {
@@ -132,10 +132,22 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       throw new DebeziumException("Failed to create BigQuery Write Client", e);
     }
 
-    // Initialize deduplicator preserving baseline behavior
-    deduplicator = config.changeSequenceEnabled()
-        ? new ChangeSequenceDeduplicator(sequenceStrategy)
-        : new TimestampAndOpDeduplicator(config);
+    // Initialize change sequence strategy if sequencing or change-sequence deduplicator is enabled
+    boolean isChangeSequenceDedup = config.deduplicator() != null &&
+        (config.deduplicator().equalsIgnoreCase("changesequence") || config.deduplicator().equalsIgnoreCase("change-sequence"));
+
+    if (config.changeSequenceEnabled() || isChangeSequenceDedup) {
+      Optional<String> connectorClass = debeziumConfig != null ? debeziumConfig.connectorClass() : Optional.empty();
+      sequenceStrategy = ChangeSequenceFactory.getStrategy(config.changeSequenceStrategy(), connectorClass);
+      LOGGER.info("Initialized BigQuery change sequence strategy: {}", sequenceStrategy.name());
+    }
+
+    // Initialize deduplicator
+    deduplicator = DeduplicatorFactory.getDeduplicator(
+        config.deduplicator(),
+        config,
+        sequenceStrategy
+    );
     LOGGER.info("Initialized BigQuery batch deduplicator: {}", deduplicator.name());
   }
 
@@ -214,6 +226,9 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
             ? streamRecord.convert(table.getDefinition().getSchema(), doUpsert, config.upsertKeepDeletes(), config.changeSequenceEnabled(), sequenceStrategy)
             : e.convert(table.getDefinition().getSchema(), doUpsert, config.upsertKeepDeletes());
         if (doUpsert && config.changeSequenceEnabled() && !val.has(ChangeSequenceNumber.PSEUDO_COLUMN)) {
+          if (sequenceStrategy == null) {
+            throw new DebeziumException("ChangeSequenceStrategy is required when changeSequenceEnabled=true");
+          }
           val.put(ChangeSequenceNumber.PSEUDO_COLUMN, sequenceStrategy.extract(e.value()).toString());
         }
         rows.add(val);
@@ -231,11 +246,6 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
   protected List<RecordConverter> deduplicateBatch(List<RecordConverter> events) {
-    if (deduplicator == null) {
-      deduplicator = config != null && config.changeSequenceEnabled()
-          ? new ChangeSequenceDeduplicator(sequenceStrategy != null ? sequenceStrategy : new DefaultChangeSequenceStrategy())
-          : new TimestampAndOpDeduplicator(config);
-    }
     return deduplicator.deduplicate(events);
   }
 

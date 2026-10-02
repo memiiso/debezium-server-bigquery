@@ -87,4 +87,11 @@ public interface StreamConsumerConfig {
   @WithDefault("__op")
   String opColumn();
 
+  @WithName("debezium.sink.bigquerystream.deduplicator")
+  @WithDefault("RetainLast")
+  String deduplicator();
+
+  @WithName("debezium.sink.bigquerystream.change-sequence.strategy")
+  Optional<String> changeSequenceStrategy();
+
 }

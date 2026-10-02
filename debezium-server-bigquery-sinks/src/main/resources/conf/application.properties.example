@@ -68,6 +68,8 @@ quarkus.log.console.json=false
 quarkus.log.category."org.eclipse.jetty".level=WARN
 
 # Optional BigQuery CDC custom ordering and per-destination append pipelining (bigquerystream sink)
+#debezium.sink.bigquerystream.deduplicator=RetainLast
 #debezium.sink.bigquerystream.change-sequence.enabled=false
+#debezium.sink.bigquerystream.change-sequence.strategy=mysql
 #debezium.sink.bigquerystream.max-in-flight-appends=1
 

@@ -8,22 +8,70 @@ package io.debezium.server.bigquery.deduplication;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.debezium.DebeziumException;
 import io.debezium.server.bigquery.RecordConverter;
 import io.debezium.server.bigquery.StreamRecordConverter;
 import io.debezium.server.bigquery.changesequence.MySqlChangeSequenceStrategy;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Tag("unit")
 class BatchDeduplicatorTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
+
+  @Test
+  void retainLastKeepsLatestEventInArrivalOrder() throws Exception {
+    RetainLastDeduplicator deduplicator = new RetainLastDeduplicator();
+
+    // Sequence for id=1: Insert "hello" -> Delete -> Insert "hallo"
+    RecordConverter c1 = record(1, "c", "hello", 100);
+    RecordConverter d1 = record(1, "d", "hello", 100);
+    RecordConverter c2 = record(1, "c", "hallo", 100);
+
+    // Sequence for id=2: Insert "world" -> Update "world2"
+    RecordConverter c3 = record(2, "c", "world", 100);
+    RecordConverter u1 = record(2, "u", "world2", 105);
+
+    List<RecordConverter> deduped = deduplicator.deduplicate(List.of(c1, d1, c2, c3, u1));
+    assertEquals(2, deduped.size());
+
+    RecordConverter key1Result = deduped.stream()
+        .filter(r -> r.key().get("id").asInt() == 1)
+        .findFirst().orElseThrow();
+    assertEquals("hallo", key1Result.value().get("text").asText());
+    assertEquals("c", key1Result.value().get("__op").asText());
+
+    RecordConverter key2Result = deduped.stream()
+        .filter(r -> r.key().get("id").asInt() == 2)
+        .findFirst().orElseThrow();
+    assertEquals("world2", key2Result.value().get("text").asText());
+    assertEquals("u", key2Result.value().get("__op").asText());
+  }
+
+  @Test
+  void retainLastHandlesEmptyAndNullList() {
+    RetainLastDeduplicator deduplicator = new RetainLastDeduplicator();
+    assertTrue(deduplicator.deduplicate(null).isEmpty());
+    assertTrue(deduplicator.deduplicate(Collections.emptyList()).isEmpty());
+  }
+
+  @Test
+  void retainLastFailsOnNullKey() throws Exception {
+    RetainLastDeduplicator deduplicator = new RetainLastDeduplicator();
+    RecordConverter nullKeyRecord = new StreamRecordConverter("test", MAPPER.readTree("{\"id\":1}"), null, null, null, null);
+    DebeziumException ex = assertThrows(DebeziumException.class, () ->
+        deduplicator.deduplicate(List.of(nullKeyRecord)));
+    assertTrue(ex.getMessage().contains("Cannot deduplicate data with null key!"));
+  }
 
   @Test
   void timestampAndOpDeduplicatorComparesTimestampAndOp() throws Exception {

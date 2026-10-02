@@ -8,6 +8,8 @@ import io.smallrye.config.WithDefault;
 import io.smallrye.config.WithName;
 import io.smallrye.config.WithParentName;
 
+import java.util.Optional;
+
 @ConfigRoot
 @ConfigMapping
 public interface DebeziumConfig {
@@ -22,6 +24,9 @@ public interface DebeziumConfig {
   @WithName("debezium.format.key")
   @WithDefault("json")
   String keyFormat();
+
+  @WithName("debezium.source.connector.class")
+  Optional<String> connectorClass();
 
   @WithName(value = "debezium.source.time.precision.mode")
   @WithDefault(value = "isostring")
