@@ -30,11 +30,16 @@ class StreamCdcSequencingTest {
     assertFalse(converted.has(ChangeSequenceNumber.PSEUDO_COLUMN));
   }
 
+  private static final io.debezium.server.bigquery.changesequence.ChangeSequenceStrategy MYSQL_STRATEGY =
+      new io.debezium.server.bigquery.changesequence.MySqlChangeSequenceStrategy();
+  private static final io.debezium.server.bigquery.changesequence.ChangeSequenceStrategy POSTGRES_STRATEGY =
+      new io.debezium.server.bigquery.changesequence.PostgresChangeSequenceStrategy();
+
   @Test
   void allCdcMutationTypesReceiveSequence() throws Exception {
-    JSONObject upsert = converter("u", 1, 2, 3).convert(null, true, false, true);
-    JSONObject retainedDelete = converter("d", 1, 2, 4).convert(null, true, true, true);
-    JSONObject delete = converter("d", 1, 2, 5).convert(null, true, false, true);
+    JSONObject upsert = converter("u", 1, 2, 3).convert(null, true, false, true, MYSQL_STRATEGY);
+    JSONObject retainedDelete = converter("d", 1, 2, 4).convert(null, true, true, true, MYSQL_STRATEGY);
+    JSONObject delete = converter("d", 1, 2, 5).convert(null, true, false, true, MYSQL_STRATEGY);
     assertEquals("UPSERT", upsert.getString("_CHANGE_TYPE"));
     assertEquals("UPSERT", retainedDelete.getString("_CHANGE_TYPE"));
     assertEquals("DELETE", delete.getString("_CHANGE_TYPE"));
@@ -60,6 +65,8 @@ class StreamCdcSequencingTest {
     StreamBigqueryChangeConsumer consumer = new StreamBigqueryChangeConsumer();
     consumer.config = mock(StreamConsumerConfig.class);
     when(consumer.config.changeSequenceEnabled()).thenReturn(true);
+    consumer.sequenceStrategy = MYSQL_STRATEGY;
+    consumer.deduplicator = new io.debezium.server.bigquery.deduplication.ChangeSequenceDeduplicator(MYSQL_STRATEGY);
     StreamRecordConverter earlier = converter("d", 100, 20, 1);
     StreamRecordConverter later = converter("c", 100, 20, 2);
     List<RecordConverter> result = consumer.deduplicateBatch(List.of(earlier, later));
@@ -69,8 +76,8 @@ class StreamCdcSequencingTest {
 
   @Test
   void replayProducesTheSameSequencedMutation() throws Exception {
-    JSONObject firstAttempt = converter("u", 100, 20, 3).convert(null, true, false, true);
-    JSONObject replay = converter("u", 100, 20, 3).convert(null, true, false, true);
+    JSONObject firstAttempt = converter("u", 100, 20, 3).convert(null, true, false, true, MYSQL_STRATEGY);
+    JSONObject replay = converter("u", 100, 20, 3).convert(null, true, false, true, MYSQL_STRATEGY);
     assertEquals(firstAttempt.getString(ChangeSequenceNumber.PSEUDO_COLUMN),
         replay.getString(ChangeSequenceNumber.PSEUDO_COLUMN));
     assertEquals(firstAttempt.getString("_CHANGE_TYPE"), replay.getString("_CHANGE_TYPE"));
@@ -83,7 +90,7 @@ class StreamCdcSequencingTest {
             + "\"__source_txId\":300,\"__transaction_total_order\":4}");
     JsonNode key = MAPPER.readTree("{\"id\":1}");
     JSONObject converted = new StreamRecordConverter("test", value, key, null, null, null)
-        .convert(null, true, false, true);
+        .convert(null, true, false, true, POSTGRES_STRATEGY);
     assertEquals("0000000000000064/00000000000000C8/000000000000012C/0000000000000004",
         converted.getString(ChangeSequenceNumber.PSEUDO_COLUMN));
   }

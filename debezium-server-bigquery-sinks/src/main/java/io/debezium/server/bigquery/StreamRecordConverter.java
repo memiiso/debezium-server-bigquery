@@ -96,9 +96,18 @@ public class StreamRecordConverter extends BaseRecordConverter {
   /** Converts a CDC row and adds the custom ordering pseudocolumn when requested. */
   public JSONObject convert(Schema schema, boolean upsert, boolean upsertKeepDeletes, boolean changeSequenceEnabled)
       throws DebeziumException {
+    return convert(schema, upsert, upsertKeepDeletes, changeSequenceEnabled, null);
+  }
+
+  /** Converts a CDC row and adds the custom ordering pseudocolumn using the provided strategy. */
+  public JSONObject convert(Schema schema, boolean upsert, boolean upsertKeepDeletes, boolean changeSequenceEnabled,
+      io.debezium.server.bigquery.changesequence.ChangeSequenceStrategy sequenceStrategy) throws DebeziumException {
     JSONObject converted = convert(schema, upsert, upsertKeepDeletes);
     if (upsert && changeSequenceEnabled) {
-      converted.put(ChangeSequenceNumber.PSEUDO_COLUMN, ChangeSequenceNumber.from(value).toString());
+      ChangeSequenceNumber seq = sequenceStrategy != null
+          ? sequenceStrategy.extract(value)
+          : ChangeSequenceNumber.from(value);
+      converted.put(ChangeSequenceNumber.PSEUDO_COLUMN, seq.toString());
     }
     return converted;
   }
