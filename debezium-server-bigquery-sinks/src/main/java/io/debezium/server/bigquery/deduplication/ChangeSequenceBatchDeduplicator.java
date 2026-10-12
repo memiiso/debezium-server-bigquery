@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -23,6 +24,20 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Ismail Simsek
  */
 public class ChangeSequenceBatchDeduplicator implements BatchDeduplicator {
+
+  private final Optional<String> connectorClass;
+
+  public ChangeSequenceBatchDeduplicator(Optional<String> connectorClass) {
+    this.connectorClass = connectorClass != null ? connectorClass : Optional.empty();
+  }
+
+  public ChangeSequenceBatchDeduplicator() {
+    this(Optional.empty());
+  }
+
+  public Optional<String> getConnectorClass() {
+    return connectorClass;
+  }
 
   @Override
   public List<RecordConverter> deduplicate(List<RecordConverter> events) {
@@ -38,8 +53,8 @@ public class ChangeSequenceBatchDeduplicator implements BatchDeduplicator {
             + e.destination() + "' event: '" + (e.value() != null ? e.value().toString() : "null") + "'");
       }
       deduplicatedEvents.merge(e.key(), e, (oldValue, newValue) -> {
-        int comparison = ChangeSequenceNumber.from(oldValue.value())
-            .compareTo(ChangeSequenceNumber.from(newValue.value()));
+        int comparison = ChangeSequenceNumber.from(oldValue.value(), connectorClass)
+            .compareTo(ChangeSequenceNumber.from(newValue.value(), connectorClass));
         if (comparison <= 0) {
           return newValue;
         } else {

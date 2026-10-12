@@ -87,4 +87,7 @@ public interface StreamConsumerConfig {
   @WithDefault("__op")
   String opColumn();
 
+  @WithName("debezium.sink.bigquerystream.deduplicator")
+  Optional<String> deduplicator();
+
 }

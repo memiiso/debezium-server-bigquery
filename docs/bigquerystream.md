@@ -21,6 +21,7 @@ Streams Debezium events to BigQuery using the [Storage Write API](https://cloud.
 | `debezium.sink.bigquerystream.bigquery-dev-emulator`     | `false`          | Whether to connect to a local `bq-emulator` instance                                                                                   |
 | `debezium.sink.bigquerystream.upsert`                    | `false`          | Enables UPSERT mode using [BigQuery CDC](https://cloud.google.com/bigquery/docs/change-data-capture)                                   |
 | `debezium.sink.bigquerystream.upsert-keep-deletes`       | `true`           | Retains deleted rows in target table when UPSERT mode is active                                                                        |
+| `debezium.sink.bigquerystream.deduplicator`              | `Default`        | Batch deduplication strategy (`RetainLast`, `ChangeSequence`, `Default`)                                                              |
 | `debezium.sink.bigquerystream.upsert-dedup-column`       | `__source_ts_ns` | Timestamp column used for UPSERT deduplication (row with highest value is retained)                                                   |
 | `debezium.sink.bigquerystream.upsert-op-column`          | `__op`           | Operation type column used for tie-breaking when deduplication timestamp values are identical                                          |
 | `debezium.sink.bigquerystream.change-sequence.enabled`   | `false`          | Enables fine-grained `_CHANGE_SEQUENCE_NUMBER` generation for precise BigQuery CDC ordering                                            |
@@ -34,7 +35,10 @@ When `debezium.sink.bigquerystream.upsert=true`, the consumer uses primary key f
 
 ### Upsert Mode Data Deduplication
 
-In UPSERT mode, in-memory event deduplication is performed prior to streaming. By default, deduplication compares the event timestamp (`__source_ts_ns`) and event operation type (`__op`).
+In UPSERT mode, in-memory event deduplication is performed prior to streaming. The deduplication strategy can be chosen via `debezium.sink.bigquerystream.deduplicator`:
+- `RetainLast`: High-performance deduplication that retains the last event for each primary key (PK). Because Debezium delivers change events in chronological commit order, retaining the latest event preserves accurate state without requiring timestamp or operation parsing.
+- `ChangeSequence`: Deduplicates using source CDC coordinates (LSN, binlog position, row offset).
+- `Default`: By default (or when `TimestampAndOp` is selected), deduplication compares the event timestamp (`__source_ts_ns`) and event operation type (`__op`). When no timestamp column is specified, it preserves arrival order (retaining the last event).
 
 You can customize the timestamp field via `debezium.sink.bigquerystream.upsert-dedup-column` (currently Long integer timestamps are supported).
 

@@ -7,14 +7,18 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.storage.v1.TableSchema;
 import io.debezium.server.bigquery.deduplication.ChangeSequenceBatchDeduplicator;
+import io.debezium.server.bigquery.deduplication.DefaultBatchDeduplicator;
+import io.debezium.server.bigquery.deduplication.RetainLastBatchDeduplicator;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -67,6 +71,34 @@ class StreamCdcSequencingTest {
     List<RecordConverter> result = consumer.deduplicateBatch(List.of(earlier, later));
     assertEquals(1, result.size());
     assertEquals(2, result.get(0).value().get("__source_row").asInt());
+  }
+
+  @Test
+  void consumerResolvesDeduplicatorFromConfig() {
+    StreamBigqueryChangeConsumer consumer = new StreamBigqueryChangeConsumer();
+    StreamConsumerConfig config = mock(StreamConsumerConfig.class);
+    consumer.config = config;
+
+    // RetainLast
+    when(config.deduplicator()).thenReturn(Optional.of("RetainLast"));
+    assertInstanceOf(RetainLastBatchDeduplicator.class, consumer.resolveDeduplicator());
+
+    // retain-last
+    when(config.deduplicator()).thenReturn(Optional.of("retain-last"));
+    assertInstanceOf(RetainLastBatchDeduplicator.class, consumer.resolveDeduplicator());
+
+    // ChangeSequence
+    when(config.deduplicator()).thenReturn(Optional.of("ChangeSequence"));
+    assertInstanceOf(ChangeSequenceBatchDeduplicator.class, consumer.resolveDeduplicator());
+
+    // Fallback to changeSequenceEnabled=true
+    when(config.deduplicator()).thenReturn(Optional.empty());
+    when(config.changeSequenceEnabled()).thenReturn(true);
+    assertInstanceOf(ChangeSequenceBatchDeduplicator.class, consumer.resolveDeduplicator());
+
+    // Default fallback
+    when(config.changeSequenceEnabled()).thenReturn(false);
+    assertInstanceOf(DefaultBatchDeduplicator.class, consumer.resolveDeduplicator());
   }
 
   @Test

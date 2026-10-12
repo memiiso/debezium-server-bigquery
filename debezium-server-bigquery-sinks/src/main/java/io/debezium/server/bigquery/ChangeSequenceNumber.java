@@ -11,6 +11,8 @@ import io.debezium.DebeziumException;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,7 +30,20 @@ public final class ChangeSequenceNumber implements Comparable<ChangeSequenceNumb
   }
 
   public static ChangeSequenceNumber from(JsonNode value) {
+    return from(value, Optional.empty());
+  }
+
+  public static ChangeSequenceNumber from(JsonNode value, Optional<String> connectorClass) {
     BigInteger timestamp = numericField(value, "__source_ts_ns");
+    if (connectorClass != null && connectorClass.isPresent() && !connectorClass.get().isBlank()) {
+      String connector = connectorClass.get().toLowerCase(Locale.ROOT).trim();
+      if (connector.contains("mysql") || connector.contains("mariadb")) {
+        return fromMySql(value, timestamp);
+      }
+      if (connector.contains("postgres") || connector.contains("pgsql")) {
+        return fromPostgres(value, timestamp);
+      }
+    }
     if (hasValue(value, "__source_file")) {
       return fromMySql(value, timestamp);
     }
@@ -36,7 +51,7 @@ public final class ChangeSequenceNumber implements Comparable<ChangeSequenceNumb
       return fromPostgres(value, timestamp);
     }
     throw new DebeziumException("Cannot construct BigQuery change sequence: no supported source coordinates found; "
-        + "configure unwrap add.fields with source.ts_ns,source.file,source.pos,source.row for MySQL or "
+        + "configure unwrap add.fields with source.ts_ns,source.file,source.pos,source.row for MySQL/MariaDB or "
         + "source.ts_ns,source.lsn,source.txId,transaction.total_order for PostgreSQL");
   }
 

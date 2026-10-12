@@ -8,12 +8,17 @@ import io.smallrye.config.WithDefault;
 import io.smallrye.config.WithName;
 import io.smallrye.config.WithParentName;
 
+import java.util.Optional;
+
 @ConfigRoot
 @ConfigMapping
 public interface DebeziumConfig {
 
   @WithParentName
   CommonConfig common();
+
+  @WithName("debezium.source.connector.class")
+  Optional<String> connectorClass();
 
   @WithName("debezium.format.value")
   @WithDefault("json")
