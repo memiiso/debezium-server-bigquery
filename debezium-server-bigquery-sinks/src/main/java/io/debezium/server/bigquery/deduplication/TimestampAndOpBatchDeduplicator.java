@@ -20,12 +20,12 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Default deduplication strategy comparing timestamp and operation code.
+ * Deduplication strategy comparing timestamp and operation code.
  * When no timestamp column is specified, it preserves incoming event order (retaining the last event).
  *
  * @author Ismail Simsek
  */
-public class DefaultBatchDeduplicator implements BatchDeduplicator {
+public class TimestampAndOpBatchDeduplicator implements BatchDeduplicator {
 
   private static final ImmutableMap<String, Integer> CDC_OPERATIONS =
       ImmutableMap.of("c", 1, "r", 2, "u", 3, "d", 4);
@@ -33,17 +33,17 @@ public class DefaultBatchDeduplicator implements BatchDeduplicator {
   private final Optional<String> sourceTsColumn;
   private final String opColumn;
 
-  public DefaultBatchDeduplicator(StreamConsumerConfig config) {
+  public TimestampAndOpBatchDeduplicator(StreamConsumerConfig config) {
     this(config != null ? config.sourceTsColumn() : Optional.empty(),
         config != null ? config.opColumn() : "__op");
   }
 
-  public DefaultBatchDeduplicator(Optional<String> sourceTsColumn, String opColumn) {
+  public TimestampAndOpBatchDeduplicator(Optional<String> sourceTsColumn, String opColumn) {
     this.sourceTsColumn = sourceTsColumn != null ? sourceTsColumn : Optional.empty();
     this.opColumn = (opColumn != null && !opColumn.isBlank()) ? opColumn : "__op";
   }
 
-  public DefaultBatchDeduplicator() {
+  public TimestampAndOpBatchDeduplicator() {
     this(Optional.empty(), "__op");
   }
 

@@ -7,8 +7,8 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.storage.v1.TableSchema;
 import io.debezium.server.bigquery.deduplication.ChangeSequenceBatchDeduplicator;
-import io.debezium.server.bigquery.deduplication.DefaultBatchDeduplicator;
 import io.debezium.server.bigquery.deduplication.RetainLastBatchDeduplicator;
+import io.debezium.server.bigquery.deduplication.TimestampAndOpBatchDeduplicator;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -96,9 +96,14 @@ class StreamCdcSequencingTest {
     when(config.changeSequenceEnabled()).thenReturn(true);
     assertInstanceOf(ChangeSequenceBatchDeduplicator.class, consumer.resolveDeduplicator());
 
+    // TimestampAndOp explicit config
+    when(config.deduplicator()).thenReturn(Optional.of("TimestampAndOp"));
+    assertInstanceOf(TimestampAndOpBatchDeduplicator.class, consumer.resolveDeduplicator());
+
     // Default fallback
+    when(config.deduplicator()).thenReturn(Optional.empty());
     when(config.changeSequenceEnabled()).thenReturn(false);
-    assertInstanceOf(DefaultBatchDeduplicator.class, consumer.resolveDeduplicator());
+    assertInstanceOf(TimestampAndOpBatchDeduplicator.class, consumer.resolveDeduplicator());
   }
 
   @Test

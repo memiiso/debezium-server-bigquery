@@ -102,8 +102,8 @@ class BatchDeduplicatorTest {
   }
 
   @Test
-  void defaultDeduplicatorComparesTimestampAndOp() throws Exception {
-    DefaultBatchDeduplicator deduplicator = new DefaultBatchDeduplicator(
+  void timestampAndOpDeduplicatorComparesTimestampAndOp() throws Exception {
+    TimestampAndOpBatchDeduplicator deduplicator = new TimestampAndOpBatchDeduplicator(
         Optional.of("__source_ts_ns"),
         "__op"
     );
@@ -129,8 +129,8 @@ class BatchDeduplicatorTest {
   }
 
   @Test
-  void defaultDeduplicatorFallsBackToLastWhenTsColumnBlank() throws Exception {
-    DefaultBatchDeduplicator deduplicator = new DefaultBatchDeduplicator(
+  void timestampAndOpDeduplicatorFallsBackToLastWhenTsColumnBlank() throws Exception {
+    TimestampAndOpBatchDeduplicator deduplicator = new TimestampAndOpBatchDeduplicator(
         Optional.empty(),
         "__op"
     );
@@ -144,8 +144,8 @@ class BatchDeduplicatorTest {
   }
 
   @Test
-  void defaultDeduplicatorHandlesMultipleKeys() throws Exception {
-    DefaultBatchDeduplicator deduplicator = new DefaultBatchDeduplicator(
+  void timestampAndOpDeduplicatorHandlesMultipleKeys() throws Exception {
+    TimestampAndOpBatchDeduplicator deduplicator = new TimestampAndOpBatchDeduplicator(
         Optional.of("__source_ts_ns"),
         "__op"
     );
@@ -216,12 +216,12 @@ class BatchDeduplicatorTest {
 
   @Test
   void handlesEmptyAndNullEventsGracefully() {
-    DefaultBatchDeduplicator defaultDedup = new DefaultBatchDeduplicator();
+    TimestampAndOpBatchDeduplicator tsOpDedup = new TimestampAndOpBatchDeduplicator();
     ChangeSequenceBatchDeduplicator changeSeqDedup = new ChangeSequenceBatchDeduplicator();
     RetainLastBatchDeduplicator retainLastDedup = new RetainLastBatchDeduplicator();
 
-    assertTrue(defaultDedup.deduplicate(null).isEmpty());
-    assertTrue(defaultDedup.deduplicate(Collections.emptyList()).isEmpty());
+    assertTrue(tsOpDedup.deduplicate(null).isEmpty());
+    assertTrue(tsOpDedup.deduplicate(Collections.emptyList()).isEmpty());
 
     assertTrue(changeSeqDedup.deduplicate(null).isEmpty());
     assertTrue(changeSeqDedup.deduplicate(Collections.emptyList()).isEmpty());
@@ -232,7 +232,7 @@ class BatchDeduplicatorTest {
 
   @Test
   void rejectsNullKey() throws Exception {
-    DefaultBatchDeduplicator defaultDedup = new DefaultBatchDeduplicator();
+    TimestampAndOpBatchDeduplicator tsOpDedup = new TimestampAndOpBatchDeduplicator();
     ChangeSequenceBatchDeduplicator changeSeqDedup = new ChangeSequenceBatchDeduplicator();
     RetainLastBatchDeduplicator retainLastDedup = new RetainLastBatchDeduplicator();
 
@@ -240,7 +240,7 @@ class BatchDeduplicatorTest {
     StreamRecordConverter nullKeyRecord = new StreamRecordConverter("dest", value, null, null, null, null);
 
     DebeziumException ex1 = assertThrows(DebeziumException.class, () ->
-        defaultDedup.deduplicate(List.of(nullKeyRecord)));
+        tsOpDedup.deduplicate(List.of(nullKeyRecord)));
     assertTrue(ex1.getMessage().contains("Cannot deduplicate data with null key!"));
 
     DebeziumException ex2 = assertThrows(DebeziumException.class, () ->

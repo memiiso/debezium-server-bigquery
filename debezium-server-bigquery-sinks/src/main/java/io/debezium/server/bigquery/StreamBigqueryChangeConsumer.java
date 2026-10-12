@@ -30,8 +30,8 @@ import io.debezium.DebeziumException;
 import io.debezium.engine.ChangeEvent;
 import io.debezium.server.bigquery.deduplication.BatchDeduplicator;
 import io.debezium.server.bigquery.deduplication.ChangeSequenceBatchDeduplicator;
-import io.debezium.server.bigquery.deduplication.DefaultBatchDeduplicator;
 import io.debezium.server.bigquery.deduplication.RetainLastBatchDeduplicator;
+import io.debezium.server.bigquery.deduplication.TimestampAndOpBatchDeduplicator;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.Dependent;
@@ -142,10 +142,14 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
     if (dedup.equals("retainlast") || dedup.equals("retain-last")) {
       return new RetainLastBatchDeduplicator();
-    } else if (dedup.equals("changesequence") || dedup.equals("change-sequence") || (config != null && config.changeSequenceEnabled())) {
+    } else if (dedup.equals("changesequence") || dedup.equals("change-sequence")) {
+      return new ChangeSequenceBatchDeduplicator(connector);
+    } else if (dedup.equals("timestampandop") || dedup.equals("timestamp-and-op")) {
+      return new TimestampAndOpBatchDeduplicator(config);
+    } else if (config != null && config.changeSequenceEnabled()) {
       return new ChangeSequenceBatchDeduplicator(connector);
     } else {
-      return new DefaultBatchDeduplicator(config);
+      return new TimestampAndOpBatchDeduplicator(config);
     }
   }
 
