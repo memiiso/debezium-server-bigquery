@@ -202,6 +202,16 @@ class BatchDeduplicatorTest {
     List<RecordConverter> pgResult = postgresDedup.deduplicate(List.of(pgEarlier, pgLater));
     assertEquals(1, pgResult.size());
     assertEquals(2L, pgResult.get(0).value().get("__transaction_total_order").asLong());
+
+    // MariaDB connector class configured
+    ChangeSequenceBatchDeduplicator mariadbDedup = new ChangeSequenceBatchDeduplicator(
+        Optional.of("io.debezium.connector.mariadb.MariaDbConnector")
+    );
+    StreamRecordConverter mariaEarlier = createRecord(1, "d", 100L, "mariadb-bin.000001", 1000L, 1L);
+    StreamRecordConverter mariaLater = createRecord(1, "c", 100L, "mariadb-bin.000001", 1000L, 2L);
+    List<RecordConverter> mariaResult = mariadbDedup.deduplicate(List.of(mariaEarlier, mariaLater));
+    assertEquals(1, mariaResult.size());
+    assertEquals(2L, mariaResult.get(0).value().get("__source_row").asLong());
   }
 
   @Test

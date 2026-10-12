@@ -31,7 +31,7 @@ public class RetainLastBatchDeduplicator implements BatchDeduplicator {
       return Collections.emptyList();
     }
 
-    Map<JsonNode, RecordConverter> deduplicatedEvents = new LinkedHashMap<>();
+    Map<JsonNode, RecordConverter> deduplicatedEvents = new LinkedHashMap<>(events.size());
 
     for (RecordConverter e : events) {
       if (e.key() == null || e.key().isNull()) {

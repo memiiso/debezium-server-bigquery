@@ -43,6 +43,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -132,11 +133,12 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     }
 
     this.deduplicator = resolveDeduplicator();
+    LOGGER.info("Using batch deduplicator: {}", this.deduplicator.getClass().getSimpleName());
   }
 
   BatchDeduplicator resolveDeduplicator() {
     Optional<String> connector = (debeziumConfig != null) ? debeziumConfig.connectorClass() : Optional.empty();
-    String dedup = (config != null && config.deduplicator().isPresent()) ? config.deduplicator().get().trim().toLowerCase() : "";
+    String dedup = (config != null && config.deduplicator().isPresent()) ? config.deduplicator().get().trim().toLowerCase(Locale.ROOT) : "";
 
     if (dedup.equals("retainlast") || dedup.equals("retain-last")) {
       return new RetainLastBatchDeduplicator();
