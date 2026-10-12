@@ -11,6 +11,7 @@ import io.debezium.DebeziumException;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,7 +29,20 @@ public final class ChangeSequenceNumber implements Comparable<ChangeSequenceNumb
   }
 
   public static ChangeSequenceNumber from(JsonNode value) {
+    return from(value, Optional.empty());
+  }
+
+  public static ChangeSequenceNumber from(JsonNode value, Optional<String> connectorClass) {
     BigInteger timestamp = numericField(value, "__source_ts_ns");
+    if (connectorClass != null && connectorClass.isPresent() && !connectorClass.get().isBlank()) {
+      String connector = connectorClass.get().toLowerCase();
+      if (connector.contains("mysql")) {
+        return fromMySql(value, timestamp);
+      }
+      if (connector.contains("postgres")) {
+        return fromPostgres(value, timestamp);
+      }
+    }
     if (hasValue(value, "__source_file")) {
       return fromMySql(value, timestamp);
     }

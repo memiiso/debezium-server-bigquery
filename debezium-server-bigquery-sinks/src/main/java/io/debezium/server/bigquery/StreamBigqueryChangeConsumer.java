@@ -31,6 +31,7 @@ import io.debezium.engine.ChangeEvent;
 import io.debezium.server.bigquery.deduplication.BatchDeduplicator;
 import io.debezium.server.bigquery.deduplication.ChangeSequenceBatchDeduplicator;
 import io.debezium.server.bigquery.deduplication.DefaultBatchDeduplicator;
+import io.debezium.server.bigquery.deduplication.RetainLastBatchDeduplicator;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.Dependent;
@@ -43,6 +44,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -129,9 +131,20 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
       throw new DebeziumException("Failed to create BigQuery Write Client", e);
     }
 
-    this.deduplicator = (config != null && config.changeSequenceEnabled())
-        ? new ChangeSequenceBatchDeduplicator()
-        : new DefaultBatchDeduplicator(config);
+    this.deduplicator = resolveDeduplicator();
+  }
+
+  BatchDeduplicator resolveDeduplicator() {
+    Optional<String> connector = (debeziumConfig != null) ? debeziumConfig.connectorClass() : Optional.empty();
+    String dedup = (config != null && config.deduplicator().isPresent()) ? config.deduplicator().get().trim().toLowerCase() : "";
+
+    if (dedup.equals("retainlast") || dedup.equals("retain-last")) {
+      return new RetainLastBatchDeduplicator();
+    } else if (dedup.equals("changesequence") || dedup.equals("change-sequence") || (config != null && config.changeSequenceEnabled())) {
+      return new ChangeSequenceBatchDeduplicator(connector);
+    } else {
+      return new DefaultBatchDeduplicator(config);
+    }
   }
 
   private void closeStreamWriter(StreamDataWriter writer, String destination) {
