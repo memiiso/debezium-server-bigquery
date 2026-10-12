@@ -6,6 +6,7 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.storage.v1.TableSchema;
+import io.debezium.server.bigquery.deduplication.ChangeSequenceBatchDeduplicator;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -60,6 +61,7 @@ class StreamCdcSequencingTest {
     StreamBigqueryChangeConsumer consumer = new StreamBigqueryChangeConsumer();
     consumer.config = mock(StreamConsumerConfig.class);
     when(consumer.config.changeSequenceEnabled()).thenReturn(true);
+    consumer.deduplicator = new ChangeSequenceBatchDeduplicator();
     StreamRecordConverter earlier = converter("d", 100, 20, 1);
     StreamRecordConverter later = converter("c", 100, 20, 2);
     List<RecordConverter> result = consumer.deduplicateBatch(List.of(earlier, later));

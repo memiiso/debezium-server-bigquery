@@ -25,10 +25,12 @@ import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.TableName;
 import com.google.cloud.bigquery.storage.v1.TableSchema;
 import com.google.common.annotations.Beta;
-import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import io.debezium.DebeziumException;
 import io.debezium.engine.ChangeEvent;
+import io.debezium.server.bigquery.deduplication.BatchDeduplicator;
+import io.debezium.server.bigquery.deduplication.ChangeSequenceBatchDeduplicator;
+import io.debezium.server.bigquery.deduplication.DefaultBatchDeduplicator;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.Dependent;
@@ -59,7 +61,6 @@ import java.util.concurrent.TimeUnit;
 @Dependent
 @Beta
 public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
-  private static final ImmutableMap<String, Integer> cdcOperations = ImmutableMap.of("c", 1, "r", 2, "u", 3, "d", 4);
   protected final ConcurrentHashMap<String, StreamDataWriter> jsonStreamWriters = new ConcurrentHashMap<>();
   BigQueryWriteClient bigQueryWriteClient;
   TimePartitioning timePartitioning;
@@ -68,6 +69,8 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
   @Inject
   StreamConsumerConfig config;
+
+  BatchDeduplicator deduplicator;
 
   @PostConstruct
   void connect() throws InterruptedException {
@@ -125,6 +128,10 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
     } catch (IOException e) {
       throw new DebeziumException("Failed to create BigQuery Write Client", e);
     }
+
+    this.deduplicator = (config != null && config.changeSequenceEnabled())
+        ? new ChangeSequenceBatchDeduplicator()
+        : new DefaultBatchDeduplicator(config);
   }
 
   private void closeStreamWriter(StreamDataWriter writer, String destination) {
@@ -220,56 +227,7 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
 
 
   protected List<RecordConverter> deduplicateBatch(List<RecordConverter> events) {
-
-    ConcurrentHashMap<JsonNode, RecordConverter> deduplicatedEvents = new ConcurrentHashMap<>();
-
-    events.forEach(e ->
-        // deduplicate using key(PK)
-        deduplicatedEvents.merge(e.key(), e, (oldValue, newValue) -> {
-          int comparison = config.changeSequenceEnabled()
-              ? ChangeSequenceNumber.from(oldValue.value()).compareTo(ChangeSequenceNumber.from(newValue.value()))
-              : this.compareByTsThenOp(oldValue.value(), newValue.value());
-          if (comparison <= 0) {
-            return newValue;
-          } else {
-            return oldValue;
-          }
-        })
-    );
-
-    return new ArrayList<>(deduplicatedEvents.values());
-  }
-
-  /**
-   * This is used to deduplicate events within given batch.
-   * <p>
-   * Forex ample a record can be updated multiple times in the source. for example insert followed by update and
-   * delete. for this case we need to only pick last change event for the row.
-   * <p>
-   * Its used when `upsert` feature enabled (when the consumer operating non append mode) which means it should not add
-   * duplicate records to target table.
-   *
-   * @param lhs
-   * @param rhs
-   * @return
-   */
-  private int compareByTsThenOp(JsonNode lhs, JsonNode rhs) {
-
-    if (config.sourceTsColumn().isEmpty() || config.sourceTsColumn().get().isBlank()) {
-      return -1;
-    }
-
-    int result = Long.compare(lhs.get(config.sourceTsColumn().get()).asLong(0), rhs.get(config.sourceTsColumn().get()).asLong(0));
-
-    if (result == 0) {
-      // return (x < y) ? -1 : ((x == y) ? 0 : 1);
-      result = cdcOperations.getOrDefault(lhs.get(config.opColumn()).asText("c"), -1)
-          .compareTo(
-              cdcOperations.getOrDefault(rhs.get(config.opColumn()).asText("c"), -1)
-          );
-    }
-
-    return result;
+    return deduplicator.deduplicate(events);
   }
 
   public TableId getTableId(String destination) {
