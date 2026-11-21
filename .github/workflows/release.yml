@@ -63,9 +63,15 @@ jobs:
         shell: bash # Explicitly set shell to bash
 
       - name: Build Project
-        run: mvn -B  --no-transfer-progress clean package -Passembly --file pom.xml -Drevision=${{ env.RELEASE_NAME }}
+        run: mvn -B --no-transfer-progress clean package -Passembly --file pom.xml -Drevision=${{ env.RELEASE_NAME }}
 
-      - name: Delete Existing Release (if any)
+      - name: Generate Release Checksum
+        run: |
+          cd debezium-server-bigquery-dist/target
+          sha256sum debezium-server-bigquery-dist-${{ env.RELEASE_NAME }}.zip > debezium-server-bigquery-dist-${{ env.RELEASE_NAME }}.zip.sha256
+
+      - name: Delete Existing Rolling Release (latest only)
+        if: env.RELEASE_NAME == 'latest'
         run: gh release delete ${{ env.RELEASE_NAME }} --cleanup-tag --yes
         continue-on-error: true
         env:
@@ -81,9 +87,15 @@ jobs:
           tag_name: ${{ env.RELEASE_NAME }}
           body: Release ${{ env.RELEASE_NAME }}
           draft: false
-          prerelease: ${{ env.IS_PRERELEASE == 'true' }}
+          prerelease: ${{ env.RELEASE_NAME == 'latest' || env.IS_PRERELEASE == 'true' }}
+          make_latest: ${{ env.RELEASE_NAME != 'latest' && env.IS_PRERELEASE != 'true' && 'true' || 'false' }}
+          generate_release_notes: ${{ env.RELEASE_NAME != 'latest' }}
           files: |
             debezium-server-bigquery-dist/target/debezium-server-bigquery-dist-${{ env.RELEASE_NAME }}.zip
+            debezium-server-bigquery-dist/target/debezium-server-bigquery-dist-${{ env.RELEASE_NAME }}.zip.sha256
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
         uses: docker/login-action@v4
@@ -100,6 +112,13 @@ jobs:
           push: true
           provenance: false
           sbom: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.RELEASE_NAME }}
+            org.opencontainers.image.licenses=Apache-2.0
           build-args: |
             RELEASE_VERSION=${{ env.RELEASE_NAME }}
           tags: ${{ env.DOCKER_TAGS }}
