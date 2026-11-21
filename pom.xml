@@ -37,7 +37,7 @@
         <version.testcontainers>2.0.5</version.testcontainers>
         <!-- Plugin versions -->
         <version.assembly.plugin>3.8.0</version.assembly.plugin>
-        <version.maven-enforcer-plugin>3.6.2</version.maven-enforcer-plugin>
+        <version.maven-enforcer-plugin>3.7.0</version.maven-enforcer-plugin>
         <version.maven-failsafe-plugin>3.5.5</version.maven-failsafe-plugin>
         <version.maven-surefire-plugin>3.5.5</version.maven-surefire-plugin>
     </properties>
