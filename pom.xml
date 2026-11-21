@@ -35,7 +35,7 @@
 
         <skipITs>true</skipITs>
         <version.gcp.librariesbom>26.94.0</version.gcp.librariesbom>
-        <version.gcp.bigquerybom>2.76.0</version.gcp.bigquerybom>
+        <version.gcp.bigquerybom>2.77.0</version.gcp.bigquerybom>
         <version.testcontainers>2.0.5</version.testcontainers>
         <version.awaitility>4.3.0</version.awaitility>
         <!-- Plugin versions -->
