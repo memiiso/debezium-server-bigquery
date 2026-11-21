@@ -10,14 +10,74 @@ package io.debezium.server.bigquery.shared;
 
 import io.debezium.engine.ChangeEvent;
 import io.debezium.engine.DebeziumEngine;
+import io.debezium.runtime.BatchEvent;
+import io.debezium.runtime.CapturingEvents;
 
 import java.security.SecureRandom;
+import java.util.List;
 
 import org.apache.kafka.connect.source.SourceRecord;
 
 public class TestUtil {
   static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
   static final SecureRandom rnd = new SecureRandom();
+
+  public static BatchEvent toBatchEvent(ChangeEvent<Object, Object> event) {
+    return new BatchEvent() {
+      @Override
+      public Object key() {
+        return event.key();
+      }
+
+      @Override
+      public Object value() {
+        return event.value();
+      }
+
+      @Override
+      public Integer partition() {
+        return event.partition();
+      }
+
+      @Override
+      public SourceRecord record() {
+        return null;
+      }
+
+      @Override
+      public String destination() {
+        return event.destination();
+      }
+
+      @Override
+      public void commit() {
+      }
+    };
+  }
+
+  public static CapturingEvents<BatchEvent> toCapturingEvents(List<BatchEvent> batch) {
+    return new CapturingEvents<>() {
+      @Override
+      public List<BatchEvent> records() {
+        return batch;
+      }
+
+      @Override
+      public String destination() {
+        return null;
+      }
+
+      @Override
+      public String source() {
+        return "test";
+      }
+
+      @Override
+      public String engine() {
+        return "default";
+      }
+    };
+  }
 
 
   public static int randomInt(int low, int high) {

@@ -2,9 +2,9 @@ package io.debezium.server.bigquery;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.debezium.DebeziumException;
-import io.debezium.engine.ChangeEvent;
-import io.debezium.engine.DebeziumEngine;
+import io.debezium.runtime.BatchEvent;
 import io.debezium.server.bigquery.batchsizewait.BatchSizeWait;
+import io.debezium.server.bigquery.shared.TestUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -42,35 +42,36 @@ class BaseChangeConsumerParallelTest {
   void destinationFailurePreventsAllCommitterCalls() throws Exception {
     consumer = configuredConsumer(2, 1);
     consumer.failedDestination = "bad";
-    List<ChangeEvent<Object, Object>> records = List.of(event("good"), event("bad"));
-    DebeziumEngine.RecordCommitter<ChangeEvent<Object, Object>> committer = mock(DebeziumEngine.RecordCommitter.class);
+    BatchEvent good = event("good");
+    BatchEvent bad = event("bad");
+    List<BatchEvent> records = List.of(good, bad);
 
-    assertThrows(DebeziumException.class, () -> consumer.handleBatch(records, committer));
-    verify(committer, never()).markProcessed(org.mockito.ArgumentMatchers.any());
-    verify(committer, never()).markBatchFinished();
+    assertThrows(DebeziumException.class, () -> consumer.handle(TestUtil.toCapturingEvents(records)));
+    verify(good, never()).commit();
+    verify(bad, never()).commit();
   }
 
   @Test
   void timeoutPreventsOffsetAdvancement() throws Exception {
     consumer = configuredConsumer(2, 0);
     consumer.blockUploads = true;
-    List<ChangeEvent<Object, Object>> records = List.of(event("slow"));
-    DebeziumEngine.RecordCommitter<ChangeEvent<Object, Object>> committer = mock(DebeziumEngine.RecordCommitter.class);
+    BatchEvent slow = event("slow");
+    List<BatchEvent> records = List.of(slow);
 
-    assertThrows(DebeziumException.class, () -> consumer.handleBatch(records, committer));
-    verify(committer, never()).markProcessed(org.mockito.ArgumentMatchers.any());
-    verify(committer, never()).markBatchFinished();
+    assertThrows(DebeziumException.class, () -> consumer.handle(TestUtil.toCapturingEvents(records)));
+    verify(slow, never()).commit();
   }
 
   @Test
   void successfulDestinationsCommitEveryRecordAndFinishOnce() throws Exception {
     consumer = configuredConsumer(2, 1);
-    List<ChangeEvent<Object, Object>> records = List.of(event("one"), event("two"));
-    DebeziumEngine.RecordCommitter<ChangeEvent<Object, Object>> committer = mock(DebeziumEngine.RecordCommitter.class);
+    BatchEvent one = event("one");
+    BatchEvent two = event("two");
+    List<BatchEvent> records = List.of(one, two);
 
-    consumer.handleBatch(records, committer);
-    verify(committer, times(2)).markProcessed(org.mockito.ArgumentMatchers.any());
-    verify(committer, times(1)).markBatchFinished();
+    consumer.handle(TestUtil.toCapturingEvents(records));
+    verify(one, times(1)).commit();
+    verify(two, times(1)).commit();
   }
 
   @Test
@@ -101,18 +102,15 @@ class BaseChangeConsumerParallelTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   void tombstoneRecordsAreSkippedWithoutUpload() throws Exception {
     consumer = configuredConsumer(1, 1);
-    ChangeEvent<Object, Object> tombstone = mock(ChangeEvent.class);
+    BatchEvent tombstone = mock(BatchEvent.class);
     when(tombstone.destination()).thenReturn("dest1");
     when(tombstone.value()).thenReturn(null);
 
-    DebeziumEngine.RecordCommitter<ChangeEvent<Object, Object>> committer = mock(DebeziumEngine.RecordCommitter.class);
-    consumer.handleBatch(List.of(tombstone), committer);
+    consumer.handle(TestUtil.toCapturingEvents(List.of(tombstone)));
 
-    verify(committer, times(1)).markProcessed(tombstone);
-    verify(committer, times(1)).markBatchFinished();
+    verify(tombstone, times(1)).commit();
   }
 
   private static TestConsumer configuredConsumer(int concurrency, int timeoutMinutes) throws Exception {
@@ -133,9 +131,8 @@ class BaseChangeConsumerParallelTest {
     field.set(target, value);
   }
 
-  @SuppressWarnings("unchecked")
-  private static ChangeEvent<Object, Object> event(String destination) {
-    ChangeEvent<Object, Object> event = mock(ChangeEvent.class);
+  private static BatchEvent event(String destination) {
+    BatchEvent event = mock(BatchEvent.class);
     when(event.destination()).thenReturn(destination);
     when(event.value()).thenReturn("payload");
     return event;
@@ -163,7 +160,7 @@ class BaseChangeConsumerParallelTest {
     }
 
     @Override
-    public RecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> event) {
+    public RecordConverter eventAsRecordConverter(BatchEvent event) {
       RecordConverter converter = mock(RecordConverter.class);
       when(converter.valueSchema()).thenReturn(JsonNodeFactory.instance.objectNode());
       return converter;

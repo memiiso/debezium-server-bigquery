@@ -23,7 +23,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.WriteChannelConfiguration;
 import io.debezium.DebeziumException;
-import io.debezium.engine.ChangeEvent;
+import io.debezium.runtime.BatchEvent;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
@@ -181,7 +181,8 @@ public class BatchBigqueryChangeConsumer<T> extends BaseChangeConsumer {
     return getTableId(destination, config.gcpProject().get(), config.bqDataset().get());
   }
 
-  public RecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
+  @Override
+  public RecordConverter eventAsRecordConverter(BatchEvent e) throws IOException {
     return new BatchRecordConverter(e.destination(),
         valDeserializer.deserialize(e.destination(), getBytes(e.value())),
         e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
