@@ -6,7 +6,7 @@ We welcome contributions of all kinds, including bug reports, documentation upda
 
 ### Prerequisites
 - JDK 21 or later
-- Apache Maven 3.6.3 or higher
+- Apache Maven 3.9.0 or higher
 - Docker (optional, required for running integration tests with emulators)
 
 ### Building the Project

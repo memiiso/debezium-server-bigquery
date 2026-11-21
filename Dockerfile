@@ -1,6 +1,6 @@
-FROM maven:3.9.9-eclipse-temurin-21 as builder
+FROM maven:3.9.11-eclipse-temurin-21 AS builder
 ARG RELEASE_VERSION=0.0.1-SNAPSHOT
-RUN apt-get -qq update && apt-get -qq install unzip
+RUN apt-get -qq update && apt-get -qq install -y --no-install-recommends unzip && rm -rf /var/lib/apt/lists/*
 
 # Copy parent and module pom.xml files to cache dependencies
 COPY pom.xml /app/

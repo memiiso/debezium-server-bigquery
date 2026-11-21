@@ -24,10 +24,10 @@ This project adds BigQuery sink consumers to [Debezium Server](https://debezium.
 
 ```
 <debezium-major>.<debezium-minor>.<debezium-patch>.<sink-revision>.<qualifier>
-Example: 3.6.3.0.Final
+Example: 3.7.1.0.Final
 ```
 
-- **Debezium Version** (`3.6.3`): Matches the exact upstream Debezium release bundled in the server distribution and container.
+- **Debezium Version** (`3.7.1`): Matches the exact upstream Debezium release bundled in the server distribution and container.
 - **Sink Revision** (`0`, `1`, `2`): Incremented for BigQuery sink bug fixes, improvements, or features independent of Debezium version updates.
 - **Qualifier** (`Beta`, `Final`): Indicates testing (`Beta`, `Beta2`) or production-ready general availability (`Final`).
 
@@ -35,17 +35,18 @@ Example: 3.6.3.0.Final
 
 | Release | Upstream Debezium | Java Baseline | Quarkus Version | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| `3.6.3.0.Final` | `3.6.3.Final` | Java 21 | 3.15.x | Debezium 3.6 baseline, safe CDC sequencing & append pipelining |
+| `3.7.1.0.Final` | `3.7.1.Final` | Java 21 | 3.33.x | Debezium 3.7 `DebeziumServerConsumer` API, `RetainLast` & `TimestampAndOp` deduplicators, connector-aware CDC sequencing |
+| `3.6.3.0.Final` | `3.6.3.Final` | Java 21 | 3.33.x | Debezium 3.6 baseline, safe CDC sequencing & append pipelining |
 | `0.12.0.Final` | `3.1.3.Final` | Java 21 | 3.15.x | BigQuery CDC sequencing & pipeline |
 | `0.9.3.Final` | `3.1.3.Final` | Java 21 | 3.8.x | Debezium 3.1 upgrade |
 | `0.6.0.Final` | `2.7.3.Final` | Java 17 | 3.2.x | Debezium 2.7 upgrade |
 
 Container images are published to GitHub Container Registry:
 ```bash
-docker pull ghcr.io/memiiso/debezium-server-bigquery:3.6.3.0.Final
+docker pull ghcr.io/memiiso/debezium-server-bigquery:3.7.1.0.Final
 # Floating convenience tags for the latest patch and minor versions:
-docker pull ghcr.io/memiiso/debezium-server-bigquery:3.6.3
-docker pull ghcr.io/memiiso/debezium-server-bigquery:3.6
+docker pull ghcr.io/memiiso/debezium-server-bigquery:3.7.1
+docker pull ghcr.io/memiiso/debezium-server-bigquery:3.7
 docker pull ghcr.io/memiiso/debezium-server-bigquery:latest
 ```
 
@@ -53,7 +54,7 @@ docker pull ghcr.io/memiiso/debezium-server-bigquery:latest
 
 ### Prerequisites
 - JDK 21 or later
-- Apache Maven 3.6.3 or later
+- Apache Maven 3.9.0 or later
 
 ### Installation Steps
 
