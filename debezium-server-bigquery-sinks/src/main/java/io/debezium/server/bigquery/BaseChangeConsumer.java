@@ -13,10 +13,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import io.debezium.DebeziumException;
-import io.debezium.engine.ChangeEvent;
-import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.Json;
+import io.debezium.runtime.BatchEvent;
+import io.debezium.runtime.CapturingEvents;
 import io.debezium.serde.DebeziumSerdes;
+import io.debezium.server.api.DebeziumServerConsumer;
 import io.debezium.server.bigquery.batchsizewait.BatchSizeWait;
 import io.debezium.util.Clock;
 import io.debezium.util.Strings;
@@ -53,13 +54,13 @@ import java.util.stream.Collectors;
  * Abstract base class for Debezium change consumers that deliver messages to a BigQuery destination.
  * <p>This class provides a foundation for building Debezium change consumers that handle
  * incoming change events and deliver them to a BigQuery destination. It implements the
- * `DebeziumEngine.ChangeConsumer` interface, defining the `handleBatch` method for processing
+ * {@link DebeziumServerConsumer} interface, defining the {@code handle} method for processing
  * batches of change events. Concrete implementations of this class need to provide specific logic
  * for uploading or persisting the converted data to the BigQuery destination.
  *
  * @author Ismail Simsek
  */
-public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeConsumer implements DebeziumEngine.ChangeConsumer<ChangeEvent<Object, Object>> {
+public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeConsumer implements DebeziumServerConsumer<CapturingEvents<BatchEvent>> {
 
   protected static final Duration LOG_INTERVAL = Duration.ofMinutes(15);
   protected static final ConcurrentHashMap<String, Object> uploadLock = new ConcurrentHashMap<>();
@@ -137,39 +138,35 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
   }
 
   @Override
-  public void handleBatch(List<ChangeEvent<Object, Object>> records, DebeziumEngine.RecordCommitter<ChangeEvent<Object, Object>> committer)
-      throws InterruptedException {
+  public void handle(CapturingEvents<BatchEvent> events) throws InterruptedException {
+    List<BatchEvent> records = events.records();
     LOGGER.trace("Received {} events", records.size());
 
     Instant start = Instant.now();
-    Map<String, List<ChangeEvent<Object, Object>>> events = records.stream()
+    Map<String, List<BatchEvent>> groupedEvents = records.stream()
         .filter(r -> r.value() != null)
-        .collect(Collectors.groupingBy(ChangeEvent<Object, Object>::destination));
+        .collect(Collectors.groupingBy(BatchEvent::destination));
 
     // consume list of events for each destination table
     if (numConcurrentUploads > 1) {
-      this.processTablesInParallel(events);
+      this.processTablesInParallel(groupedEvents);
     } else {
-      this.processTablesSequentially(events);
+      this.processTablesSequentially(groupedEvents);
     }
 
-    // workaround! somehow offset is not saved to file unless we call committer.markProcessed
-    // even it's should be saved to file periodically
-    for (ChangeEvent<Object, Object> record : records) {
+    for (BatchEvent record : records) {
       LOGGER.trace("Processed event '{}'", record);
-      committer.markProcessed(record);
+      record.commit();
     }
-    committer.markBatchFinished();
     long numUploadedEvents = records.size();
     this.logConsumerProgress(numUploadedEvents);
     LOGGER.debug("Received:{} Processed:{} events", records.size(), numUploadedEvents);
 
     batchSizeWait.waitMs(numUploadedEvents, (int) Duration.between(start, Instant.now()).toMillis());
-
   }
 
-  private void processTablesSequentially(Map<String, List<ChangeEvent<Object, Object>>> events) {
-    for (Map.Entry<String, List<ChangeEvent<Object, Object>>> destinationEvents : events.entrySet()) {
+  private void processTablesSequentially(Map<String, List<BatchEvent>> events) {
+    for (Map.Entry<String, List<BatchEvent>> destinationEvents : events.entrySet()) {
       if (destinationEvents.getKey().startsWith(debeziumConfig.topicHeartbeatPrefix()) && debeziumConfig.topicHeartbeatSkipConsuming()) {
         continue;
       }
@@ -184,13 +181,13 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
     return TableId.of(gcpProject, bqDataset, tableName);
   }
 
-  private void addToTable(Map.Entry<String, List<ChangeEvent<Object, Object>>> destinationEvents) {
+  private void addToTable(Map.Entry<String, List<BatchEvent>> destinationEvents) {
     synchronized (uploadLock.computeIfAbsent(destinationEvents.getKey(), k -> new Object())) {
       // group list of events by their schema, if in the batch we have schema change events grouped by their schema
       // so with this uniform schema is guaranteed for each batch
       Map<JsonNode, List<RecordConverter>> eventsGroupedBySchema =
           destinationEvents.getValue().stream()
-              .map((ChangeEvent<Object, Object> e) -> {
+              .map((BatchEvent e) -> {
                 try {
                   return this.eventAsRecordConverter(e);
                 } catch (IOException ex) {
@@ -208,9 +205,9 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
     }
   }
 
-  protected void processTablesInParallel(Map<String, List<ChangeEvent<Object, Object>>> events) {
+  protected void processTablesInParallel(Map<String, List<BatchEvent>> events) {
     List<Callable<Void>> tasks = new ArrayList<>();
-    for (Map.Entry<String, List<ChangeEvent<Object, Object>>> destinationEvents : events.entrySet()) {
+    for (Map.Entry<String, List<BatchEvent>> destinationEvents : events.entrySet()) {
       if (destinationEvents.getKey().startsWith(debeziumConfig.topicHeartbeatPrefix()) && debeziumConfig.topicHeartbeatSkipConsuming()) {
         continue;
       }
@@ -351,5 +348,5 @@ public abstract class BaseChangeConsumer extends io.debezium.server.BaseChangeCo
 
   public abstract long uploadDestination(String destination, List<RecordConverter> data);
 
-  public abstract RecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException;
+  public abstract RecordConverter eventAsRecordConverter(BatchEvent e) throws IOException;
 }

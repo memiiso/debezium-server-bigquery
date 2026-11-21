@@ -36,7 +36,11 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-resteasy-jackson</artifactId>
+            <artifactId>quarkus-rest-jackson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-connect-plugins</artifactId>
         </dependency>
         <dependency>
             <groupId>io.debezium</groupId>
@@ -122,13 +126,16 @@
                     <artifactId>debezium-server-bigquery-sinks</artifactId>
                     <version>${revision}</version>
                 </dependency>
+                <dependency>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-logging-json</artifactId>
+                </dependency>
             </dependencies>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <version>${version.assembly.plugin}</version>
                         <executions>
                             <execution>
                                 <id>default</id>

@@ -27,7 +27,7 @@ import com.google.cloud.bigquery.storage.v1.TableSchema;
 import com.google.common.annotations.Beta;
 import com.google.protobuf.Descriptors.DescriptorValidationException;
 import io.debezium.DebeziumException;
-import io.debezium.engine.ChangeEvent;
+import io.debezium.runtime.BatchEvent;
 import io.debezium.server.bigquery.deduplication.BatchDeduplicator;
 import io.debezium.server.bigquery.deduplication.ChangeSequenceBatchDeduplicator;
 import io.debezium.server.bigquery.deduplication.RetainLastBatchDeduplicator;
@@ -340,7 +340,8 @@ public class StreamBigqueryChangeConsumer extends BaseChangeConsumer {
   }
 
 
-  public RecordConverter eventAsRecordConverter(ChangeEvent<Object, Object> e) throws IOException {
+  @Override
+  public RecordConverter eventAsRecordConverter(BatchEvent e) throws IOException {
     return new StreamRecordConverter(e.destination(),
         valDeserializer.deserialize(e.destination(), getBytes(e.value())),
         e.key() == null ? null : keyDeserializer.deserialize(e.destination(), getBytes(e.key())),
